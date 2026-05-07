@@ -1,0 +1,49 @@
+# ─── GitHub Actions — Despliegue Automático del Frontend a GitHub Pages ───────
+# Se ejecuta automáticamente cada vez que se hace merge a la rama 'main'.
+# Publica el contenido de la carpeta 'frontend/' como sitio estático.
+#
+# URL resultante: https://jose-pablo-martinez.github.io/EKI-SistemasRecomendacion/
+
+name: Deploy Frontend a GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Permite ejecutar manualmente desde la pestaña Actions de GitHub
+
+# Permisos necesarios para escribir en GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Evitar despliegues concurrentes (cancela el anterior si hay uno en progreso)
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publicar en GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar URL de producción (API_BASE_URL)
+        run: |
+          sed -i 's|http://localhost:8000|https://eki-backend.onrender.com|g' frontend/js/app.js
+
+      - name: Subir carpeta frontend/ como artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/   # Solo se publica esta carpeta
+
+      - name: Desplegar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

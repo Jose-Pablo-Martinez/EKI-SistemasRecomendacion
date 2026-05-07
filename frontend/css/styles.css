@@ -1,0 +1,41 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   EKI — Estilos Personalizados
+   Complementan (no reemplazan) las utilidades de Tailwind CSS.
+   Usar solo para estilos que Tailwind no puede expresar directamente.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* ─── Scroll suave para anclas internas ────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ─── Tarjeta de Vendedor — animación de entrada ───────────────────────────── */
+.vendor-card {
+  animation: fadeInUp 0.3s ease both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Retraso escalonado para las tarjetas en la grilla */
+.vendor-card:nth-child(1)  { animation-delay: 0.05s; }
+.vendor-card:nth-child(2)  { animation-delay: 0.10s; }
+.vendor-card:nth-child(3)  { animation-delay: 0.15s; }
+.vendor-card:nth-child(4)  { animation-delay: 0.20s; }
+.vendor-card:nth-child(5)  { animation-delay: 0.25s; }
+.vendor-card:nth-child(6)  { animation-delay: 0.30s; }
+
+/* ─── Foco accesible ───────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #52B788;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
