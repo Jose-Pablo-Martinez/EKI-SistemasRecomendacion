@@ -1,4 +1,4 @@
-# 🌮 Esquina Jach ki' (EKI)
+# Esquina Jach ki' (EKI)
  
 **Proyecto Final - Sistemas de Recomendación de Información**  
 *Facultad de Matemáticas, UADY*
