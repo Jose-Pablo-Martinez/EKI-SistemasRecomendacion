@@ -7,6 +7,7 @@ Convención: sufijo 'Create' para input, sufijo 'Response' para output.
 
 from datetime import datetime
 
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel, Field, ConfigDict
 
 

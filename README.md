@@ -65,19 +65,29 @@ La organización de carpetas está estandarizada para facilitar el desarrollo co
 ```text
 ekiSystem/                    ← Raíz del Repositorio
 │
+├── scripts/                 ← Automatización y Operaciones
+│   ├── setup/               ← Inicialización del entorno
+│   └── db/                  ← Gestión de Base de Datos y Migraciones
+│
 ├── backend/                 ← Entorno Python / API
-│   ├── eki_main.py          ← Punto de entrada de FastAPI y rutas
-│   ├── models.py            ← Esquemas de SQLAlchemy para MariaDB
-│   ├── logic/               ← Algoritmos del modelo híbrido y recomendación
-│   └── requirements.txt     ← Dependencias del entorno virtual de Python
+│   ├── migrations/          ← Versiones de la BD (Alembic)
+│   ├── eki_main.py          ← Punto de entrada de FastAPI
+│   └── models.py            ← Esquemas de SQLAlchemy
 │
 └── frontend/                ← Entorno Web / UI Vanilla JS
-    ├── index.html           ← Estructura web y carga de Tailwind por CDN
-    ├── js/
-    │   └── app.js           ← Lógica de peticiones HTTP con Fetch API
-    └── css/
-        └── styles.css       ← Ajustes de diseño personalizados
+    ├── index.html           ← Estructura web
+    └── js/app.js            ← Lógica de peticiones
 ```
+
+---
+
+## ⚙️ Automatización y Despliegue
+
+Este proyecto utiliza un flujo de automatización profesional para mantener la integridad de los datos:
+
+1.  **Gestión de Cambios:** Se utiliza **Alembic** para versionar cualquier cambio en el esquema de la base de datos.
+2.  **CI/CD:** Los cambios en la rama `main` disparan un pipeline que aplica automáticamente las migraciones en la base de datos de producción en **Aiven** antes de actualizar el servicio en **Render**.
+3.  **Entornos Separados:** Se recomienda usar `defaultdb` para desarrollo local y `ekidb` para producción.
  
 ---
  

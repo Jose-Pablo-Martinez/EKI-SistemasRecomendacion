@@ -1,106 +1,81 @@
 # 📖 Guía de Configuración Local — EKI
 
-Esta guía explica paso a paso cómo preparar tu entorno de desarrollo para testear el sistema **Esquina Jach ki' (EKI)** en tu máquina local.
+Esta guía es el **punto de partida obligatorio**. Sigue estos pasos para tener el sistema funcionando en tu computadora.
+
+> [!WARNING]
+> **IMPORTANTE:** Antes de realizar cualquier operación avanzada de base de datos o despliegue, es obligatorio leer el manual de operaciones: [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 ---
 
-## 1. Requisitos Previos
-*   **Python 3.11 o superior** instalado.
-*   **Git** configurado.
-*   Acceso a las credenciales de la base de datos (Aiven). *(Opcional para el setup inicial)*, se le puede solicitar al líder del equipo las crecendiales para trabajar con la base de datos de Aiven
+## 1. Requisitos Previos (Lo que debes instalar)
+
+Antes de empezar, asegúrate de tener instalado en tu sistema:
+1.  **Python 3.11 o superior**: [Descargar aquí](https://www.python.org/). 
+    *   *Nota: Durante la instalación en Windows, marca la casilla "Add Python to PATH".*
+2.  **Git**: Para clonar el repositorio y gestionar ramas.
+3.  **MariaDB / MySQL Client**: 
+    *   Si vas a trabajar con la base de datos en la nube (Aiven), no necesitas instalar el servidor, pero es útil tener un cliente como **DBeaver** o **HeidiSQL** para visualizar los datos.
 
 ---
 
-## 2. Configuración del Entorno (Python)
+## 2. Instalación Paso a Paso
 
-Abre una terminal en la raíz del proyecto y ejecuta:
-
-### A. Crear el entorno virtual
+### A. Clonar y preparar entorno
+Abre una terminal (PowerShell o CMD) en la carpeta donde quieras guardar el proyecto:
 ```powershell
+git clone <url-del-repo>
+cd ekiSystem
 python -m venv venv
+.\venv\Scripts\activate
 ```
 
-### B. Activar el entorno
-*   **Windows:** `venv\Scripts\Activate.ps1`
-*   **macOS/Linux:** `source venv/bin/activate`
-
-> *Nota: Si en Windows recibes un error de permisos, ejecuta primero: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`*
-
-### C. Instalar dependencias
+### B. Instalar dependencias (Librerías)
+Este comando instalará FastAPI, SQLAlchemy, Alembic y otras herramientas necesarias:
 ```powershell
 pip install -r backend/requirements.txt
 ```
 
----
-
-## 3. Configuración del Entorno (.env y secretos)
-
-El sistema utiliza variables de entorno y certificados protegidos para la seguridad.
-1.  Ejecuta el script de configuración inicial:
+### C. Configuración automática (.env y SSL)
+Ejecuta nuestro asistente inteligente de configuración:
 ```powershell
-python setup_env.py
+python scripts/setup/setup_env.py
 ```
-*Este script creará la carpeta `/secrets` y generará un archivo `.env` basado en la plantilla.*
-
-2.  Edita el archivo `.env` recién creado:
-    *   **Para Producción (Aiven):** Llena los datos y coloca el archivo `ca.pem` dentro de la carpeta `/secrets`.
-    *   **Para Desarrollo Local:** Configura los datos de tu MariaDB y deja `DB_SSL_CA` vacío.
-
-> [!IMPORTANT]
-> La carpeta `/secrets` y el archivo `.env` están en el `.gitignore`. **Nunca** intentes forzar su subida al repositorio.
+*   **¿Qué hace?**: Descarga el certificado de seguridad SSL (`ca.pem`) necesario para Aiven y te pide los datos de conexión.
+*   **¿Qué datos poner?**: Solicita al líder del equipo el **Hostname** y la **Password** de la base de datos de **desarrollo**.
 
 ---
 
-## 4. Inicialización de la Base de Datos
+## 3. Sincronización de la Base de Datos
 
-Antes de correr el servidor por primera vez, debes crear las tablas:
-1.  Asegúrate de tener tu `.env` configurado.
-2.  Con el entorno virtual activo, ejecuta:
-```powershell
-python backend/init_db.py
-```
-Si ves el mensaje "✅ Tablas creadas con éxito", tu base de datos está lista.
-
----
-
-## 5. Ejecutar el Sistema
-
-### Backend (API)
-Ejecuta el servidor con el siguiente comando:
-```powershell
-python -m uvicorn backend.eki_main:app --reload --port 8000
-```
-*   Acceso a la API: `http://localhost:8000`
-*   Documentación Interactiva: `http://localhost:8000/docs`
-
-### Frontend (UI)
-No requiere servidor especial. Simplemente:
-1.  Abre `frontend/index.html` en tu navegador.
-2.  O usa la extensión **Live Server** de VS Code (recomendado).
+Una vez que tengas tu archivo `.env` listo, debes crear las tablas físicamente:
+1.  **Verificar conexión:** 
+    ```powershell
+    python scripts/db/check_connection.py
+    ```
+2.  **Aplicar tablas iniciales (Migración):** 
+    ```powershell
+    python scripts/db/migrate.py
+    ```
+    *Si ves el mensaje "✅ Migraciones aplicadas con éxito", tu base de datos local/nube ya tiene las tablas listas.*
 
 ---
 
-## 6. Verificación de Funcionamiento
-1.  Enciende el backend.
-2.  Abre el frontend.
-3.  Haz clic en el botón **"Ver Recomendaciones"**. 
-4.  Si el servidor responde "healthy" (puedes verificarlo visitando `http://localhost:8000/health`) pero la lista está vacía, ¡felicidades! El sistema está conectado correctamente pero la DB aún no tiene datos.
+## 4. Cómo subir cambios y verlos en Producción
 
----
+El proyecto está automatizado. Para que tus cambios se vean en la web real, sigue estas reglas:
 
-## 7. Verificación de Conexión a la API
+### 🌐 Cambios en el Frontend (HTML/JS/CSS)
+1.  Realiza tus cambios en la carpeta `frontend/`.
+2.  Haz `git commit` y `git push origin main`.
+3.  **Resultado**: GitHub Actions actualizará [la web](https://jose-pablo-martinez.github.io/EKI-SistemasRecomendacion/) automáticamente en menos de 1 minuto.
 
-Si prefieres usar la terminal para verificar que la API responde, puedes ejecutar:
+### ⚙️ Cambios en el Backend (Lógica Python)
+1.  Modifica tus archivos en `backend/`.
+2.  Haz `git push origin main`.
+3.  **Resultado**: Render detectará el cambio y reiniciará el servidor con tu nueva lógica.
 
-```powershell
-# Verificar estado general
-Invoke-RestMethod -Uri "http://localhost:8000/health"
-
-# Verificar respuesta de la raíz
-Invoke-RestMethod -Uri "http://localhost:8000/"
-```
-
-Si recibes un JSON con `{"status": "healthy"}`, el backend está listo para recibir peticiones.
-
----
-*Equipo EKI — Facultad de Matemáticas, UADY*
+### 🗄️ Cambios en la Base de Datos (Tablas/Columnas)
+1.  Modifica `backend/models.py`.
+2.  **Genera la versión**: `alembic revision --autogenerate -m "descripcion del cambio"`
+3.  Sube el nuevo archivo creado en `backend/migrations/versions/` a GitHub.
+4.  **Resultado**: El pipeline de GitHub aplicará el cambio a la base de datos de producción automáticamente antes de que el servidor inicie.

@@ -7,10 +7,12 @@ Usar sintaxis declarativa con DeclarativeBase (SQLAlchemy 2.x).
 
 from datetime import datetime
 
+# pyrefly: ignore [missing-import]
 from sqlalchemy import (
     Column, Integer, String, Float, ForeignKey,
     DateTime, Text, Boolean,
 )
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import relationship
 
 from database import Base
