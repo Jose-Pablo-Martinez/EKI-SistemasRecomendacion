@@ -1,0 +1,17 @@
+# Backend — Dependencias del Entorno Virtual
+# Instalar con: pip install -r requirements.txt
+
+# ─── Framework API REST ───────────────────────────────────────────────────────
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+
+# ─── ORM y Base de Datos ──────────────────────────────────────────────────────
+sqlalchemy==2.0.40
+pymysql==1.1.1
+cryptography==44.0.3       # Requerido para SSL con PyMySQL (conexión Aiven)
+
+# ─── Validación de Datos ──────────────────────────────────────────────────────
+pydantic==2.11.4
+
+# ─── Variables de Entorno ─────────────────────────────────────────────────────
+python-dotenv==1.1.0

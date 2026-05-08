@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO -->
+  <title>EKI — Esquina Jach ki' | Recomendaciones Gastronómicas en Mérida</title>
+  <meta name="description" content="Descubre los mejores puestos, carritos y vendedores informales de Mérida, Yucatán. EKI te recomienda las joyas ocultas de la gastronomía local." />
+  <meta name="author" content="Equipo EKI — Facultad de Matemáticas, UADY" />
+
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            eki: {
+              green:  '#2D6A4F',
+              lime:   '#52B788',
+              cream:  '#F8F3E7',
+              amber:  '#E9A738',
+              dark:   '#1B2B25',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Estilos personalizados -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="bg-eki-cream font-sans text-eki-dark min-h-screen">
+
+  <!-- ─── Header ─────────────────────────────────────────────────────────── -->
+  <header class="bg-eki-green text-white shadow-md">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">
+          🌽 EKI
+        </h1>
+        <p class="text-eki-lime text-sm font-medium">Esquina Jach ki'</p>
+      </div>
+      <nav aria-label="Navegación principal">
+        <ul class="flex gap-6 text-sm font-medium">
+          <li><a href="#recomendaciones" class="hover:text-eki-amber transition-colors">Recomendaciones</a></li>
+          <li><a href="#acerca" class="hover:text-eki-amber transition-colors">Acerca de</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ─── Hero ────────────────────────────────────────────────────────────── -->
+  <section class="bg-eki-green text-white py-16 px-4 text-center">
+    <p class="text-eki-lime text-sm font-semibold uppercase tracking-widest mb-2">
+      Sistema de Recomendación Gastronómica
+    </p>
+    <h2 class="text-4xl font-bold mb-4">
+      Descubre las joyas ocultas<br class="hidden sm:block" /> de Mérida, Yucatán
+    </h2>
+    <p class="text-white/80 max-w-xl mx-auto mb-8">
+      EKI prioriza los puestos pequeños, carritos y vendedores informales que
+      hacen grande la gastronomía yucateca.
+    </p>
+    <button
+      id="btn-cargar-recomendaciones"
+      onclick="loadRecommendations()"
+      class="bg-eki-amber text-eki-dark font-semibold px-6 py-3 rounded-full hover:brightness-110 transition-all shadow-lg"
+    >
+      Ver Recomendaciones
+    </button>
+  </section>
+
+  <!-- ─── Sección de Recomendaciones ──────────────────────────────────────── -->
+  <main id="recomendaciones" class="max-w-5xl mx-auto px-4 py-12">
+    <h2 class="text-2xl font-bold text-eki-green mb-2">Recomendaciones</h2>
+    <p class="text-gray-500 text-sm mb-8">
+      Resultados del modelo híbrido de recomendación con boosting aplicado.
+    </p>
+
+    <!-- Estado de carga -->
+    <div id="estado-carga" class="text-center py-12 text-gray-400" aria-live="polite">
+      <p class="text-5xl mb-4">🍽️</p>
+      <p>Presiona el botón para cargar recomendaciones.</p>
+    </div>
+
+    <!-- Contenedor de tarjetas -->
+    <div
+      id="contenedor-recomendaciones"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 hidden"
+      role="list"
+      aria-label="Lista de vendedores recomendados"
+    ></div>
+  </main>
+
+  <!-- ─── Acerca de ────────────────────────────────────────────────────────── -->
+  <section id="acerca" class="bg-eki-dark text-white py-12 px-4">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-2xl font-bold mb-4">¿Qué es EKI?</h2>
+      <p class="text-white/70 mb-6">
+        <strong class="text-eki-lime">Esquina Jach ki'</strong> es un sistema de recomendación
+        que combina filtrado por contenido, filtrado colaborativo y algoritmos de boosting
+        para dar visibilidad a los pequeños comercios gastronómicos de Mérida.
+      </p>
+      <p class="text-xs text-white/40">
+        Proyecto Final — Sistemas de Recomendación · Facultad de Matemáticas, UADY
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── Footer ──────────────────────────────────────────────────────────── -->
+  <footer class="bg-eki-green text-white/60 text-xs text-center py-4">
+    <p>© 2025 EKI — Esquina Jach ki' · Facultad de Matemáticas, UADY</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+
+</body>
+</html>
