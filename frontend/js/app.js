@@ -12,7 +12,7 @@
 // Configuración dinámica de la URL del Backend
 const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
   ? "http://localhost:8000"
-  : "https://tu-app-backend.onrender.com"; // <--- TODO: Reemplazar con tu URL real de Render cuando la tengas
+  : "https://esquina-jach-ki.onrender.com";
 
 // ─── Referencias al DOM ───────────────────────────────────────────────────────
 const contenedorRecomendaciones = document.getElementById("contenedor-recomendaciones");
