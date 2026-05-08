@@ -13,7 +13,7 @@ jobs:
   migrate:
     name: Apply Migrations to Aiven Prod
     runs-on: ubuntu-latest
-    environment: ekiEnviroment
+    environment: ekiEnvironment
     
     steps:
       - name: Checkout del repositorio

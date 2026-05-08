@@ -60,3 +60,4 @@ Para que la automatización funcione, el administrador debe configurar en GitHub
 - `DB_PASSWORD`: Contraseña.
 - `DB_NAME_PROD`: Nombre de la base de datos de producción (ej. `ekidb`).
 - `DB_PORT`: Generalmente `10471` para Aiven.
+Asegúrate de configurar estos secretos dentro del Environment llamado **`ekiEnvironment`**.
