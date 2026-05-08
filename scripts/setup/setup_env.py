@@ -39,8 +39,8 @@ def setup_environment():
 
     # 3. Configuración interactiva del .env
     if not os.path.exists(".env"):
-        print("\n📝 No se encontró un archivo .env. Vamos a configurarlo ahora.")
-        print("   (Presiona Enter para usar los valores por defecto si aplican)\n")
+        print("\n📝 Vamos a configurar tu archivo .env local.")
+        print("   (Presiona Enter para usar los valores por defecto)\n")
         
         db_host = input("🔹 Host de Aiven (ver Aiven Console → Overview → Host): ").strip()
         db_user = input("🔹 Usuario (ej. avnadmin): ").strip() or "avnadmin"
@@ -66,11 +66,11 @@ def setup_environment():
                     elif line.startswith("DB_PORT="):
                         new_lines.append(f"DB_PORT={db_port}\n")
                     elif line.startswith("DB_SSL_CA="):
+                        # Ruta local estándar
                         new_lines.append(f"DB_SSL_CA=secrets/ca.pem\n")
                     elif line.startswith("CORS_ORIGINS="):
-                        # Configuramos automáticamente los orígenes de desarrollo y producción
                         dev_urls = "http://localhost:5500,http://127.0.0.1:5500,http://localhost:8000"
-                        prod_url = "https://jose-pablo-martinez.github.io"
+                        prod_url = "https://jose-pablo-martinez.github.io/EKI-SistemasRecomendacion"
                         new_lines.append(f"CORS_ORIGINS={dev_urls},{prod_url}\n")
                     else:
                         new_lines.append(line)
@@ -80,15 +80,14 @@ def setup_environment():
                 
                 print("\n✅ Archivo '.env' generado con éxito.")
             else:
-                print("❌ Error: No existe '.env.example' para usar como plantilla.")
+                print("❌ Error: No existe '.env.example'.")
         except Exception as e:
             print(f"❌ Error al procesar el .env: {e}")
     else:
-        print("\nℹ️  El archivo '.env' ya existe. Si deseas reconfigurarlo, bórralo y corre este script de nuevo.")
+        print("\nℹ️  El archivo '.env' ya existe. Bórralo si quieres reconfigurarlo.")
 
     print("\n" + "="*50)
-    print("🚀 ¡CONFIGURACIÓN COMPLETADA!")
-    print("   Ahora puedes ejecutar 'python scripts/db/migrate.py'")
+    print("🚀 CONFIGURACIÓN FINALIZADA")
     print("="*50 + "\n")
 
 if __name__ == "__main__":
