@@ -35,7 +35,8 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ secrets.DB_NAME_PROD }}
           DB_PORT: ${{ secrets.DB_PORT }}
+          DB_SSL_CA: ca.pem
         run: |
-          mkdir -p secrets
-          # Aseguramos que el script no falle si falta el ca.pem (se debe configurar ssl_ca en env.py)
+          # Descargamos el certificado directamente en la raíz para consistencia con Render
+          curl -o ca.pem https://api.aiven.io/v1/project/public_ca
           python scripts/db/migrate.py
