@@ -1,19 +1,31 @@
+# ─── IMPORTANTE ───────────────────────────────────────────────────────────────
+# Alembic SIEMPRE debe ejecutarse desde la RAÍZ del proyecto.
+# Comando correcto: python scripts/db/migrate.py (o alembic upgrade head)
+# Ejecutarlo desde backend/ u otra subcarpeta causará errores de importación.
+# ──────────────────────────────────────────────────────────────────────────────
+
 import sys
-import os
+from pathlib import Path
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
 from dotenv import load_dotenv
 
-# Añadir el directorio raíz al path para importar el backend
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# ─── Configuración de Paths ───────────────────────────────────────────────────
+# ROOT = raíz del proyecto (env.py → migrations/ → backend/ → raíz)
+ROOT = Path(__file__).parent.parent.parent
 
-# Cargar variables de entorno
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
+# Insertar la raíz al inicio del sys.path para garantizar que
+# 'from backend.database import Base' siempre resuelva correctamente,
+# independientemente de alembic.ini prepend_sys_path.
+sys.path.insert(0, str(ROOT))
+
+# Cargar .env con ruta explícita desde la raíz
+load_dotenv(ROOT / ".env")
 
 from backend.database import Base
-from backend.models import Vendor, User, UserRating
+from backend.models import Vendor, User, UserRating  # noqa: F401 — necesario para autodetect
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

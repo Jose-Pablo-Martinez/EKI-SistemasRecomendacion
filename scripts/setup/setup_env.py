@@ -16,33 +16,37 @@ def check_venv():
 def setup_environment():
     check_venv()
     print("\n" + "="*50)
-    print("🛠️   CONFIGURACIÓN DE ENTORNO - EKI")
+    print("🛠️   CONFIGURACIÓN DE ENTORNO LOCAL - EKI")
     print("="*50)
-    
-    # 1. Crear carpeta secrets
+
+    # 1. Crear carpeta secrets (ignorada por git)
     if not os.path.exists("secrets"):
         os.makedirs("secrets")
         print("✅ Carpeta '/secrets' creada.")
     
-    # 2. Verificar certificado SSL de Aiven
+    # 2. Verificar certificado SSL de Aiven (ca.pem)
     ca_path = os.path.join("secrets", "ca.pem")
     if not os.path.exists(ca_path):
-        print("\n⚠️  Certificado 'ca.pem' no encontrado en /secrets.")
-        print("👉 Solicita el certificado al líder del equipo y guárdalo en esa carpeta.")
-        print("   (Es necesario para conectar de forma segura a Aiven)")
+        print("\n⚠️  Certificado 'ca.pem' NO encontrado en /secrets.")
+        print("   Este archivo es obligatorio para conectar a la base de datos Aiven (SSL).")
+        print("   👉 Cómo obtenerlo:")
+        print("      1. Solicita el archivo al líder del equipo.")
+        print("      2. El líder lo descarga desde: Aiven Console → Tu Servicio → Overview → 'Download CA Certificate'")
+        print("      3. Guarda el archivo como: secrets/ca.pem")
+        print("   El script continuará, pero la conexión a la BD fallará hasta que tengas el certificado.")
     else:
-        print("✅ Certificado SSL detectado correctamente.")
+        print("✅ Certificado SSL (ca.pem) detectado correctamente.")
 
     # 3. Configuración interactiva del .env
     if not os.path.exists(".env"):
         print("\n📝 Vamos a configurar tu archivo .env local.")
         print("   (Presiona Enter para usar los valores por defecto)\n")
         
-        db_host = input("🔹 Host de Aiven: ").strip()
-        db_user = input("🔹 Usuario (avnadmin): ").strip() or "avnadmin"
+        db_host = input("🔹 Host de Aiven (ver Aiven Console → Overview → Host): ").strip()
+        db_user = input("🔹 Usuario (ej. avnadmin): ").strip() or "avnadmin"
         db_pass = input("🔹 Password: ").strip()
-        db_name = input("🔹 Nombre de DB local: ").strip() or "defaultdb"
-        db_port = input("🔹 Puerto (23369): ").strip() or "23369"
+        db_name = input("🔹 Nombre de DB de desarrollo (defaultdb): ").strip() or "defaultdb"
+        db_port = input("🔹 Puerto (ver Aiven Console → Overview → Port): ").strip()
 
         try:
             if os.path.exists(".env.example"):

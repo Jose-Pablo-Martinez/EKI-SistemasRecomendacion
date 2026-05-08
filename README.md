@@ -37,24 +37,28 @@ La arquitectura del proyecto está construida bajo el enfoque de **Monorepositor
  
 | Tecnología | Descripción |
 | :--- | :--- |
-| ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white) **Python** | Lenguaje de programación principal para la lógica algorítmica. |
+| ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white) **Python 3.11+** | Lenguaje de programación principal para la lógica algorítmica. |
 | ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white) **FastAPI** | Framework asíncrono para la construcción de la API REST. |
-| ![Uvicorn](https://img.shields.io/badge/Uvicorn-499848?style=flat&logo=gunicorn&logoColor=white) **Uvicorn** | Servidor ASGI para la ejecución del backend. |
-| ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=flat&logo=sqlite&logoColor=white) **SQLAlchemy** | ORM para el mapeo y consulta orientada a objetos. |
-| ![PyMySQL](https://img.shields.io/badge/PyMySQL-4479A1?style=flat&logo=mysql&logoColor=white) **PyMySQL** | Driver de conexión entre el backend y la base de datos. |
+| ![Uvicorn](https://img.shields.io/badge/Uvicorn-499848?style=flat&logo=gunicorn&logoColor=white) **Uvicorn** | Servidor ASGI para la ejecución del backend en desarrollo local. |
+| ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=flat&logo=sqlite&logoColor=white) **SQLAlchemy 2.x** | ORM para el mapeo y consulta orientada a objetos con sintaxis declarativa. |
+| ![Alembic](https://img.shields.io/badge/Alembic-6BA81E?style=flat&logo=python&logoColor=white) **Alembic** | Control de versiones del esquema de base de datos (migraciones incrementales). |
+| ![PyMySQL](https://img.shields.io/badge/PyMySQL-4479A1?style=flat&logo=mysql&logoColor=white) **PyMySQL** | Driver de conexión entre el backend y la base de datos MySQL con soporte SSL. |
+| ![Pydantic](https://img.shields.io/badge/Pydantic-E92063?style=flat&logo=python&logoColor=white) **Pydantic v2** | Validación y serialización de datos de entrada/salida de la API. |
+| ![python-dotenv](https://img.shields.io/badge/python--dotenv-ECD53F?style=flat&logo=python&logoColor=black) **python-dotenv** | Carga de variables de entorno desde archivos `.env`. |
  
 ### Base de Datos
  
 | Tecnología | Descripción |
 | :--- | :--- |
-| ![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=flat&logo=mariadb&logoColor=white) **MariaDB** | Sistema de gestión de bases de datos relacional, elegido para garantizar integridad ACID y facilitar la escalabilidad del proyecto a largo plazo. |
+| ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat&logo=mysql&logoColor=white) **MySQL (Aiven)** | Base de datos relacional administrada en la nube con SSL/TLS obligatorio. Compatible con MariaDB y PyMySQL. Dos instancias separadas: `defaultdb` (desarrollo) y `ekidb` (producción). |
  
 ### Frontend (Interfaz de Usuario)
  
 | Tecnología | Descripción |
 | :--- | :--- |
+| ![JavaScript](https://img.shields.io/badge/JavaScript_ES6+-F7DF1E?style=flat&logo=javascript&logoColor=black) **Vanilla JS (ES6+)** | Lógica de UI y detección dinámica del entorno (local vs. producción) sin frameworks externos. |
 | ![Fetch API](https://img.shields.io/badge/Fetch_API-F7DF1E?style=flat&logo=javascript&logoColor=black) **Fetch API** | Consumo nativo de los servicios web (HTTP Requests). |
-| ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white) **Tailwind CSS** | Framework de utilidades para asegurar los requerimientos de usabilidad y diseño responsivo. |
+| ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white) **Tailwind CSS (CDN)** | Framework de utilidades cargado desde CDN para estilos responsivos. |
  
 ---
  
@@ -76,18 +80,25 @@ ekiSystem/                    ← Raíz del Repositorio
 │
 └── frontend/                ← Entorno Web / UI Vanilla JS
     ├── index.html           ← Estructura web
-    └── js/app.js            ← Lógica de peticiones
+    └── js/app.js            ← Lógica de peticiones y detección de entorno
 ```
 
 ---
 
 ## ⚙️ Automatización y Despliegue
 
-Este proyecto utiliza un flujo de automatización profesional para mantener la integridad de los datos:
+Este proyecto utiliza un flujo de automatización profesional con **tres pipelines independientes** activados al hacer merge a `main`:
 
-1.  **Gestión de Cambios:** Se utiliza **Alembic** para versionar cualquier cambio en el esquema de la base de datos.
-2.  **CI/CD:** Los cambios en la rama `main` disparan un pipeline que aplica automáticamente las migraciones en la base de datos de producción en **Aiven** antes de actualizar el servicio en **Render**.
-3.  **Entornos Separados:** Se recomienda usar `defaultdb` para desarrollo local y `ekidb` para producción.
+1. **Deploy Frontend** — Se ejecuta en **cualquier push a `main`**. Publica la carpeta `frontend/` en GitHub Pages automáticamente. La URL del backend se detecta de forma dinámica desde el código JavaScript (`window.location.hostname`).
+
+2. **Database Migrations** — Se ejecuta **solo cuando cambian `backend/models.py` o archivos en `backend/migrations/`**. Utiliza el GitHub Environment **`ekiEnvironment`** (donde están los secretos de producción de Aiven) para:
+   - Descargar y verificar el certificado SSL de Aiven.
+   - Ejecutar `alembic check` para validar sincronía entre modelos y migraciones.
+   - Aplicar `alembic upgrade head` sobre la base de datos de producción (`ekidb`).
+
+3. **Backend Redeploy (Render)** — Render escucha el webhook de GitHub y redespliega el servidor automáticamente en **cualquier push a `main`**.
+
+> **Entornos separados:** `defaultdb` para desarrollo local (todos los devs) y `ekidb` para producción (solo CI/CD).
  
 ---
  
