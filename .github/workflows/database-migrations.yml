@@ -1,0 +1,42 @@
+name: Database Migrations (Production)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/models.py'
+      - 'backend/migrations/**'
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    name: Apply Migrations to Aiven Prod
+    runs-on: ubuntu-latest
+    environment: ekiEnvironment
+    
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: |
+          pip install -r backend/requirements.txt
+
+      - name: Ejecutar Migraciones en Producción
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME_PROD }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_SSL_CA: ca.pem
+        run: |
+          # Descargamos el certificado directamente en la raíz para consistencia con Render
+          curl -o ca.pem https://api.aiven.io/v1/project/public_ca
+          python scripts/db/migrate.py

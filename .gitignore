@@ -1,0 +1,51 @@
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+*.spec
+
+# ─── Entornos Virtuales ───────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+
+# ─── Variables de Entorno y Secretos ──────────────────────────────────────────
+.env
+secrets/
+
+# ─── Bases de Datos locales ───────────────────────────────────────────────────
+*.db
+*.sqlite3
+
+# ─── Certificados y Claves ────────────────────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.cert
+
+# ─── IDE / Editores ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── Sistema Operativo ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── Coverage y Tests ─────────────────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/

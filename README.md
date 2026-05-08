@@ -3,6 +3,8 @@
 **Proyecto Final - Sistemas de Recomendación de Información**  
 *Facultad de Matemáticas, UADY*
  
+> 🚀 **¿Eres nuevo en el proyecto?** Lee la [Guía de Configuración Local](GUIA_LOCAL.md) para empezar.
+ 
 ---
  
 ## 👥 Integrantes del Equipo
@@ -61,21 +63,31 @@ La arquitectura del proyecto está construida bajo el enfoque de **Monorepositor
 La organización de carpetas está estandarizada para facilitar el desarrollo concurrente y servir como contexto para asistentes de IA de codificación.
  
 ```text
-eki-app/                     ← Raíz del Repositorio
+ekiSystem/                    ← Raíz del Repositorio
+│
+├── scripts/                 ← Automatización y Operaciones
+│   ├── setup/               ← Inicialización del entorno
+│   └── db/                  ← Gestión de Base de Datos y Migraciones
 │
 ├── backend/                 ← Entorno Python / API
-│   ├── eki_main.py          ← Punto de entrada de FastAPI y rutas
-│   ├── models.py            ← Esquemas de SQLAlchemy para MariaDB
-│   ├── logic/               ← Algoritmos del modelo híbrido y recomendación
-│   └── requirements.txt     ← Dependencias del entorno virtual de Python
+│   ├── migrations/          ← Versiones de la BD (Alembic)
+│   ├── eki_main.py          ← Punto de entrada de FastAPI
+│   └── models.py            ← Esquemas de SQLAlchemy
 │
 └── frontend/                ← Entorno Web / UI Vanilla JS
-    ├── index.html           ← Estructura web y carga de Tailwind por CDN
-    ├── js/
-    │   └── app.js           ← Lógica de peticiones HTTP con Fetch API
-    └── css/
-        └── styles.css       ← Ajustes de diseño personalizados
+    ├── index.html           ← Estructura web
+    └── js/app.js            ← Lógica de peticiones
 ```
+
+---
+
+## ⚙️ Automatización y Despliegue
+
+Este proyecto utiliza un flujo de automatización profesional para mantener la integridad de los datos:
+
+1.  **Gestión de Cambios:** Se utiliza **Alembic** para versionar cualquier cambio en el esquema de la base de datos.
+2.  **CI/CD:** Los cambios en la rama `main` disparan un pipeline que aplica automáticamente las migraciones en la base de datos de producción en **Aiven** antes de actualizar el servicio en **Render**.
+3.  **Entornos Separados:** Se recomienda usar `defaultdb` para desarrollo local y `ekidb` para producción.
  
 ---
  
@@ -88,3 +100,15 @@ Para mantener la integridad del código, el equipo de desarrollo trabaja bajo el
 | `main` | Rama de producción. Contiene únicamente código estable y funcional listo para ser evaluado. |
 | `unstable` | Rama de integración para pruebas de conexión entre Frontend y Backend. |
 | `feature/<nombre>-<tarea>` | Ramas de desarrollo individual para la implementación de características (ej. `feature/alejandro-api-coldstart`). |
+
+---
+
+## 🚀 Despliegue (Deployment)
+
+El sistema está configurado para un despliegue automatizado en tres capas:
+
+1.  **Frontend:** Hospedado en **GitHub Pages**. Se despliega automáticamente al hacer merge a `main`.
+2.  **Backend:** Hospedado en **Render**. Escucha cambios en la rama `main` para realizar el redeploy.
+3.  **Base de Datos:** Instancia gestionada en **Aiven (MySQL)**.
+
+*Para más detalles sobre las convenciones de despliegue y CORS, consulta el archivo [CONTRIBUTING.md](CONTRIBUTING.md).*
