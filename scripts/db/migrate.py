@@ -4,6 +4,10 @@ import os
 
 def check_venv():
     """Verifica si el script se está ejecutando dentro de un entorno virtual."""
+    # Omitir verificación en entornos de CI/CD (Render, GitHub Actions)
+    if os.environ.get("CI") == "true" or os.environ.get("RENDER") == "true" or os.environ.get("GITHUB_ACTIONS") == "true":
+        return
+
     if not (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)):
         print("\n" + "!"*60)
         print("⚠️  ERROR: NO ESTÁS EN UN ENTORNO VIRTUAL")
