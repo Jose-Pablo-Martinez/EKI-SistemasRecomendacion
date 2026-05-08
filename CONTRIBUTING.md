@@ -28,26 +28,31 @@ ekiSystem/
 │
 ├── CONTRIBUTING.md             ← Este archivo (actualizar solo con consenso del equipo)
 │
+├── scripts/
+│   ├── setup/                  ← Inicialización del entorno local
+│   └── db/                     ← Scripts operativos de base de datos
+│
 ├── backend/
+│   ├── migrations/             ← Historial de cambios de BD (Alembic)
 │   ├── eki_main.py             ← Punto de entrada FastAPI + registro de routers
 │   ├── models.py               ← Modelos SQLAlchemy (tablas de MariaDB)
-│   ├── schemas.py              ← Esquemas Pydantic (validación de request/response)
+│   ├── schemas.py              ← Esquemas Pydantic
 │   ├── database.py             ← Configuración de engine y sesión SQLAlchemy
-│   ├── requirements.txt        ← Dependencias del entorno virtual
-│   └── logic/
-│       ├── __init__.py
-│       ├── content_filter.py   ← Filtrado basado en contenido
-│       ├── collab_filter.py    ← Filtrado colaborativo
-│       ├── ranking.py          ← Algoritmos de boosting y priorización
-│       └── cold_start.py       ← Estrategia de inicio en frío
+│   ├── requirements.txt        ← Dependencias
+│   └── logic/                  ← Algoritmos de recomendación
 │
 └── frontend/
-    ├── index.html              ← Estructura HTML + carga de Tailwind por CDN
-    ├── js/
-    │   └── app.js              ← Peticiones HTTP con Fetch API
-    └── css/
-        └── styles.css          ← Ajustes de diseño personalizados
+    ├── index.html              ← Estructura HTML
+    ├── js/app.js               ← Lógica de peticiones HTTP
+    └── css/styles.css          ← Ajustes de diseño
 ```
+
+### 2.1 Gestión de Cambios en la BD
+Si modificas `models.py`, **debes** generar una migración:
+1.  Activa tu venv.
+2.  Ejecuta: `alembic revision --autogenerate -m "Breve descripción del cambio"`
+3.  Revisa el archivo generado en `backend/migrations/versions/`.
+4.  Aplica el cambio localmente con `python scripts/db/migrate.py`.
 
 ---
 

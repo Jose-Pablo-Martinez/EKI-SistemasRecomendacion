@@ -1,12 +1,13 @@
 """
-Script de utilidad para inicializar la base de datos.
+Script de utilidad para inicializar la base de datos (Legacy/Quickstart).
 Crea todas las tablas definidas en los modelos de SQLAlchemy.
+Nota: Se recomienda usar Alembic para cambios incrementales.
 """
 import sys
 import os
 
 # Añadir el directorio raíz al path para poder importar los módulos
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from backend.database import engine, Base
 from backend.models import Vendor, User, UserRating
@@ -17,9 +18,6 @@ def init_database():
         # Crea las tablas si no existen
         Base.metadata.create_all(bind=engine)
         print("✅ Tablas creadas con éxito.")
-        print("   - vendors")
-        print("   - users")
-        print("   - user_ratings")
     except Exception as e:
         print(f"❌ Error al crear las tablas: {e}")
 
