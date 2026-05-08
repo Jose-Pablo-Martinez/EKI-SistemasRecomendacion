@@ -246,6 +246,28 @@ git push → main
 | `DB_PASSWORD` | Contraseña del servicio |
 | `DB_NAME_PROD` | Nombre de la BD de producción: `ekidb` |
 | `DB_PORT` | Puerto del servicio Aiven |
+| `CA_CERT_BASE64` | Contenido del certificado `ca.pem` de Aiven **codificado en base64** |
+
+> [!IMPORTANT]
+> **El certificado NO se descarga automáticamente desde la API de Aiven** (ese endpoint requiere autenticación). En su lugar, se almacena como secret en base64.
+
+#### Cómo generar y subir `CA_CERT_BASE64` (solo el líder del equipo)
+
+**Paso 1 — Obtener el certificado** (si aún no lo tienes):
+Aiven Console → Tu Servicio MySQL → Overview → **"Download CA Certificate"** → guarda como `secrets/ca.pem`.
+
+**Paso 2 — Codificarlo en base64:**
+```powershell
+# Windows (PowerShell) — ejecutar desde la raíz del proyecto (ekiSystem/)
+[System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes("$PWD\secrets\ca.pem")) | Set-Clipboard[System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes("$PWD\secrets\ca.pem")) | Set-Clipboard
+```
+```bash
+# Linux / Mac
+base64 -w 0 secrets/ca.pem | pbcopy
+```
+
+**Paso 3 — Subir a GitHub:**
+GitHub → Settings → Secrets and variables → Actions → Environment secrets → **ekiEnvironment** → New secret → Nombre: `CA_CERT_BASE64` → pegar el contenido copiado.
 
 ---
 
