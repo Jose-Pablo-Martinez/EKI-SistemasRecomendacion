@@ -3,10 +3,22 @@ import sys
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
+def check_venv():
+    """Verifica si el script se está ejecutando dentro de un entorno virtual."""
+    if not (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)):
+        print("\n" + "!"*60)
+        print("⚠️  ERROR: NO ESTÁS EN UN ENTORNO VIRTUAL")
+        print("!"*60)
+        print("Por favor, activa el entorno virtual para probar la conexión.")
+        print("\n👉 Actívalo con: .\\venv\\Scripts\\activate")
+        print("!"*60 + "\n")
+        sys.exit(1)
+
 # Añadir el directorio raíz al path para importar modelos si fuera necesario
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 def test_connection():
+    check_venv()
     """Prueba la conexión a la base de datos usando las variables del .env"""
     print("🔍 Probando conexión a la base de datos...")
     

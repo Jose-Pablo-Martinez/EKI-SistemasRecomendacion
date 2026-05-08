@@ -2,7 +2,19 @@ import subprocess
 import sys
 import os
 
+def check_venv():
+    """Verifica si el script se está ejecutando dentro de un entorno virtual."""
+    if not (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)):
+        print("\n" + "!"*60)
+        print("⚠️  ERROR: NO ESTÁS EN UN ENTORNO VIRTUAL")
+        print("!"*60)
+        print("Por favor, activa el entorno virtual antes de migrar.")
+        print("\n👉 Actívalo con: .\\venv\\Scripts\\activate")
+        print("!"*60 + "\n")
+        sys.exit(1)
+
 def run_migrations():
+    check_venv()
     """Ejecuta las migraciones de Alembic (upgrade head)."""
     print("🚀 Iniciando migración de base de datos...")
     
