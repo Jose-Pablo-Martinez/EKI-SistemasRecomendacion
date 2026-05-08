@@ -9,9 +9,10 @@
  *  - URL del backend centralizada en API_BASE_URL
  */
 
-// En producción, la URL se cambia automáticamente a la de Render mediante 
-// el workflow de GitHub Actions. Para desarrollo local se usa localhost.
-const API_BASE_URL = "http://localhost:8000";
+// Configuración dinámica de la URL del Backend
+const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://localhost:8000"
+  : "https://tu-app-backend.onrender.com"; // <--- TODO: Reemplazar con tu URL real de Render cuando la tengas
 
 // ─── Referencias al DOM ───────────────────────────────────────────────────────
 const contenedorRecomendaciones = document.getElementById("contenedor-recomendaciones");

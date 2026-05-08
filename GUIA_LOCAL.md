@@ -33,35 +33,45 @@ pip install -r backend/requirements.txt
 
 ---
 
-## 3. Configuración de Variables (.env)
+## 3. Configuración del Entorno (.env y secretos)
 
-El sistema utiliza variables de entorno para no exponer contraseñas.
-1.  Localiza el archivo `.env.example` en la raíz.
-2.  Crea una copia y cámbiale el nombre a `.env`.
-3.  Edita el archivo `.env` con las credenciales de Aiven proporcionadas por el líder de equipo.
-    *   *Nota: Si aún no tienes acceso a las credenciales, puedes omitir las variables `DB_*` y el sistema iniciará, aunque algunas funciones de datos no estarán disponibles.*
+El sistema utiliza variables de entorno y certificados protegidos para la seguridad.
+1.  Ejecuta el script de configuración inicial:
+```powershell
+python setup_env.py
+```
+*Este script creará la carpeta `/secrets` y generará un archivo `.env` basado en la plantilla.*
+
+2.  Edita el archivo `.env` recién creado:
+    *   **Para Producción (Aiven):** Llena los datos y coloca el archivo `ca.pem` dentro de la carpeta `/secrets`.
+    *   **Para Desarrollo Local:** Configura los datos de tu MariaDB y deja `DB_SSL_CA` vacío.
+
+> [!IMPORTANT]
+> La carpeta `/secrets` y el archivo `.env` están en el `.gitignore`. **Nunca** intentes forzar su subida al repositorio.
 
 ---
 
-## 4. Certificado SSL de la Base de Datos
+## 4. Inicialización de la Base de Datos
 
-Para conectar con Aiven MySQL de forma segura en producción, necesitamos el certificado CA:
-*(Nota: Este paso es opcional si solo estás desarrollando la lógica del backend sin conectar a la DB real)*
-1.  Descarga el archivo `ca.pem` desde el dashboard de Aiven.
-2.  Crea la carpeta `backend/certs/` si no existe.
-3.  Guarda el archivo en `backend/certs/ca.pem`.
+Antes de correr el servidor por primera vez, debes crear las tablas:
+1.  Asegúrate de tener tu `.env` configurado.
+2.  Con el entorno virtual activo, ejecuta:
+```powershell
+python backend/init_db.py
+```
+Si ves el mensaje "✅ Tablas creadas con éxito", tu base de datos está lista.
 
 ---
 
 ## 5. Ejecutar el Sistema
 
 ### Backend (API)
-Con el entorno virtual activado, ejecuta:
+Ejecuta el servidor con el siguiente comando:
 ```powershell
-uvicorn backend.eki_main:app --reload --port 8000
+python -m uvicorn backend.eki_main:app --reload --port 8000
 ```
 *   Acceso a la API: `http://localhost:8000`
-*   Documentación Interactiva (Swagger): `http://localhost:8000/docs`
+*   Documentación Interactiva: `http://localhost:8000/docs`
 
 ### Frontend (UI)
 No requiere servidor especial. Simplemente:

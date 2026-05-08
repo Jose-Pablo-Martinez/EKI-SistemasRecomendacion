@@ -15,8 +15,9 @@ venv/
 env/
 .env/
 
-# ─── Variables de Entorno (NUNCA subir al repositorio) ────────────────────────
+# ─── Variables de Entorno y Secretos ──────────────────────────────────────────
 .env
+secrets/
 
 # ─── Bases de Datos locales ───────────────────────────────────────────────────
 *.db
@@ -27,7 +28,6 @@ env/
 *.key
 *.crt
 *.cert
-ca.pem
 
 # ─── IDE / Editores ───────────────────────────────────────────────────────────
 .vscode/
