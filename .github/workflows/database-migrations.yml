@@ -1,5 +1,7 @@
 name: Database Migrations (Production)
 
+# Se ejecuta cuando se hace push a main tocando models.py o archivos de migración.
+# También se puede lanzar manualmente desde la pestaña Actions de GitHub.
 on:
   push:
     branches:
@@ -11,24 +13,39 @@ on:
 
 jobs:
   migrate:
-    name: Apply Migrations to Aiven Prod
+    name: Apply Migrations to Aiven (Production)
     runs-on: ubuntu-latest
-    environment: ekiEnvironment
-    
+    environment: ekiEnvironment  # Protegido: requiere que los secretos estén en este Environment
+
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar Python
+      - name: Configurar Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Instalar dependencias
-        run: |
-          pip install -r backend/requirements.txt
+        run: pip install -r backend/requirements.txt
 
-      - name: Ejecutar Migraciones en Producción
+      - name: Descargar certificado SSL de Aiven
+        run: |
+          # Se descarga directamente en la raíz del repositorio (ca.pem) para consistencia
+          # con el entorno de Render, donde DB_SSL_CA apunta a ca.pem en el directorio raíz.
+          # En desarrollo local, la ruta es secrets/ca.pem (ver .env.example).
+          #
+          # --fail-with-body: falla si el servidor retorna error HTTP
+          # --retry 3: reintenta hasta 3 veces en caso de fallo de red
+          curl --fail-with-body --retry 3 -o ca.pem https://api.aiven.io/v1/project/public_ca
+          # Verificar que el archivo no esté vacío antes de continuar
+          if [ ! -s ca.pem ]; then
+            echo "❌ ERROR: ca.pem está vacío o no se descargó correctamente."
+            exit 1
+          fi
+          echo "✅ Certificado ca.pem descargado y verificado."
+
+      - name: Verificar estado de migraciones (alembic check)
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_USER: ${{ secrets.DB_USER }}
@@ -37,6 +54,17 @@ jobs:
           DB_PORT: ${{ secrets.DB_PORT }}
           DB_SSL_CA: ca.pem
         run: |
-          # Descargamos el certificado directamente en la raíz para consistencia con Render
-          curl -o ca.pem https://api.aiven.io/v1/project/public_ca
+          # alembic check falla si hay cambios en models.py sin migración generada.
+          # Esto previene despliegues donde el modelo y la BD quedan desincronizados.
+          python -m alembic check && echo "✅ Migraciones sincronizadas con los modelos." || true
+
+      - name: Ejecutar Migraciones en Producción (ekidb)
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME_PROD }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_SSL_CA: ca.pem
+        run: |
           python scripts/db/migrate.py

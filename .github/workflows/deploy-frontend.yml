@@ -35,9 +35,11 @@ jobs:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar URL de producción (API_BASE_URL)
-        run: |
-          sed -i 's|http://localhost:8000|https://eki-backend.onrender.com|g' frontend/js/app.js
+      # NOTA: No se requiere reemplazar la URL del backend manualmente.
+      # frontend/js/app.js detecta automáticamente el entorno mediante
+      # window.location.hostname y usa la URL correcta:
+      #   - localhost / 127.0.0.1  →  http://localhost:8000
+      #   - GitHub Pages           →  https://esquina-jach-ki.onrender.com
 
       - name: Subir carpeta frontend/ como artefacto de Pages
         uses: actions/upload-pages-artifact@v3

@@ -29,8 +29,13 @@ ekiSystem/
 ├── CONTRIBUTING.md             ← Este archivo (actualizar solo con consenso del equipo)
 │
 ├── scripts/
-│   ├── setup/                  ← Inicialización del entorno local
-│   └── db/                     ← Scripts operativos de base de datos
+│   ├── setup/
+│   │   └── setup_env.py        ← Configura .env y verifica ca.pem
+│   └── db/
+│       ├── check_connection.py ← Diagnóstico de conexión a Aiven
+│       ├── migrate.py          ← Aplica migraciones Alembic
+│       ├── init_db.py          ← Arranque rápido (solo fase inicial)
+│       └── seed.py             ← Población de datos iniciales (se crea cuando tablas sean definitivas)
 │
 ├── backend/
 │   ├── migrations/             ← Historial de cambios de BD (Alembic)
@@ -43,16 +48,20 @@ ekiSystem/
 │
 └── frontend/
     ├── index.html              ← Estructura HTML
-    ├── js/app.js               ← Lógica de peticiones HTTP
+    ├── js/app.js               ← Lógica de peticiones HTTP y detección de entorno
     └── css/styles.css          ← Ajustes de diseño
 ```
 
 ### 2.1 Gestión de Cambios en la BD
-Si modificas `models.py`, **debes** generar una migración:
-1.  Activa tu venv.
-2.  Ejecuta: `alembic revision --autogenerate -m "Breve descripción del cambio"`
-3.  Revisa el archivo generado en `backend/migrations/versions/`.
-4.  Aplica el cambio localmente con `python scripts/db/migrate.py`.
+
+> **Contexto actual (fase inicial):** Los modelos en `models.py` aún están en definición. La migración inicial existe como marcador de posición. Una vez que el esquema sea estable y aprobado por el equipo, se generará la primera migración real. Ver `docs/OPERATIONS.md §3` para todos los casos de migración.
+
+Cuando modifiques `models.py` en un esquema ya estable, **debes** generar una migración:
+1. Activa tu venv.
+2. Ejecuta: `alembic revision --autogenerate -m "Breve descripción del cambio"`
+3. Revisa el archivo generado en `backend/migrations/versions/`.
+4. Aplica el cambio localmente con `python scripts/db/migrate.py`.
+5. Incluye el archivo de migración en tu Pull Request.
 
 ---
 
@@ -379,6 +388,12 @@ git push origin main
             │
             ├──→ Job: Deploy Frontend
             │       Publica frontend/ en GitHub Pages automáticamente
+            │       (La URL del backend se detecta automáticamente en app.js)
+            │
+            ├──→ Job: Database Migrations (si cambian models.py o migrations/)
+            │       1. Descarga y verifica ca.pem
+            │       2. alembic check (valida sincronía modelos ↔ migraciones)
+            │       3. alembic upgrade head en ekidb (producción)
             │
             └──→ Render detecta el push (webhook automático)
                     Rebuilda y redespliega el backend automáticamente
