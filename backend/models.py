@@ -15,7 +15,7 @@ from sqlalchemy import (
 # pyrefly: ignore [missing-import]
 from sqlalchemy.orm import relationship
 
-from database import Base
+from backend.database import Base
 
 
 class Vendor(Base):

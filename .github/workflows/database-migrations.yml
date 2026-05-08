@@ -29,21 +29,22 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r backend/requirements.txt
 
-      - name: Descargar certificado SSL de Aiven
+      - name: Preparar certificado SSL de Aiven
         run: |
-          # Se descarga directamente en la raíz del repositorio (ca.pem) para consistencia
-          # con el entorno de Render, donde DB_SSL_CA apunta a ca.pem en el directorio raíz.
-          # En desarrollo local, la ruta es secrets/ca.pem (ver .env.example).
+          # El certificado se almacena como secret de GitHub codificado en base64.
+          # La URL pública de Aiven (api.aiven.io/v1/project/public_ca) requiere autenticación
+          # y no es accesible sin API key, por lo que se usa este método más robusto y seguro.
           #
-          # --fail-with-body: falla si el servidor retorna error HTTP
-          # --retry 3: reintenta hasta 3 veces en caso de fallo de red
-          curl --fail-with-body --retry 3 -o ca.pem https://api.aiven.io/v1/project/public_ca
-          # Verificar que el archivo no esté vacío antes de continuar
+          # Para configurar el secret CA_CERT_BASE64:
+          #   Linux/Mac: base64 -w 0 secrets/ca.pem
+          #   Windows:   [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes("secrets\ca.pem"))
+          # Copiar el resultado y guardarlo en GitHub → ekiEnvironment → CA_CERT_BASE64
+          echo "${{ secrets.CA_CERT_BASE64 }}" | base64 --decode > ca.pem
           if [ ! -s ca.pem ]; then
-            echo "❌ ERROR: ca.pem está vacío o no se descargó correctamente."
+            echo "❌ ERROR: ca.pem está vacío. Verifica el secret CA_CERT_BASE64 en ekiEnvironment."
             exit 1
           fi
-          echo "✅ Certificado ca.pem descargado y verificado."
+          echo "✅ Certificado ca.pem preparado y verificado."
 
       - name: Verificar estado de migraciones (alembic check)
         env:
