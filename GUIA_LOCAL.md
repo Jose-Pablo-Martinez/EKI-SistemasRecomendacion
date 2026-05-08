@@ -1,81 +1,180 @@
 # 📖 Guía de Configuración Local — EKI
 
-Esta guía es el **punto de partida obligatorio**. Sigue estos pasos para tener el sistema funcionando en tu computadora.
+Esta guía es el **punto de partida obligatorio** para cualquier desarrollador nuevo.
+Sigue los pasos en orden y tendrás el sistema corriendo en tu computadora.
 
 > [!WARNING]
-> **IMPORTANTE:** Antes de realizar cualquier operación avanzada de base de datos o despliegue, es obligatorio leer el manual de operaciones: [docs/OPERATIONS.md](docs/OPERATIONS.md).
+> **Antes de cualquier operación avanzada de base de datos o despliegue**, lee el manual de operaciones completo: [docs/OPERATIONS.md](docs/OPERATIONS.md).
+
+> [!IMPORTANT]
+> **Flujo de Git:** Los desarrolladores **NO** hacen `push` directamente a `main`. Todo cambio entra por una rama `feature/` y pasa por Pull Request a `unstable`, y luego a `main`. Ver sección §5 y CONTRIBUTING.md §7 para el detalle.
 
 ---
 
-## 1. Requisitos Previos (Lo que debes instalar)
+## 1. Requisitos Previos
 
-Antes de empezar, asegúrate de tener instalado en tu sistema:
-1.  **Python 3.11 o superior**: [Descargar aquí](https://www.python.org/). 
-    *   *Nota: Durante la instalación en Windows, marca la casilla "Add Python to PATH".*
-2.  **Git**: Para clonar el repositorio y gestionar ramas.
-3.  **MariaDB / MySQL Client**: 
-    *   Si vas a trabajar con la base de datos en la nube (Aiven), no necesitas instalar el servidor, pero es útil tener un cliente como **DBeaver** o **HeidiSQL** para visualizar los datos.
+Antes de empezar, instala:
+
+| Herramienta | ¿Para qué? | Enlace |
+|---|---|---|
+| **Python 3.11+** | Ejecutar el backend y los scripts | [python.org](https://www.python.org/) |
+| **Git** | Clonar el repo y gestionar ramas | [git-scm.com](https://git-scm.com/) |
+| **HeidiSQL** *(opcional, recomendado)* | Interfaz gráfica para explorar la BD Aiven | [heidisql.com](https://www.heidisql.com/) |
+
+> *En Windows: durante la instalación de Python, marca la casilla **"Add Python to PATH"**.*
 
 ---
 
 ## 2. Instalación Paso a Paso
 
-### A. Clonar y preparar entorno
-Abre una terminal (PowerShell o CMD) en la carpeta donde quieras guardar el proyecto:
+### A. Clonar el repositorio y crear el entorno virtual
 ```powershell
 git clone <url-del-repo>
 cd ekiSystem
 python -m venv venv
 .\venv\Scripts\activate
 ```
+Sabrás que el venv está activo cuando el prompt de tu terminal muestre `(venv)` al inicio.
 
-### B. Instalar dependencias (Librerías)
-Este comando instalará FastAPI, SQLAlchemy, Alembic y otras herramientas necesarias:
+### B. Instalar dependencias
 ```powershell
 pip install -r backend/requirements.txt
 ```
+Esto instala FastAPI, SQLAlchemy, Alembic, PyMySQL y todas las librerías del proyecto.
 
-### C. Configuración automática (.env y SSL)
-Ejecuta nuestro asistente inteligente de configuración:
+### C. Obtener el certificado SSL (`ca.pem`)
+
+La base de datos Aiven **requiere SSL obligatorio**. Sin el certificado, ninguna conexión funcionará.
+
+1. **Solicita el archivo `ca.pem`** al líder del equipo por el canal del equipo.
+2. **El líder lo descarga** desde: `Aiven Console → Tu Servicio MySQL → Overview → "Download CA Certificate"`.
+3. **Guarda el archivo** exactamente en: `secrets/ca.pem` (dentro de la carpeta raíz del proyecto).
+
+> *La carpeta `secrets/` está ignorada por Git (`.gitignore`), así que el certificado nunca se sube al repositorio.*
+
+### D. Configurar el archivo `.env`
+Ejecuta el asistente de configuración:
 ```powershell
 python scripts/setup/setup_env.py
 ```
-*   **¿Qué hace?**: Descarga el certificado de seguridad SSL (`ca.pem`) necesario para Aiven y te pide los datos de conexión.
-*   **¿Qué datos poner?**: Solicita al líder del equipo el **Hostname** y la **Password** de la base de datos de **desarrollo**.
+El script verificará el certificado y te pedirá los datos de conexión de forma interactiva:
+- **Host, Puerto y Password**: pídelos al líder del equipo. Los encontrará en `Aiven Console → Tu Servicio → Overview`.
+- **Nombre de BD**: usa `defaultdb` (base de datos de **desarrollo**).
+
+Al finalizar, tendrás un archivo `.env` listo en la raíz del proyecto.
 
 ---
 
-## 3. Sincronización de la Base de Datos
+## 3. Base de Datos — Sincronización y Gestión
 
-Una vez que tengas tu archivo `.env` listo, debes crear las tablas físicamente:
-1.  **Verificar conexión:** 
-    ```powershell
-    python scripts/db/check_connection.py
-    ```
-2.  **Aplicar tablas iniciales (Migración):** 
-    ```powershell
-    python scripts/db/migrate.py
-    ```
-    *Si ves el mensaje "✅ Migraciones aplicadas con éxito", tu base de datos local/nube ya tiene las tablas listas.*
+El proyecto usa **dos bases de datos en el mismo servicio Aiven**:
+
+| Base de datos | Entorno | ¿Quién accede? |
+|---|---|---|
+| `defaultdb` | **Desarrollo** (compartida por todo el equipo) | Todos los devs desde local |
+| `ekidb` | **Producción** | Solo el pipeline de CI/CD (GitHub Actions) |
+
+> [!WARNING]
+> **Nunca configures tu `.env` con `ekidb`**. Esa base de datos es de producción y solo la toca el pipeline automático.
+
+### Paso 1 — Verificar la conexión
+```powershell
+python scripts/db/check_connection.py
+```
+Si ves `✅ Conexión Exitosa!`, tu `.env` y certificado están bien configurados.
+
+### Paso 2 — Aplicar migraciones (crear tablas)
+```powershell
+python scripts/db/migrate.py
+```
+Esto ejecuta `alembic upgrade head` y crea las tablas en `defaultdb`. Si ves `✅ Migraciones aplicadas con éxito`, la BD está lista.
+
+> [!NOTE]
+> **Estado actual del proyecto (fase inicial):** La migración inicial existe pero las tablas definitivas **aún están en definición**. Es normal que las tablas cambien. Ver §3.2 de OPERATIONS.md para el flujo completo de cómo modificar la estructura de las tablas.
+
+### Paso 3 — La base de datos arranca vacía (por diseño)
+
+Después de aplicar las migraciones, las tablas existen pero **no tienen datos**. Esto es correcto.
+
+Una vez que la estructura de las tablas sea estable, se ejecutará el script de seed:
+```powershell
+python scripts/db/seed.py   # (disponible cuando las tablas sean definitivas)
+```
+El seed inserta datos de prueba ficticios para desarrollo. Ver [docs/OPERATIONS.md](docs/OPERATIONS.md) §4 para el flujo completo de seed.
 
 ---
 
-## 4. Cómo subir cambios y verlos en Producción
+## 4. Configurar HeidiSQL para Ver la Base de Datos
 
-El proyecto está automatizado. Para que tus cambios se vean en la web real, sigue estas reglas:
+HeidiSQL permite explorar visualmente las tablas de Aiven sin escribir SQL manualmente.
+
+1. Abre HeidiSQL → `Nueva sesión`.
+2. Configura los campos:
+
+| Campo | Valor |
+|---|---|
+| Tipo de red | **MySQL (TCP/IP)** |
+| Hostname / IP | Tu `DB_HOST` del `.env` |
+| Usuario | Tu `DB_USER` del `.env` |
+| Contraseña | Tu `DB_PASSWORD` del `.env` |
+| Puerto | Tu `DB_PORT` del `.env` |
+
+3. Ve a la pestaña **SSL**:
+   - Activa "Usar SSL".
+   - En **Certificado CA**: navega y selecciona `secrets/ca.pem`.
+4. Haz clic en **Abrir** para conectar.
+5. En el panel izquierdo verás los schemas: `defaultdb` (desarrollo) y `ekidb` (producción).
+
+> **Trabaja siempre dentro de `defaultdb`** cuando explores datos de desarrollo.
+
+---
+
+## 5. Iniciar el Servidor Backend en Local
+
+Con el venv activo y el `.env` configurado, inicia FastAPI:
+```powershell
+uvicorn backend.eki_main:app --reload --port 8000
+```
+
+Verifica que funcione abriendo en tu navegador:
+- **Documentación interactiva (Swagger):** `http://localhost:8000/docs`
+- **Health check:** `http://localhost:8000/health` → debe responder `{"status": "healthy"}`
+
+Para el **frontend**, abre `frontend/index.html` con **Live Server** (extensión de VS Code) en el puerto `5500`. El `app.js` detecta automáticamente que estás en `localhost` y apunta al backend local.
+
+---
+
+## 6. Cómo Subir Cambios y Verlos en Producción
+
+El proyecto tiene CI/CD automatizado. El flujo correcto es:
+
+```
+Tu rama feature/ → PR a unstable → (revisión del equipo) → merge a main → Deploy automático
+```
+
+> [!IMPORTANT]
+> **No hagas `push` directo a `main`**. La rama `main` está protegida. Solo el líder del equipo hace merge a `main` después de revisión.
 
 ### 🌐 Cambios en el Frontend (HTML/JS/CSS)
-1.  Realiza tus cambios en la carpeta `frontend/`.
-2.  Haz `git commit` y `git push origin main`.
-3.  **Resultado**: GitHub Actions actualizará [la web](https://jose-pablo-martinez.github.io/EKI-SistemasRecomendacion/) automáticamente en menos de 1 minuto.
+1. Trabaja en tu rama `feature/nombre-tarea`.
+2. Crea un PR hacia `unstable`.
+3. Tras aprobación y merge a `main`: **GitHub Actions** despliega automáticamente el frontend a GitHub Pages en menos de 1 minuto.
+4. URL pública: `https://jose-pablo-martinez.github.io/EKI-SistemasRecomendacion/`
 
 ### ⚙️ Cambios en el Backend (Lógica Python)
-1.  Modifica tus archivos en `backend/`.
-2.  Haz `git push origin main`.
-3.  **Resultado**: Render detectará el cambio y reiniciará el servidor con tu nueva lógica.
+1. Modifica archivos en `backend/`.
+2. Crea PR → merge a `main`.
+3. **Render** detecta el push y redespliega el servidor automáticamente.
 
 ### 🗄️ Cambios en la Base de Datos (Tablas/Columnas)
-1.  Modifica `backend/models.py`.
-2.  **Genera la versión**: `alembic revision --autogenerate -m "descripcion del cambio"`
-3.  Sube el nuevo archivo creado en `backend/migrations/versions/` a GitHub.
-4.  **Resultado**: El pipeline de GitHub aplicará el cambio a la base de datos de producción automáticamente antes de que el servidor inicie.
+Este flujo es más delicado. Ver [docs/OPERATIONS.md](docs/OPERATIONS.md) §3 para el procedimiento completo y todos los casos posibles (agregar columna, eliminar tabla, revertir, etc.).
+
+Resumen del flujo:
+1. Modifica `backend/models.py`.
+2. Genera la migración: `alembic revision --autogenerate -m "descripcion"`
+3. Revisa el archivo generado en `backend/migrations/versions/`.
+4. Aplica localmente: `python scripts/db/migrate.py`
+5. Sube el nuevo archivo de migración con tu PR.
+6. Al hacer merge a `main`: el pipeline activa el GitHub Environment **`ekiEnvironment`** y aplica la migración a producción (`ekidb`) automáticamente.
+
+> **Nota:** `ekiEnvironment` (y los secretos de producción) **solo se activan cuando el push incluye cambios en `models.py` o en `backend/migrations/`**. Un push de frontend o de lógica Python nunca toca la BD de producción.
