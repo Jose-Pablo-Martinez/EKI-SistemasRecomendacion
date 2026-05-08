@@ -11,6 +11,7 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    # pyrefly: ignore [missing-import]
     from sqlalchemy.orm import Session
     from models import Vendor, User
 

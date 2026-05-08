@@ -1,6 +1,8 @@
 import os
 import sys
+# pyrefly: ignore [missing-import]
 from sqlalchemy import create_engine, text
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 
 def check_venv():
