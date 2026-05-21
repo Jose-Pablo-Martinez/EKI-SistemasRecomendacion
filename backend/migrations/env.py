@@ -30,7 +30,7 @@ sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
 from backend.database import Base
-from backend.models import Vendor, User, UserRating  # noqa: F401 — necesario para autodetect
+import backend.models  # noqa: F401 — importar el módulo registra todas las clases en Base.metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
