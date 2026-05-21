@@ -90,7 +90,7 @@ python scripts/db/migrate.py
 Esto ejecuta `alembic upgrade head` y crea las tablas en `defaultdb`. Si ves `✅ Migraciones aplicadas con éxito`, la BD está lista.
 
 > [!NOTE]
-> **Estado actual del proyecto (fase inicial):** La migración inicial existe pero las tablas definitivas **aún están en definición**. Es normal que las tablas cambien. Ver §3.2 de OPERATIONS.md para el flujo completo de cómo modificar la estructura de las tablas.
+> **Estado actual del proyecto:** El esquema de BD es definitivo (migración `e1b0a75cd65e` — 38 tablas). Si tu compañero generó una nueva migración, el `migrate.py` la aplicará automáticamente. Para generar una migración propia, consulta `CONTRIBUTING.md §2.1` y `docs/OPERATIONS.md §3`.
 
 ### Paso 3 — La base de datos arranca vacía (por diseño)
 
