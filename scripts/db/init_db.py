@@ -21,11 +21,11 @@ def check_venv():
         
     if not (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)):
         print("\n" + "!"*60)
-        print("⚠️  ERROR: NO ESTÁS EN UN ENTORNO VIRTUAL")
+        print("[ERROR]: NO ESTÁS EN UN ENTORNO VIRTUAL")
         print("!"*60)
         print("Para proteger tu sistema, este script solo debe ejecutarse")
         print("dentro del entorno virtual del proyecto.")
-        print("\n👉 Actívalo con: .\\venv\\Scripts\\activate")
+        print("\n[INFO] Actívalo con: .\\venv\\Scripts\\activate")
         print("!"*60 + "\n")
         sys.exit(1)
 
@@ -38,6 +38,7 @@ ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 # Cargar .env con ruta explícita para que funcione sin importar el directorio de trabajo
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 load_dotenv(ROOT / ".env")
 
@@ -48,15 +49,15 @@ from backend.models import Vendor, User, UserRating  # noqa: F401 — necesario 
 def init_database():
     """Crea todas las tablas en la base de datos según los modelos definidos en models.py."""
     check_venv()
-    print("🚀 Iniciando creación de tablas en la base de datos...")
+    print("[INFO] Iniciando creación de tablas en la base de datos...")
     try:
         # Crea las tablas si no existen (no borra las existentes)
         Base.metadata.create_all(bind=engine)
-        print("✅ Tablas creadas con éxito.")
-        print("\nℹ️  Recuerda: la base de datos está vacía. Para poblarla con datos de")
-        print("   prueba, ejecuta: python scripts/db/seed.py (cuando esté disponible)")
+        print("[INFOR] Tablas creadas con éxito.")
+        print("\n[INFO] Recuerda: la base de datos está vacía. Para poblarla con datos de")
+        print("prueba, ejecuta: python scripts/db/seed.py (cuando esté disponible)")
     except Exception as e:
-        print(f"❌ Error al crear las tablas: {e}")
+        print(f"[ERROR] Error al crear las tablas: {e}")
 
 
 if __name__ == "__main__":

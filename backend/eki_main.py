@@ -32,9 +32,11 @@ app = FastAPI(
     title="EKI — Esquina Jach ki'",
     description=(
         "API REST del sistema de recomendación gastronómica de Mérida, Yucatán. "
-        "Prioriza la visibilidad de puestos pequeños, carritos y vendedores informales."
+        "Motor híbrido: clustering K-Means + filtrado por contenido (similitud coseno) "
+        "+ filtrado colaborativo item-to-item por cluster + boosting Haversine. "
+        "Prioriza la visibilidad de puestos informales y joyas ocultas de la ciudad."
     ),
-    version="0.1.0",
+    version="0.2.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -60,9 +62,11 @@ logger.info("CORS configurado para los orígenes: %s", ALLOWED_ORIGINS)
 # ─── Routers ──────────────────────────────────────────────────────────────────
 # Importar y registrar aquí los routers de cada módulo con APIRouter.
 # Ejemplo (descomentar cuando se creen los módulos de rutas):
-# from routers import vendors, recommendations
-# app.include_router(vendors.router)
-# app.include_router(recommendations.router)
+# from backend.routers import usuarios, establecimientos, recomendaciones, contenido
+# app.include_router(usuarios.router)
+# app.include_router(establecimientos.router)
+# app.include_router(recomendaciones.router)
+# app.include_router(contenido.router)
 
 
 # ─── Endpoints de Utilidad ────────────────────────────────────────────────────
@@ -73,7 +77,7 @@ def root() -> dict:
     Endpoint raíz. Confirma que la API está activa.
     Útil para el health check de Render (evita el spin-down innecesario).
     """
-    return {"status": "ok", "app": "EKI — Esquina Jach ki'", "version": "0.1.0"}
+    return {"status": "ok", "app": "EKI — Esquina Jach ki'", "version": "0.2.0"}
 
 
 @app.get("/health", tags=["Utilidad"])

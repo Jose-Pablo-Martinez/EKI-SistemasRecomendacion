@@ -11,7 +11,7 @@
 | Nombre | Esquina Jach ki' (EKI) |
 | Dominio | Sistema de recomendación gastronómica — Mérida, Yucatán |
 | Arquitectura | Monorepositorio · Backend API REST · Frontend Vanilla JS |
-| Etapa actual | Setup inicial completado |
+| Etapa actual | Esquema de BD implementado (v0.2.0) — 38 tablas, migración aplicada |
 | Despliegue | GitHub Pages (frontend) · Render (backend) · Aiven MySQL (base de datos) |
 | Institución | Facultad de Matemáticas, UADY |
 
@@ -54,14 +54,23 @@ ekiSystem/
 
 ### 2.1 Gestión de Cambios en la BD
 
-> **Contexto actual (fase inicial):** Los modelos en `models.py` aún están en definición. La migración inicial existe como marcador de posición. Una vez que el esquema sea estable y aprobado por el equipo, se generará la primera migración real. Ver `docs/OPERATIONS.md §3` para todos los casos de migración.
+> **Estado actual:** El esquema de BD es definitivo (`e1b0a75cd65e` — 38 tablas). Cuando necesites hacer un cambio estructural, sigue el flujo del §2.1 de este archivo y lee `docs/OPERATIONS.md §3` y `docs/EkiSystem_DB_Design.md` antes de tocar `models.py`.
 
-Cuando modifiques `models.py` en un esquema ya estable, **debes** generar una migración:
+Cuando modifiques `models.py`, **debes** generar una migración. Antes de hacerlo, lee **obligatoriamente** `docs/EkiSystem_DB_Design.md` (§1 a §7) y `docs/OPERATIONS.md §3`. El flujo es:
+
 1. Activa tu venv.
-2. Ejecuta: `alembic revision --autogenerate -m "Breve descripción del cambio"`
-3. Revisa el archivo generado en `backend/migrations/versions/`.
-4. Aplica el cambio localmente con `python scripts/db/migrate.py`.
-5. Incluye el archivo de migración en tu Pull Request.
+2. Modifica `backend/models.py` según las convenciones del esquema.
+3. Ejecuta: `alembic revision --autogenerate -m "[descripcion breve del cambio]"`
+4. **Revisa manualmente** el archivo generado en `backend/migrations/versions/`. Verifica:
+   - Que no elimine tablas o columnas por accidente.
+   - Que los nuevos índices secundarios estén incluidos (`op.create_index`).
+   - Que el `downgrade()` sea el inverso exacto del `upgrade()`.
+5. Aplica el cambio localmente: `python scripts/db/migrate.py`
+6. Verifica el estado de la BD: `python scripts/db/verify_schema.py`
+7. Incluye **solo el archivo de migración nuevo** en tu Pull Request (no el `models.py` solo).
+
+> [!CAUTION]
+> Nunca hagas `alembic downgrade base` en `defaultdb` sin coordinarlo con el equipo. Borra **todas** las tablas. Ver casos de riesgo en `docs/OPERATIONS.md §3`.
 
 ---
 
@@ -90,10 +99,11 @@ Cuando modifiques `models.py` en un esquema ya estable, **debes** generar una mi
 
 | Tipo | Convención | Ejemplo |
 |---|---|---|
-| Tabla | `snake_case` plural | `vendors`, `user_ratings` |
-| Columna | `snake_case` | `vendor_id`, `created_at` |
-| Clave foránea | `<tabla_singular>_id` | `vendor_id`, `user_id` |
-| Índice | `idx_<tabla>_<columna>` | `idx_vendors_category` |
+| Tabla | `snake_case` singular | `usuario`, `establecimiento`, `interaccion_usuario` |
+| Columna | `snake_case` | `nombre`, `fecha_registro` |
+| Clave primaria | `id_<tabla>` | `id_usuario`, `id_establecimiento` |
+| Clave foránea | igual que la PK referenciada | `id_usuario`, `id_establecimiento` |
+| Índice | `idx_<tabla>_<descripcion>` | `idx_interaccion_usuario_fecha` |
 
 ---
 
@@ -274,7 +284,7 @@ Estos son los cuatro módulos centrales del sistema. Cualquier lógica nueva de 
 | Ranking y Boosting | `logic/ranking.py` | Aplicar factores de visibilidad a negocios con pocas reseñas (`review_count < BOOST_THRESHOLD`) |
 | Inicio en Frío | `logic/cold_start.py` | Estrategia para usuarios o vendedores nuevos sin historial de interacciones |
 
-**Regla de boosting:** Un vendedor recibe boost si `review_count < 50`. El factor se controla con la constante `BOOST_FACTOR` en `logic/ranking.py`.
+**Boosting:** La función `compute_score_final` en `logic/ranking.py` combina tres señales con pesos configurables: `score_contenido` (similitud coseno entre perfil del usuario y características del establecimiento), `score_colaborativo` (item-to-item dentro del cluster) y `score_boost` (Haversine + bonus informal + popularidad de zona). Ver `docs/EkiSystem_Backend_Design.md §4.1` para el detalle.
 
 ---
 
@@ -302,6 +312,7 @@ Verificar cada punto antes de abrir un PR hacia `unstable` o `main`:
 - [ ] ¿La lógica de negocio está en `logic/` y no en las rutas?
 - [ ] ¿Los errores se manejan con `try/catch` o `HTTPException`?
 - [ ] ¿El archivo está en la carpeta correcta según la Sección 2?
+- [ ] **Si modificaste `models.py`:** ¿generaste una migración, la revisaste manualmente y ejecutaste `verify_schema.py`?
 
 ---
 

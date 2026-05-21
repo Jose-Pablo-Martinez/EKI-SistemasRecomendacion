@@ -1,21 +1,23 @@
 name: Database Migrations (Production)
 
-# Se ejecuta cuando se hace push a main tocando models.py o archivos de migración.
+# Se ejecuta cuando se hace push a main tocando modelos, migraciones, schemas o scripts de BD.
 # También se puede lanzar manualmente desde la pestaña Actions de GitHub.
 on:
   push:
     branches:
       - main
     paths:
-      - 'backend/models.py'
-      - 'backend/migrations/**'
+      - "backend/models.py"
+      - "backend/migrations/**"
+      - "backend/schemas.py"
+      - "scripts/db/**"
   workflow_dispatch:
 
 jobs:
   migrate:
     name: Apply Migrations to Aiven (Production)
     runs-on: ubuntu-latest
-    environment: ekiEnvironment  # Protegido: requiere que los secretos estén en este Environment
+    environment: ekiEnvironment # Protegido: requiere que los secretos estén en este Environment
 
     steps:
       - name: Checkout del repositorio
@@ -24,7 +26,7 @@ jobs:
       - name: Configurar Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Instalar dependencias
         run: pip install -r backend/requirements.txt
@@ -41,10 +43,15 @@ jobs:
           # Copiar el resultado y guardarlo en GitHub → ekiEnvironment → CA_CERT_BASE64
           echo "${{ secrets.CA_CERT_BASE64 }}" | base64 --decode > ca.pem
           if [ ! -s ca.pem ]; then
-            echo "❌ ERROR: ca.pem está vacío. Verifica el secret CA_CERT_BASE64 en ekiEnvironment."
+            echo "[ERROR] ERROR: ca.pem está vacío. Verifica el secret CA_CERT_BASE64 en ekiEnvironment."
             exit 1
           fi
-          echo "✅ Certificado ca.pem preparado y verificado."
+          echo "[[SUCCESS]] Certificado ca.pem preparado y verificado."
+
+      - name: Validar imports de modelos y schemas
+        run: |
+          python -c "import backend.models; print('[[SUCCESS]] backend.models importado correctamente')"
+          python -c "import backend.schemas; print('[[SUCCESS]] backend.schemas importado correctamente')"
 
       - name: Verificar estado de migraciones (alembic check)
         env:
@@ -57,7 +64,7 @@ jobs:
         run: |
           # alembic check falla si hay cambios en models.py sin migración generada.
           # Esto previene despliegues donde el modelo y la BD quedan desincronizados.
-          python -m alembic check && echo "✅ Migraciones sincronizadas con los modelos." || true
+          python -m alembic check && echo "[[SUCCESS]] Migraciones sincronizadas con los modelos." || true
 
       - name: Ejecutar Migraciones en Producción (ekidb)
         env:
@@ -69,3 +76,14 @@ jobs:
           DB_SSL_CA: ca.pem
         run: |
           python scripts/db/migrate.py
+
+      - name: Verificar estructura de BD post-migración
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME_PROD }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_SSL_CA: ca.pem
+        run: |
+          python scripts/db/verify_schema.py

@@ -10,17 +10,17 @@ def check_venv():
 
     if not (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)):
         print("\n" + "!"*60)
-        print("⚠️  ERROR: NO ESTÁS EN UN ENTORNO VIRTUAL")
+        print("ERROR: NO ESTÁS EN UN ENTORNO VIRTUAL")
         print("!"*60)
         print("Por favor, activa el entorno virtual antes de migrar.")
-        print("\n👉 Actívalo con: .\\venv\\Scripts\\activate")
+        print("\n>> Actívalo con: .\\venv\\Scripts\\activate")
         print("!"*60 + "\n")
         sys.exit(1)
 
 def run_migrations():
     check_venv()
     """Ejecuta las migraciones de Alembic (upgrade head)."""
-    print("🚀 Iniciando migración de base de datos...")
+    print("[INFO] Iniciando migración de base de datos...")
     
     # Asegurarnos de que estamos en la raíz del proyecto para que alembic.ini sea visible
     # El script debe ejecutarse como: python scripts/db/migrate.py
@@ -37,16 +37,16 @@ def run_migrations():
         )
 
         if result.returncode == 0:
-            print("✅ Migraciones aplicadas con éxito.")
+            print("[OK] Migraciones aplicadas con éxito.")
             if result.stdout:
                 print(result.stdout)
         else:
-            print("❌ Error al aplicar migraciones:")
+            print("[ERROR] Error al aplicar migraciones:")
             print(result.stderr)
             sys.exit(1)
             
     except Exception as e:
-        print(f"❌ Ocurrió un error inesperado: {e}")
+        print(f"[ERROR] Ocurrió un error inesperado: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
