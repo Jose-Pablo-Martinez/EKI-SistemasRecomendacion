@@ -25,7 +25,7 @@ def setup_environment():
     # 1. Crear carpeta secrets (ignorada por git)
     if not os.path.exists("secrets"):
         os.makedirs("secrets")
-        print("✅ Carpeta '/secrets' creada.")
+        print("[[SUCCESS]] Carpeta '/secrets' creada.")
     
     # 2. Verificar certificado SSL de Aiven (ca.pem)
     ca_path = os.path.join("secrets", "ca.pem")
@@ -38,7 +38,7 @@ def setup_environment():
         print("      3. Guarda el archivo como: secrets/ca.pem")
         print("   El script continuará, pero la conexión a la BD fallará hasta que tengas el certificado.")
     else:
-        print("✅ Certificado SSL (ca.pem) detectado correctamente.")
+        print("[[SUCCESS]] Certificado SSL (ca.pem) detectado correctamente.")
 
     # 3. Configuración interactiva del .env
     if not os.path.exists(".env"):
@@ -81,11 +81,11 @@ def setup_environment():
                 with open(".env", "w") as f:
                     f.writelines(new_lines)
                 
-                print("\n✅ Archivo '.env' generado con éxito.")
+                print("\n[[SUCCESS]] Archivo '.env' generado con éxito.")
             else:
-                print("❌ Error: No existe '.env.example'.")
+                print("[ERROR] Error: No existe '.env.example'.")
         except Exception as e:
-            print(f"❌ Error al procesar el .env: {e}")
+            print(f"[ERROR] Error al procesar el .env: {e}")
     else:
         print("\nℹ️  El archivo '.env' ya existe. Bórralo si quieres reconfigurarlo.")
 

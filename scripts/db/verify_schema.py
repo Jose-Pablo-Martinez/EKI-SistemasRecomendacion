@@ -110,11 +110,11 @@ def check_tablas(inspector, tablas_db: set[str]) -> list[str]:
 
     faltantes = TABLAS_ESPERADAS - tablas_db
     for t in sorted(faltantes):
-        errores.append(f"  ❌ Tabla faltante: {t}")
+        errores.append(f"  [ERROR] Tabla faltante: {t}")
 
     presentes_prohibidas = TABLAS_PROHIBIDAS & tablas_db
     for t in sorted(presentes_prohibidas):
-        errores.append(f"  ❌ Tabla antigua todavía existe: {t}")
+        errores.append(f"  [ERROR] Tabla antigua todavía existe: {t}")
 
     return errores
 
@@ -123,11 +123,11 @@ def check_indices(inspector, tablas_db: set[str]) -> list[str]:
     errores = []
     for tabla, nombre_idx in INDICES_ESPERADOS:
         if tabla not in tablas_db:
-            errores.append(f"  ⚠️  Tabla '{tabla}' no existe, no se puede verificar índice '{nombre_idx}'")
+            errores.append(f"  [ERROR] Tabla '{tabla}' no existe, no se puede verificar índice '{nombre_idx}'")
             continue
         indices = {idx["name"] for idx in inspector.get_indexes(tabla)}
         if nombre_idx not in indices:
-            errores.append(f"  ❌ Índice faltante en '{tabla}': {nombre_idx}")
+            errores.append(f"  [ERROR] Índice faltante en '{tabla}': {nombre_idx}")
     return errores
 
 
@@ -135,7 +135,7 @@ def check_tpt_fks(inspector, tablas_db: set[str]) -> list[str]:
     errores = []
     for tabla_hija, col_fk, tabla_padre in TPT_FKS:
         if tabla_hija not in tablas_db:
-            errores.append(f"  ⚠️  Tabla hija '{tabla_hija}' no existe")
+            errores.append(f"  [WARNING]  Tabla hija '{tabla_hija}' no existe")
             continue
         fks = inspector.get_foreign_keys(tabla_hija)
         referencia_encontrada = any(
@@ -145,7 +145,7 @@ def check_tpt_fks(inspector, tablas_db: set[str]) -> list[str]:
         )
         if not referencia_encontrada:
             errores.append(
-                f"  ❌ FK TPT faltante: {tabla_hija}.{col_fk} → {tabla_padre}"
+                f"  [ERROR] FK TPT faltante: {tabla_hija}.{col_fk} → {tabla_padre}"
             )
     return errores
 
@@ -163,7 +163,7 @@ def check_tablas_archivado_sin_fk(inspector, tablas_db: set[str]) -> list[str]:
         fks = inspector.get_foreign_keys(tabla)
         if fks:
             errores.append(
-                f"  ❌ Tabla de archivado '{tabla}' tiene FKs (debe ser independiente): {fks}"
+                f"  [ERROR] Tabla de archivado '{tabla}' tiene FKs (debe ser independiente): {fks}"
             )
     return errores
 
@@ -172,9 +172,9 @@ def check_nombre_estado_geo(tablas_db: set[str]) -> list[str]:
     """Verificar que la tabla se llame 'estado_geo', no 'estado' — ver §1.4."""
     errores = []
     if "estado_geo" not in tablas_db:
-        errores.append("  ❌ La tabla de estados se llama diferente a 'estado_geo'")
+        errores.append("  [ERROR] La tabla de estados se llama diferente a 'estado_geo'")
     if "estado" in tablas_db:
-        errores.append("  ❌ Existe una tabla llamada 'estado' (colisión de nombre)")
+        errores.append("  [ERROR] Existe una tabla llamada 'estado' (colisión de nombre)")
     return errores
 
 
@@ -189,9 +189,9 @@ def main() -> int:
         engine = create_engine(get_url(), pool_pre_ping=True)
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        print("✅ Conexión exitosa a la base de datos\n")
+        print("[[SUCCESS]] Conexión exitosa a la base de datos\n")
     except Exception as e:
-        print(f"❌ Error de conexión: {e}")
+        print(f"[ERROR] Error de conexión: {e}")
         return 1
 
     inspector   = inspect(engine)
@@ -207,12 +207,12 @@ def main() -> int:
             print(e)
     else:
         tablas_presentes = TABLAS_ESPERADAS & tablas_db
-        print(f"  ✅ {len(tablas_presentes)}/{len(TABLAS_ESPERADAS)} tablas presentes")
+        print(f"  [[SUCCESS]] {len(tablas_presentes)}/{len(TABLAS_ESPERADAS)} tablas presentes")
 
     # 2. Tablas antiguas
     presentes_prohibidas = TABLAS_PROHIBIDAS & tablas_db
     if not presentes_prohibidas:
-        print("  ✅ Tablas placeholder antiguas eliminadas (vendors, users, user_ratings)")
+        print("  [[SUCCESS]] Tablas placeholder antiguas eliminadas (vendors, users, user_ratings)")
 
     # 3. Índices secundarios
     print(f"\n[2/5] Verificando {len(INDICES_ESPERADOS)} índices secundarios (§5)...")
@@ -222,7 +222,7 @@ def main() -> int:
         for e in errs:
             print(e)
     else:
-        print(f"  ✅ Todos los índices secundarios presentes")
+        print(f"  [[SUCCESS]] Todos los índices secundarios presentes")
 
     # 4. FKs TPT
     print(f"\n[3/5] Verificando FKs de herencia TPT...")
@@ -232,7 +232,7 @@ def main() -> int:
         for e in errs:
             print(e)
     else:
-        print("  ✅ Todas las FKs de herencia TPT son correctas")
+        print("  [[SUCCESS]] Todas las FKs de herencia TPT son correctas")
 
     # 5. Tablas archivado sin FK
     print(f"\n[4/5] Verificando tablas de archivado (sin FKs — §6)...")
@@ -242,7 +242,7 @@ def main() -> int:
         for e in errs:
             print(e)
     else:
-        print("  ✅ Tablas de archivado correctas (sin FKs)")
+        print("  [[SUCCESS]] Tablas de archivado correctas (sin FKs)")
 
     # 6. Nombre estado_geo
     print(f"\n[5/5] Verificando nomenclatura 'estado_geo' (no 'estado' — §1.4)...")
@@ -252,18 +252,18 @@ def main() -> int:
         for e in errs:
             print(e)
     else:
-        print("  ✅ Tabla 'estado_geo' existe con el nombre correcto")
+        print("  [[SUCCESS]] Tabla 'estado_geo' existe con el nombre correcto")
 
     # Resumen
     print("\n" + "=" * 60)
     if total_errores:
-        print(f"❌ VERIFICACIÓN FALLIDA — {len(total_errores)} error(es) encontrado(s):")
+        print(f"[ERROR] VERIFICACIÓN FALLIDA — {len(total_errores)} error(es) encontrado(s):")
         for e in total_errores:
             print(e)
         print("=" * 60)
         return 1
     else:
-        print(f"✅ VERIFICACIÓN EXITOSA — BD en estado correcto")
+        print(f"[[SUCCESS]] VERIFICACIÓN EXITOSA — BD en estado correcto")
         print(f"   Tablas: {len(TABLAS_ESPERADAS & tablas_db)}/{len(TABLAS_ESPERADAS)}")
         print(f"   Índices: {len(INDICES_ESPERADOS)} verificados")
         print(f"   FKs TPT: {len(TPT_FKS)} verificadas")

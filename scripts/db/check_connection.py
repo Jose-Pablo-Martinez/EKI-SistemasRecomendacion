@@ -12,10 +12,10 @@ def check_venv():
         
     if not (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)):
         print("\n" + "!"*60)
-        print("⚠️  ERROR: NO ESTÁS EN UN ENTORNO VIRTUAL")
+        print("[ERROR]: NO ESTÁS EN UN ENTORNO VIRTUAL")
         print("!"*60)
         print("Por favor, activa el entorno virtual para probar la conexión.")
-        print("\n👉 Actívalo con: .\\venv\\Scripts\\activate")
+        print("\n[INFO] Actívalo con: .\\venv\\Scripts\\activate")
         print("!"*60 + "\n")
         sys.exit(1)
 
@@ -25,7 +25,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 def test_connection():
     check_venv()
     """Prueba la conexión a la base de datos usando las variables del .env"""
-    print("🔍 Probando conexión a la base de datos...")
+    print("[INFO]Probando conexión a la base de datos...")
     
     # Cargar .env desde la raíz
     dotenv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
@@ -39,7 +39,7 @@ def test_connection():
     db_ssl_ca = os.getenv("DB_SSL_CA")
 
     if not all([db_host, db_user, db_pass]):
-        print("❌ Error: Faltan variables de entorno en el archivo .env")
+        print("[ERROR]: Faltan variables de entorno en el archivo .env")
         return
 
     # Construir URL de SQLAlchemy para PyMySQL
@@ -50,16 +50,16 @@ def test_connection():
     connect_args = {}
     if db_ssl_ca and os.path.exists(db_ssl_ca):
         connect_args["ssl"] = {"ca": db_ssl_ca}
-        print(f"🔒 SSL habilitado usando: {db_ssl_ca}")
+        print(f"[INFO]: SSL habilitado usando: {db_ssl_ca}")
 
     try:
         engine = create_engine(connection_url, connect_args=connect_args)
         with engine.connect() as conn:
             result = conn.execute(text("SELECT 'Conexión Exitosa!'"))
-            print(f"✅ {result.scalar()}")
-            print(f"📊 Conectado a: {db_host}/{db_name}")
+            print(f"[[SUCCESS]]: {result.scalar()}")
+            print(f"[INFO]: Conectado a: {db_host}/{db_name}")
     except Exception as e:
-        print(f"❌ Error de conexión: {e}")
+        print(f"[ERROR]: Error de conexión: {e}")
 
 if __name__ == "__main__":
     test_connection()
