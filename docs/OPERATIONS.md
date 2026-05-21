@@ -49,7 +49,7 @@ python scripts/db/check_connection.py
 ```powershell
 python scripts/db/migrate.py
 ```
-Ejecuta internamente `alembic upgrade head`. Aplica todos los cambios de esquema pendientes.
+Ejecuta internamente `alembic upgrade head`. Aplica todos los cambios de esquema pendientes. Después de aplicar, ejecuta `scripts/db/verify_schema.py` para confirmar el estado correcto.
 
 **¿Cuándo usarlo?**
 - Después de un `git pull` (por si un compañero añadió migraciones nuevas).
@@ -97,9 +97,7 @@ alembic check
 ### 3.2 Estado actual del proyecto (fase inicial)
 
 > [!NOTE]
-> La migración inicial (`e1785d8860ce`) existe como marcador de posición pero **las tablas definitivas aún están en definición**. Mientras el esquema esté en revisión:
-> - Usa `scripts/db/init_db.py` para crear tablas rápidamente durante el desarrollo.
-> - Una vez que los modelos en `backend/models.py` sean estables y aprobados por el equipo, se generará la **primera migración real** (ver §3.3).
+> **Estado actual:** El esquema de BD es definitivo. La migración `e1b0a75cd65e` (Estructura inicial completa EkiSystem, 38 tablas) está aplicada en `defaultdb`. Si necesitas generar una nueva migración por un cambio de esquema, lee **obligatoriamente** `docs/EkiSystem_DB_Design.md` y `CONTRIBUTING.md §2.1` antes de tocar `models.py`.
 
 ### 3.3 Casos de migración más comunes
 
@@ -169,10 +167,10 @@ El seed es el proceso de insertar datos iniciales de prueba en la base de datos.
 
 | Momento | Acción |
 |---|---|
-| Fase inicial (ahora) | No hay seed todavía. Las tablas están en definición. |
-| Cuando los modelos sean definitivos | Generar migración real → aplicar en dev → **correr seed en `defaultdb`** |
+| Ahora | Las tablas son definitivas. El seed inicial (país MX, rangos, categorías) **está pendiente de creación** en `scripts/db/seed.py`. |
+| Cuando se cree `seed.py` | Aplicar migraciones → **correr seed en `defaultdb`** |
 | Primera puesta en producción | El administrador corre el seed en `ekidb` manualmente (no automatizado) |
-| Cambio de estructura (nueva migración) | Evaluar si el seed sigue siendo compatible. Si no, actualizarlo. |
+| Nueva migración con cambio estructural | Evaluar si el seed sigue siendo compatible. Si no, actualizarlo. |
 
 ### Flujo de seed en `defaultdb` (desarrollo)
 ```powershell
@@ -217,11 +215,14 @@ git push → main
     │       Publica frontend/ en GitHub Pages automáticamente
     │       URL: https://jose-pablo-martinez.github.io/EKI-SistemasRecomendacion/
     │
-    ├──→ [Trigger: models.py o backend/migrations/**]
+    ├──→ [Trigger: `backend/models.py`, `backend/migrations/**`,
+    │       `backend/schemas.py`, `scripts/db/**`]
     │       Job: Database Migrations
-    │       1. Descarga ca.pem desde Aiven API (con verificación de integridad)
-    │       2. Ejecuta alembic check (valida sincronía modelos ↔ migraciones)
-    │       3. Ejecuta alembic upgrade head en ekidb (producción)
+    │       1. Descarga ca.pem desde secret `CA_CERT_BASE64`
+    │       2. Valida imports: `python -c "import backend.models; import backend.schemas"`
+    │       3. Ejecuta `alembic check` (valida sincronía modelos ↔ migraciones)
+    │       4. Ejecuta `alembic upgrade head` en `ekidb` (producción)
+    │       5. Ejecuta `verify_schema.py` para confirmar estado post-migración
     │
     └──→ [Trigger: Render webhook automático]
             Render redespliega el backend con el nuevo código

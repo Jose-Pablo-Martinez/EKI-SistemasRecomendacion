@@ -2,76 +2,129 @@
 Módulo de Ranking y Boosting — EKI.
 
 Responsabilidad:
-    Aplicar factores de visibilidad a vendedores con pocas reseñas
-    y ordenar los resultados finales del sistema de recomendación.
+    Aplicar el score_boost_combinado a los establecimientos candidatos y
+    ordenar los resultados finales del motor de recomendación.
 
-Regla de boosting (según CONTRIBUTING.md):
-    Un vendedor recibe boost si review_count < BOOST_THRESHOLD.
-    El factor se controla con la constante BOOST_FACTOR.
+Fórmula de boosting (ver §1.3 de EkiSystem_DB_Design.md):
+
+    score_boost = w_prox * (1 / (distancia_km + 0.1))
+                + w_informal * es_informal
+                + w_zona * popularidad_zona
+
+    score_final = w1 * score_contenido + w2 * score_colaborativo + w3 * score_boost
+
+Nota arquitectónica (§1.7 — Offline-First):
+    El score_boost_combinado se pre-calcula en el job offline y se persiste en
+    metrica_establecimiento. FastAPI NO recalcula la fórmula completa en cada
+    request; solo calcula la distancia Haversine puntual al momento de servir.
 """
 
 import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    # pyrefly: ignore [missing-import]
     from sqlalchemy.orm import Session
-    from models import Vendor
+    from backend.models import Establecimiento, MetricaEstablecimiento
 
 logger = logging.getLogger(__name__)
 
 # ─── Constantes de Boosting ───────────────────────────────────────────────────
-BOOST_THRESHOLD: int = 50       # Número mínimo de reseñas para no aplicar boost
-BOOST_FACTOR: float = 1.25      # Multiplicador de relevancia para vendedores con pocas reseñas
-MAX_RESULTS: int = 20           # Límite máximo de resultados en cualquier endpoint
+BOOST_FACTOR_INFORMAL: float = 0.25    # Bonus fijo para puestos informales (es_informal=TRUE)
+RADIO_ZONA_KM: float = 2.0             # Radio en km para calcular popularidad_zona
+MAX_RESULTS: int = 20                  # Límite máximo de resultados en cualquier endpoint
+
+# Pesos del score final híbrido (deben sumar 1.0)
+W_CONTENIDO: float = 0.40
+W_COLABORATIVO: float = 0.35
+W_BOOST: float = 0.25
 
 
-def get_top_vendors(
+def get_top_establecimientos(
     db: "Session",
     limit: int = 10,
-) -> list["Vendor"]:
+) -> list["Establecimiento"]:
     """
-    Obtiene los vendedores con mayor puntaje de relevancia tras aplicar boosting.
+    Obtiene los establecimientos con mayor score_boost_combinado pre-calculado.
 
-    Combina el rating promedio con el factor de boosting para priorizar
-    negocios emergentes con pocas reseñas.
+    Este método solo se usa como fallback cuando no hay lista pre-generada
+    para el usuario. El caso principal es que el job offline ya generó las
+    recomendaciones en recomendacion_generada y FastAPI solo las sirve.
 
     Args:
         db: Sesión activa de SQLAlchemy.
-        limit: Cantidad máxima de vendedores a retornar (máx. MAX_RESULTS).
+        limit: Cantidad máxima de establecimientos a retornar (máx. MAX_RESULTS).
 
     Returns:
-        Lista de instancias Vendor ordenadas por puntaje de relevancia descendente.
+        Lista de instancias Establecimiento ordenadas por score_boost_combinado.
     """
-    # TODO: Consultar vendors activos y aplicar apply_boost
-    logger.info("ranking: obteniendo top %d vendedores con boosting", limit)
+    # TODO: Consultar establecimientos activos+aprobados con JOIN a metrica_establecimiento
+    #       ORDER BY metrica_establecimiento.score_boost_combinado DESC LIMIT limit
+    logger.info("ranking: obteniendo top %d establecimientos por score_boost", limit)
     return []
 
 
-def apply_boost(vendors: list, threshold: int = BOOST_THRESHOLD) -> list:
+def compute_score_final(
+    score_contenido: float,
+    score_colaborativo: float,
+    score_boost: float,
+    w1: float = W_CONTENIDO,
+    w2: float = W_COLABORATIVO,
+    w3: float = W_BOOST,
+) -> float:
     """
-    Aplica el factor de boosting a los vendedores con pocas reseñas.
+    Calcula el score final ponderado del motor híbrido.
 
-    Un vendedor con review_count < threshold recibe su rating_avg
-    multiplicado por BOOST_FACTOR para aumentar su visibilidad en el ranking.
+    score_final = w1 * score_contenido + w2 * score_colaborativo + w3 * score_boost
 
     Args:
-        vendors: Lista de instancias Vendor a procesar.
-        threshold: Umbral de reseñas. Vendedores por debajo reciben boost.
+        score_contenido: Similitud coseno entre vector_preferencias del usuario
+                         y vector_caracteristicas del establecimiento.
+        score_colaborativo: Frecuencia de aparición en listas de usuarios similares
+                            dentro del cluster (item-to-item).
+        score_boost: score_boost_combinado pre-calculado de metrica_establecimiento
+                     (Haversine + bonus informal + popularidad_zona).
+        w1, w2, w3: Pesos de cada componente (deben sumar 1.0).
 
     Returns:
-        Lista de vendedores con sus puntajes ajustados, lista para ordenar.
+        Score final en [0.0, 1.0].
     """
-    # TODO: Implementar lógica de boosting y retornar lista con scores calculados
-    boosted: list = []
-    for vendor in vendors:
-        score: float = vendor.rating_avg
-        if vendor.review_count < threshold:
-            score *= BOOST_FACTOR
-            logger.debug(
-                "Boost aplicado a vendor_id=%d (reseñas: %d, score ajustado: %.2f)",
-                vendor.vendor_id,
-                vendor.review_count,
-                score,
-            )
-        boosted.append({"vendor": vendor, "score": score, "boosted": vendor.review_count < threshold})
-    return sorted(boosted, key=lambda x: x["score"], reverse=True)
+    # TODO: Implementar cuando se construyan los endpoints de recomendaciones
+    return w1 * score_contenido + w2 * score_colaborativo + w3 * score_boost
+
+
+def compute_haversine_km(
+    lat1: float,
+    lon1: float,
+    lat2: float,
+    lon2: float,
+) -> float:
+    """
+    Calcula la distancia en km entre dos puntos geográficos con la fórmula de Haversine.
+
+    Esta función se ejecuta ONLINE (en el request del usuario), a diferencia del
+    score_boost_combinado que es OFFLINE. Ver §1.7 del diseño.
+
+    El resultado se persiste en recomendacion_generada.distancia_km para la caja blanca.
+    El "+0.1" en el denominador del boosting evita división por cero — ver §1.3.
+
+    Args:
+        lat1, lon1: Coordenadas del usuario (de ubicacion_usuario más reciente).
+        lat2, lon2: Coordenadas del establecimiento (establecimiento.latitud/longitud).
+
+    Returns:
+        Distancia en kilómetros (línea recta).
+    """
+    import math
+
+    R = 6371.0  # Radio de la Tierra en km
+
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R * c
