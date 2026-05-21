@@ -48,9 +48,28 @@ def run_desarrollo(db: Session):
         print(f"Error en el seed de desarrollo: {e}")
         db.rollback()
 
-def run_limpiar(db: Session):
-    if DB_NAME == "ekidb":
+def run_demo(db: Session):
+    print("=== ALERTA: Iniciando Seed de DEMO ===")
+    print(f"Base de datos objetivo: {DB_NAME}")
+    print("ADVERTENCIA: Este modo inyecta datos sintéticos. Usar solo para la presentación.")
+    try:
+        seed_catalogo_completo(db)
+        seed_clusters(db)
+        seed_usuarios_completo(db)
+        seed_establecimientos_completo(db)
+        seed_contenido_completo(db)
+        seed_interacciones_completo(db)
+        seed_gamificacion_completo(db)
+        seed_recomendaciones_completo(db)
+        print("=== Seed de DEMO completado con éxito ===")
+    except Exception as e:
+        print(f"Error en el seed de demo: {e}")
+        db.rollback()
+
+def run_limpiar(db: Session, force: bool = False):
+    if DB_NAME == "ekidb" and not force:
         print("ERROR: No se puede ejecutar el modo limpiar en la base de datos de producción (ekidb).")
+        print("Si estás seguro de que quieres borrar los datos de evaluación, usa la bandera --force.")
         sys.exit(1)
         
     print("=== Iniciando limpieza de datos de prueba ===")
@@ -84,9 +103,14 @@ def main():
     parser = argparse.ArgumentParser(description="Script de Seed para EkiSystem DB.")
     parser.add_argument(
         "--modo", 
-        choices=["catalogo", "desarrollo", "limpiar"], 
+        choices=["catalogo", "desarrollo", "limpiar", "demo"], 
         required=True, 
         help="El modo de ejecución del script."
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Fuerza la ejecución de comandos peligrosos (como limpiar en ekidb)."
     )
     
     args = parser.parse_args()
@@ -97,8 +121,10 @@ def main():
             run_catalogo(db)
         elif args.modo == "desarrollo":
             run_desarrollo(db)
+        elif args.modo == "demo":
+            run_demo(db)
         elif args.modo == "limpiar":
-            run_limpiar(db)
+            run_limpiar(db, force=args.force)
     finally:
         db.close()
 
