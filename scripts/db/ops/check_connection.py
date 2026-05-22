@@ -19,8 +19,8 @@ def check_venv():
         print("!"*60 + "\n")
         sys.exit(1)
 
-# Añadir el directorio raíz al path para importar modelos si fuera necesario
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+# check_connection.py está en scripts/db/ops/ → 3 niveles hasta la raíz del proyecto
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
 def test_connection():
     check_venv()
@@ -28,7 +28,7 @@ def test_connection():
     print("[INFO]Probando conexión a la base de datos...")
     
     # Cargar .env desde la raíz
-    dotenv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
+    dotenv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".env"))
     load_dotenv(dotenv_path)
 
     db_host = os.getenv("DB_HOST")
