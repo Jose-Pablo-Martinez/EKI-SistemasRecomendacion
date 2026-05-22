@@ -7,7 +7,7 @@ iniciales. Una vez que el esquema sea estable, se debe generar una migración Al
 (`alembic revision --autogenerate`) y usar `scripts/db/migrate.py` como fuente de verdad.
 
 Ejecutar siempre desde la raíz del proyecto con el venv activo:
-    python scripts/db/init_db.py
+    python scripts/db/ops/init_db.py
 """
 import sys
 import os
@@ -43,7 +43,7 @@ from dotenv import load_dotenv
 load_dotenv(ROOT / ".env")
 
 from backend.database import engine, Base
-from backend.models import Vendor, User, UserRating  # noqa: F401 — necesario para que Base.metadata los incluya
+import backend.models  # noqa: F401 — importar el módulo registra todos los modelos en Base.metadata
 
 
 def init_database():
@@ -55,7 +55,7 @@ def init_database():
         Base.metadata.create_all(bind=engine)
         print("[INFOR] Tablas creadas con éxito.")
         print("\n[INFO] Recuerda: la base de datos está vacía. Para poblarla con datos de")
-        print("prueba, ejecuta: python scripts/db/seed.py (cuando esté disponible)")
+        print("prueba, ejecuta: python scripts/db/seed/seed.py --modo desarrollo")
     except Exception as e:
         print(f"[ERROR] Error al crear las tablas: {e}")
 

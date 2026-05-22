@@ -18,18 +18,18 @@ def check_venv():
         sys.exit(1)
 
 def run_migrations():
-    check_venv()
     """Ejecuta las migraciones de Alembic (upgrade head)."""
+    check_venv()
     print("[INFO] Iniciando migración de base de datos...")
-    
-    # Asegurarnos de que estamos en la raíz del proyecto para que alembic.ini sea visible
-    # El script debe ejecutarse como: python scripts/db/migrate.py
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+    # migrate.py está en scripts/db/ops/ → 3 niveles hasta la raíz del proyecto
+    # donde se encuentra alembic.ini (scripts/db/ops → scripts/db → scripts → raíz)
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
     os.chdir(project_root)
 
     try:
-        # Comando para aplicar todas las migraciones hasta la más reciente
-        # Usamos sys.executable para usar el mismo python que está corriendo este script
+        # Comando para aplicar todas las migraciones hasta la más reciente.
+        # Usamos sys.executable para usar el mismo python que está corriendo este script.
         result = subprocess.run(
             [sys.executable, "-m", "alembic", "upgrade", "head"],
             capture_output=True,
@@ -41,10 +41,10 @@ def run_migrations():
             if result.stdout:
                 print(result.stdout)
         else:
-            print("[ERROR] Error al aplicar migraciones:")
+            print("Error: ", "Error al aplicar migraciones:")
             print(result.stderr)
             sys.exit(1)
-            
+
     except Exception as e:
         print(f"[ERROR] Ocurrió un error inesperado: {e}")
         sys.exit(1)
