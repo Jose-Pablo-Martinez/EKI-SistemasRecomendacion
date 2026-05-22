@@ -48,9 +48,13 @@ def seed_historial_y_sesiones(db: Session):
 def seed_recomendaciones_generadas(db: Session):
     print("Sembrando recomendaciones generadas...")
     
-    # Limpiar recomendaciones generadas previas (son volátiles, el K-Means las recrea)
-    db.execute(text("DELETE FROM recomendacion_generada"))
-    db.commit()
+    # Las recomendaciones son volátiles: el motor K-Means las recrea en produccion.
+    # En seed, sólo las generamos si la tabla está vacía, para no regenerarlas
+    # aleatoriamente en cada ejecución (eso romperia las FKs de historial_visita).
+    count_recom = db.query(RecomendacionGenerada).count()
+    if count_recom > 0:
+        print("Recomendaciones ya existentes, saltando...")
+        return
     
     # Visitantes activos no ideales
     visitantes = db.query(UsuarioVisitante).join(Usuario).filter(~Usuario.email.like("%@ideal.eki.internal%")).all()

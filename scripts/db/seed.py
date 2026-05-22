@@ -75,6 +75,11 @@ def run_limpiar(db: Session, force: bool = False):
     print("=== Iniciando limpieza de datos de prueba ===")
     try:
         db.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
+        # NOTA: Las tablas del catálogo base (pais, estado_geo, municipio, colonia,
+        # categoria, etiqueta, rango_informador) se excluyen INTENCIONALMENTE.
+        # El catálogo es estructura permanente que no es datos de prueba.
+        # Para un reset total incluyendo catálogo, usa directamente `alembic downgrade base`
+        # seguido de `alembic upgrade head` y luego el seed.
         tablas_a_limpiar = [
             "recomendacion_generada", "recomendacion_generada_historico",
             "historial_visita", "favorito_guardado", "resena", "interaccion_usuario",

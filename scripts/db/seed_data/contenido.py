@@ -21,17 +21,21 @@ def seed_establecimiento_contenido(db: Session):
     eti_data = []
     
     for e in estabs:
-        # Categorías (2 a 4 por estab)
-        num_cat = random.randint(2, min(4, len(categorias_hojas)))
-        cats_elegidas = random.sample(categorias_hojas, num_cat)
-        for c in cats_elegidas:
-            cat_data.append({"id_establecimiento": e.id_establecimiento, "id_categoria": c.id_categoria})
-            
-        # Etiquetas (2 a 5 por estab)
-        num_eti = random.randint(2, min(5, len(etiquetas)))
-        eti_elegidas = random.sample(etiquetas, num_eti)
-        for et in eti_elegidas:
-            eti_data.append({"id_establecimiento": e.id_establecimiento, "id_etiqueta": et.id_etiqueta})
+        # Solo insertar si el establecimiento no tiene categorías aún
+        tiene_cats = db.query(EstablecimientoCategoria).filter_by(id_establecimiento=e.id_establecimiento).count() > 0
+        if not tiene_cats:
+            num_cat = random.randint(2, min(4, len(categorias_hojas)))
+            cats_elegidas = random.sample(categorias_hojas, num_cat)
+            for c in cats_elegidas:
+                cat_data.append({"id_establecimiento": e.id_establecimiento, "id_categoria": c.id_categoria})
+        
+        # Solo insertar si el establecimiento no tiene etiquetas aún
+        tiene_etis = db.query(EstablecimientoEtiqueta).filter_by(id_establecimiento=e.id_establecimiento).count() > 0
+        if not tiene_etis:
+            num_eti = random.randint(2, min(5, len(etiquetas)))
+            eti_elegidas = random.sample(etiquetas, num_eti)
+            for et in eti_elegidas:
+                eti_data.append({"id_establecimiento": e.id_establecimiento, "id_etiqueta": et.id_etiqueta})
             
     if cat_data:
         db.execute(insert(EstablecimientoCategoria).prefix_with("IGNORE").values(cat_data))

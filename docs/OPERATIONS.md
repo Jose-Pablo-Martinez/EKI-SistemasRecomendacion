@@ -66,9 +66,10 @@ Crea las tablas directamente con `create_all()` sin pasar por Alembic. **Útil s
 
 ### `scripts/db/seed.py` — Poblar la base de datos con datos de prueba
 ```powershell
-python scripts/db/seed.py   # (disponible cuando las tablas sean definitivas)
+# Modo más común para desarrollo local:
+python scripts/db/seed.py --modo desarrollo
 ```
-Ver §4 de este documento para el flujo completo.
+Ver §4 de este documento para el flujo completo y todos los modos disponibles (`catalogo`, `desarrollo`, `demo`, `limpiar`).
 
 ---
 
