@@ -92,15 +92,18 @@ Esto ejecuta `alembic upgrade head` y crea las tablas en `defaultdb`. Si ves `�
 > [!NOTE]
 > **Estado actual del proyecto:** El esquema de BD es definitivo (migración `e1b0a75cd65e` — 38 tablas). Si tu compañero generó una nueva migración, el `migrate.py` la aplicará automáticamente. Para generar una migración propia, consulta `CONTRIBUTING.md §2.1` y `docs/OPERATIONS.md §3`.
 
-### Paso 3 — La base de datos arranca vacía (por diseño)
+### Paso 3 — Población Inicial de Datos (Seed)
 
-Después de aplicar las migraciones, las tablas existen pero **no tienen datos**. Esto es correcto.
+Después de aplicar las migraciones, las tablas existen pero **no tienen datos**.
+Para poder desarrollar y probar el sistema (entrenar K-Means, etc.), inyectaremos un volumen alto de datos de prueba sintéticos:
 
-Una vez que la estructura de las tablas sea estable, se ejecutará el script de seed:
 ```powershell
-python scripts/db/seed.py   # (disponible cuando las tablas sean definitivas)
+python scripts/db/seed.py --modo desarrollo
 ```
-El seed inserta datos de prueba ficticios para desarrollo. Ver [docs/OPERATIONS.md](docs/OPERATIONS.md) §4 para el flujo completo de seed.
+
+> **Tip de Mantenimiento:** Si durante el desarrollo necesitas reiniciar tu entorno y borrar los datos de prueba para empezar de cero, usa `python scripts/db/seed.py --modo limpiar`.
+
+Ver [docs/OPERATIONS.md](docs/OPERATIONS.md) §4 para el detalle de todos los comandos y modos del seed.
 
 ---
 
