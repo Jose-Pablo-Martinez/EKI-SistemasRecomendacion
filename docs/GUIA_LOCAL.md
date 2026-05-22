@@ -38,7 +38,7 @@ Sabrás que el venv está activo cuando el prompt de tu terminal muestre `(venv)
 
 ### B. Instalar dependencias
 ```powershell
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 ```
 Esto instala FastAPI, SQLAlchemy, Alembic, PyMySQL y todas las librerías del proyecto.
 
@@ -79,13 +79,13 @@ El proyecto usa **dos bases de datos en el mismo servicio Aiven**:
 
 ### Paso 1 — Verificar la conexión
 ```powershell
-python scripts/db/check_connection.py
+python scripts/db/ops/check_connection.py
 ```
 Si ves `✅ Conexión Exitosa!`, tu `.env` y certificado están bien configurados.
 
 ### Paso 2 — Aplicar migraciones (crear tablas)
 ```powershell
-python scripts/db/migrate.py
+python scripts/db/ops/migrate.py
 ```
 Esto ejecuta `alembic upgrade head` y crea las tablas en `defaultdb`. Si ves `✅ Migraciones aplicadas con éxito`, la BD está lista.
 
@@ -98,10 +98,10 @@ Después de aplicar las migraciones, las tablas existen pero **no tienen datos**
 Para poder desarrollar y probar el sistema (entrenar K-Means, etc.), inyectaremos un volumen alto de datos de prueba sintéticos:
 
 ```powershell
-python scripts/db/seed.py --modo desarrollo
+python scripts/db/seed/seed.py --modo desarrollo
 ```
 
-> **Tip de Mantenimiento:** Si durante el desarrollo necesitas reiniciar tu entorno y borrar los datos de prueba para empezar de cero, usa `python scripts/db/seed.py --modo limpiar`.
+> **Tip de Mantenimiento:** Si durante el desarrollo necesitas reiniciar tu entorno y borrar los datos de prueba para empezar de cero, usa `python scripts/db/seed/seed.py --modo limpiar`.
 
 Ver [docs/OPERATIONS.md](docs/OPERATIONS.md) §4 para el detalle de todos los comandos y modos del seed.
 

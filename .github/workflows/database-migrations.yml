@@ -7,9 +7,9 @@ on:
     branches:
       - main
     paths:
-      - "backend/models.py"
+      - "backend/models/**"
       - "backend/migrations/**"
-      - "backend/schemas.py"
+      - "backend/schemas/**"
       - "scripts/db/**"
   workflow_dispatch:
 
@@ -29,7 +29,7 @@ jobs:
           python-version: "3.11"
 
       - name: Instalar dependencias
-        run: pip install -r backend/requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Preparar certificado SSL de Aiven
         run: |
@@ -75,7 +75,7 @@ jobs:
           DB_PORT: ${{ secrets.DB_PORT }}
           DB_SSL_CA: ca.pem
         run: |
-          python scripts/db/migrate.py
+          python scripts/db/ops/migrate.py
 
       - name: Verificar estructura de BD post-migración
         env:
@@ -86,4 +86,4 @@ jobs:
           DB_PORT: ${{ secrets.DB_PORT }}
           DB_SSL_CA: ca.pem
         run: |
-          python scripts/db/verify_schema.py
+          python scripts/db/ops/verify_schema.py

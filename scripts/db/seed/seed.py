@@ -7,17 +7,18 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 # Añadir el root del proyecto al sys.path para importar modules absolute
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# seed.py está en scripts/db/seed/ → 4 niveles hasta la raíz del proyecto
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 from backend.database import SessionLocal, DB_NAME
-from scripts.db.seed_data.catalogo import seed_catalogo_completo
-from scripts.db.seed_data.clusters import seed_clusters
-from scripts.db.seed_data.usuarios import seed_usuarios_completo
-from scripts.db.seed_data.establecimientos import seed_establecimientos_completo
-from scripts.db.seed_data.contenido import seed_contenido_completo
-from scripts.db.seed_data.interacciones import seed_interacciones_completo
-from scripts.db.seed_data.gamificacion import seed_gamificacion_completo
-from scripts.db.seed_data.recomendaciones import seed_recomendaciones_completo
+from scripts.db.seed.catalogo import seed_catalogo_completo
+from scripts.db.seed.clusters import seed_clusters
+from scripts.db.seed.usuarios import seed_usuarios_completo
+from scripts.db.seed.establecimientos import seed_establecimientos_completo
+from scripts.db.seed.contenido import seed_contenido_completo
+from scripts.db.seed.interacciones import seed_interacciones_completo
+from scripts.db.seed.gamificacion import seed_gamificacion_completo
+from scripts.db.seed.recomendaciones import seed_recomendaciones_completo
 
 def run_catalogo(db: Session):
     print("=== Iniciando Seed de Catálogo ===")

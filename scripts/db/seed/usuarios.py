@@ -45,7 +45,7 @@ def seed_usuarios(db: Session):
     rango_1 = next((r for r in rangos if r.nivel == 1), None)
 
     # 2. Usuarios Ideales (20, 5 por cluster)
-    from scripts.db.seed_data.clusters import c1_vector, c2_vector, c3_vector, c4_vector
+    from scripts.db.seed.clusters import c1_vector, c2_vector, c3_vector, c4_vector
     clusters_vectors = {
         1: c1_vector,
         2: c2_vector,

@@ -2,7 +2,7 @@
 
 Este documento es la referencia técnica interna del proyecto. Detalla el funcionamiento de la infraestructura, los procedimientos operativos y cómo resolver situaciones complejas.
 
-> **Prerrequisito:** Haber completado la configuración inicial de [GUIA_LOCAL.md](../GUIA_LOCAL.md).
+> **Prerrequisito:** Haber completado la configuración inicial de [GUIA_LOCAL.md](./GUIA_LOCAL.md).
 
 ---
 
@@ -36,18 +36,18 @@ python scripts/setup/setup_env.py
 **Nota sobre el `ca.pem`:** Este certificado **no se descarga automáticamente**. Debe solicitarse al líder del equipo, quien lo obtiene desde:
 `Aiven Console → Tu Servicio MySQL → Overview → "Download CA Certificate"`
 
-### `scripts/db/check_connection.py` — Diagnosticar la conexión
+### `scripts/db/ops/check_connection.py` — Diagnosticar la conexión
 ```powershell
-python scripts/db/check_connection.py
+python scripts/db/ops/check_connection.py
 ```
 Úsalo siempre que dudes sobre si tu `.env` está bien configurado. Verifica:
 - Que el host sea alcanzable.
 - Que usuario/contraseña sean correctos.
 - Que el certificado SSL funcione.
 
-### `scripts/db/migrate.py` — Aplicar migraciones pendientes
+### `scripts/db/ops/migrate.py` — Aplicar migraciones pendientes
 ```powershell
-python scripts/db/migrate.py
+python scripts/db/ops/migrate.py
 ```
 Ejecuta internamente `alembic upgrade head`. Aplica todos los cambios de esquema pendientes. Después de aplicar, ejecuta `scripts/db/verify_schema.py` para confirmar el estado correcto.
 
@@ -55,19 +55,19 @@ Ejecuta internamente `alembic upgrade head`. Aplica todos los cambios de esquema
 - Después de un `git pull` (por si un compañero añadió migraciones nuevas).
 - Después de generar tu propia migración para verificar que funciona localmente.
 
-### `scripts/db/init_db.py` — Arranque rápido (solo en fase inicial)
+### `scripts/db/ops/init_db.py` — Arranque rápido (solo en fase inicial)
 ```powershell
-python scripts/db/init_db.py
+python scripts/db/ops/init_db.py
 ```
 Crea las tablas directamente con `create_all()` sin pasar por Alembic. **Útil solo durante la fase inicial** de definición de modelos, cuando las migraciones aún están vacías.
 
 > [!WARNING]
 > No usar `init_db.py` como sustituto de las migraciones. Una vez que las tablas estén estables y se hayan generado migraciones reales, usar **siempre** `migrate.py`.
 
-### `scripts/db/seed.py` — Poblar la base de datos con datos de prueba
+### `scripts/db/seed/seed.py` — Poblar la base de datos con datos de prueba
 ```powershell
 # Modo más común para desarrollo local:
-python scripts/db/seed.py --modo desarrollo
+python scripts/db/seed/seed.py --modo desarrollo
 ```
 Ver §4 de este documento para el flujo completo y todos los modos disponibles (`catalogo`, `desarrollo`, `demo`, `limpiar`).
 
@@ -174,19 +174,19 @@ El seed es el proceso de insertar datos iniciales y de prueba en la base de dato
 ### Flujo de seed en `defaultdb` (desarrollo local)
 ```powershell
 # 1. Verificar que las migraciones estén aplicadas
-python scripts/db/migrate.py
+python scripts/db/ops/migrate.py
 
 # 2. Correr el seed completo
-python scripts/db/seed.py --modo desarrollo
+python scripts/db/seed/seed.py --modo desarrollo
 
 # Si necesitas reiniciar los datos posteriormente:
-python scripts/db/seed.py --modo limpiar
+python scripts/db/seed/seed.py --modo limpiar
 ```
 
 ### Preparar `ekidb` para la Primera Puesta en Producción (Usuarios Reales)
 ```powershell
 # En .env cambia: DB_NAME=ekidb
-python scripts/db/seed.py --modo catalogo
+python scripts/db/seed/seed.py --modo catalogo
 ```
 
 ### Preparar `ekidb` para Evaluación Académica (Demo)
@@ -194,13 +194,13 @@ Si requieres mostrar el proyecto a profesores usando el entorno productivo con d
 ```powershell
 # 1. En .env cambia temporalmente: DB_NAME=ekidb
 # 2. Verificar conexión
-python scripts/db/check_connection.py
+python scripts/db/ops/check_connection.py
 
 # 3. Inyectar datos completos para la presentación
-python scripts/db/seed.py --modo demo
+python scripts/db/seed/seed.py --modo demo
 
 # 4. Después de la presentación, limpiar la basura de prueba:
-python scripts/db/seed.py --modo limpiar --force
+python scripts/db/seed/seed.py --modo limpiar --force
 
 # 5. Restaurar en .env: DB_NAME=defaultdb
 ```
