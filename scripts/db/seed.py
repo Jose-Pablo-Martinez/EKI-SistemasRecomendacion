@@ -75,11 +75,16 @@ def run_limpiar(db: Session, force: bool = False):
     print("=== Iniciando limpieza de datos de prueba ===")
     try:
         db.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
-        # NOTA: Las tablas del catálogo base (pais, estado_geo, municipio, colonia,
-        # categoria, etiqueta, rango_informador) se excluyen INTENCIONALMENTE.
-        # El catálogo es estructura permanente que no es datos de prueba.
-        # Para un reset total incluyendo catálogo, usa directamente `alembic downgrade base`
-        # seguido de `alembic upgrade head` y luego el seed.
+        # NOTA: Las siguientes tablas se excluyen INTENCIONALMENTE:
+        #   - Catalogó base (pais, estado_geo, municipio, colonia, categoria, etiqueta,
+        #     rango_informador): datos permanentes de estructura del dominio.
+        #   - cluster_usuario / cluster_establecimiento: centroides K-Means. Son la
+        #     configuración del modelo ML, no "datos de prueba". Borrarlos dejaría
+        #     a ekidb en estado inválido (usuarios_visitantes sin cluster válido).
+        #
+        # ⚠️  TRUNCATE es DDL en MySQL: se auto-commitea. Si ocurre un error a mitad
+        # del proceso, las tablas ya truncadas NO se pueden revertir con rollback().
+        # En ese caso, verifica el estado en HeidiSQL antes de volver a ejecutar el seed.
         tablas_a_limpiar = [
             "recomendacion_generada", "recomendacion_generada_historico",
             "historial_visita", "favorito_guardado", "resena", "interaccion_usuario",
@@ -89,7 +94,7 @@ def run_limpiar(db: Session, force: bool = False):
             "imagen", "platillo", "metrica_establecimiento", "restaurante",
             "local_comercial", "puesto_informal", "establecimiento", "ubicacion_usuario",
             "sesion_usuario", "dispositivo_usuario", "administrador", "usuario_propietario",
-            "usuario_visitante", "usuario", "cluster_usuario", "cluster_establecimiento"
+            "usuario_visitante", "usuario",
         ]
         
         for tabla in tablas_a_limpiar:
@@ -99,8 +104,10 @@ def run_limpiar(db: Session, force: bool = False):
         db.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
         db.commit()
         print("=== Limpieza completada con éxito ===")
+        print("(Catálogo base y clusters ML conservados intactos.)")
     except Exception as e:
         print(f"Error durante la limpieza: {e}")
+        print("ADVERTENCIA: TRUNCATE es DDL y no puede revertirse. Verifica el estado de la BD antes de continuar.")
         db.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
         db.rollback()
 
