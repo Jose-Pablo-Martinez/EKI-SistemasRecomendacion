@@ -2,7 +2,7 @@
 
 Este documento es la referencia técnica interna del proyecto. Detalla el funcionamiento de la infraestructura, los procedimientos operativos y cómo resolver situaciones complejas.
 
-> **Prerrequisito:** Haber completado la configuración inicial de [GUIA_LOCAL.md](../GUIA_LOCAL.md).
+> **Prerrequisito:** Haber completado la configuración inicial de [GUIA_LOCAL.md](./GUIA_LOCAL.md).
 
 ---
 
@@ -36,18 +36,18 @@ python scripts/setup/setup_env.py
 **Nota sobre el `ca.pem`:** Este certificado **no se descarga automáticamente**. Debe solicitarse al líder del equipo, quien lo obtiene desde:
 `Aiven Console → Tu Servicio MySQL → Overview → "Download CA Certificate"`
 
-### `scripts/db/check_connection.py` — Diagnosticar la conexión
+### `scripts/db/ops/check_connection.py` — Diagnosticar la conexión
 ```powershell
-python scripts/db/check_connection.py
+python scripts/db/ops/check_connection.py
 ```
 Úsalo siempre que dudes sobre si tu `.env` está bien configurado. Verifica:
 - Que el host sea alcanzable.
 - Que usuario/contraseña sean correctos.
 - Que el certificado SSL funcione.
 
-### `scripts/db/migrate.py` — Aplicar migraciones pendientes
+### `scripts/db/ops/migrate.py` — Aplicar migraciones pendientes
 ```powershell
-python scripts/db/migrate.py
+python scripts/db/ops/migrate.py
 ```
 Ejecuta internamente `alembic upgrade head`. Aplica todos los cambios de esquema pendientes. Después de aplicar, ejecuta `scripts/db/verify_schema.py` para confirmar el estado correcto.
 
@@ -55,20 +55,21 @@ Ejecuta internamente `alembic upgrade head`. Aplica todos los cambios de esquema
 - Después de un `git pull` (por si un compañero añadió migraciones nuevas).
 - Después de generar tu propia migración para verificar que funciona localmente.
 
-### `scripts/db/init_db.py` — Arranque rápido (solo en fase inicial)
+### `scripts/db/ops/init_db.py` — Arranque rápido (solo en fase inicial)
 ```powershell
-python scripts/db/init_db.py
+python scripts/db/ops/init_db.py
 ```
 Crea las tablas directamente con `create_all()` sin pasar por Alembic. **Útil solo durante la fase inicial** de definición de modelos, cuando las migraciones aún están vacías.
 
 > [!WARNING]
 > No usar `init_db.py` como sustituto de las migraciones. Una vez que las tablas estén estables y se hayan generado migraciones reales, usar **siempre** `migrate.py`.
 
-### `scripts/db/seed.py` — Poblar la base de datos con datos de prueba
+### `scripts/db/seed/seed.py` — Poblar la base de datos con datos de prueba
 ```powershell
-python scripts/db/seed.py   # (disponible cuando las tablas sean definitivas)
+# Modo más común para desarrollo local:
+python scripts/db/seed/seed.py --modo desarrollo
 ```
-Ver §4 de este documento para el flujo completo.
+Ver §4 de este documento para el flujo completo y todos los modos disponibles (`catalogo`, `desarrollo`, `demo`, `limpiar`).
 
 ---
 
@@ -159,49 +160,55 @@ alembic downgrade base
 
 ---
 
-## 4. Flujo de Seed (Población Inicial de Datos)
+## 4. Flujo de Seed (Población Inicial de Datos y Mantenimiento)
 
-El seed es el proceso de insertar datos iniciales de prueba en la base de datos. Se ejecuta **manualmente** y **solo después** de que las migraciones sean estables.
+El seed es el proceso de insertar datos iniciales y de prueba en la base de datos. El script `scripts/db/seed.py` es el orquestador principal y cuenta con 4 modos de operación:
 
-### ¿Cuándo hacer el seed?
+| Modo | Propósito | Entorno | Detalle |
+|---|---|---|---|
+| `--modo catalogo` | **Producción** | `ekidb` y `defaultdb` | Inserta únicamente la estructura base (País, Municipios, Categorías, Etiquetas y Rangos). No genera usuarios ni interacciones falsas. |
+| `--modo desarrollo` | **Desarrollo Local** | `defaultdb` (bloqueado en `ekidb`) | Inserta el catálogo + ~100 usuarios, establecimientos, sesiones, interacciones y el motor de recomendaciones. Útil para entrenar K-Means localmente. |
+| `--modo demo` | **Evaluación / Presentaciones** | `ekidb` | Hace exactamente lo mismo que el modo desarrollo, pero permite inyectar datos falsos en producción temporalmente para demos y evaluaciones escolares. |
+| `--modo limpiar` | **Mantenimiento** | `defaultdb` (y `ekidb` si se usa `--force`) | Borra (trunca) todos los usuarios, interacciones y establecimientos generados, dejando **únicamente** el catálogo intacto. Útil para resetear pruebas. |
 
-| Momento | Acción |
-|---|---|
-| Ahora | Las tablas son definitivas. El seed inicial (país MX, rangos, categorías) **está pendiente de creación** en `scripts/db/seed.py`. |
-| Cuando se cree `seed.py` | Aplicar migraciones → **correr seed en `defaultdb`** |
-| Primera puesta en producción | El administrador corre el seed en `ekidb` manualmente (no automatizado) |
-| Nueva migración con cambio estructural | Evaluar si el seed sigue siendo compatible. Si no, actualizarlo. |
-
-### Flujo de seed en `defaultdb` (desarrollo)
+### Flujo de seed en `defaultdb` (desarrollo local)
 ```powershell
 # 1. Verificar que las migraciones estén aplicadas
-python scripts/db/migrate.py
+python scripts/db/ops/migrate.py
 
-# 2. Correr el seed
-python scripts/db/seed.py
+# 2. Correr el seed completo
+python scripts/db/seed/seed.py --modo desarrollo
 
-# 3. Verificar en HeidiSQL (o check_connection) que los datos estén
+# Si necesitas reiniciar los datos posteriormente:
+python scripts/db/seed/seed.py --modo limpiar
 ```
 
-### Subir datos iniciales a Aiven (primera vez en producción — `ekidb`)
-El seed de producción **no es automático**. Lo ejecuta el administrador del proyecto:
+### Preparar `ekidb` para la Primera Puesta en Producción (Usuarios Reales)
 ```powershell
-# 1. Cambiar temporalmente en .env: DB_NAME=ekidb
-# 2. Verificar conexión
-python scripts/db/check_connection.py
-# 3. Correr el seed
-python scripts/db/seed.py
-# 4. Restaurar en .env: DB_NAME=defaultdb
+# En .env cambia: DB_NAME=ekidb
+python scripts/db/seed/seed.py --modo catalogo
 ```
 
-> [!CAUTION]
-> Ejecutar el seed en `ekidb` con datos incorrectos o duplicados puede requerir limpieza manual. Verificar siempre primero en `defaultdb`.
+### Preparar `ekidb` para Evaluación Académica (Demo)
+Si requieres mostrar el proyecto a profesores usando el entorno productivo con datos de prueba:
+```powershell
+# 1. En .env cambia temporalmente: DB_NAME=ekidb
+# 2. Verificar conexión
+python scripts/db/ops/check_connection.py
+
+# 3. Inyectar datos completos para la presentación
+python scripts/db/seed/seed.py --modo demo
+
+# 4. Después de la presentación, limpiar la basura de prueba:
+python scripts/db/seed/seed.py --modo limpiar --force
+
+# 5. Restaurar en .env: DB_NAME=defaultdb
+```
 
 ### Cuando cambia la estructura de tablas
 Si se agrega o elimina una columna en una migración nueva:
-1. Revisar si `seed.py` inserta datos en las columnas afectadas.
-2. Actualizar `seed.py` según corresponda antes de correrlo.
-3. Si una columna se elimina, asegurarse de que `seed.py` ya no la referencie.
+1. Revisar si `scripts/db/seed_data/*.py` insertan datos en las columnas afectadas.
+2. Actualizar el script de seed correspondiente antes de correrlo de nuevo en desarrollo.
 
 ---
 
