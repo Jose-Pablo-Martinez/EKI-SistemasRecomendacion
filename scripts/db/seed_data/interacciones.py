@@ -146,7 +146,7 @@ def seed_interacciones_normales_y_resenas(db: Session):
             reportes.append({
                 "id_usuario": u.id_usuario,
                 "id_establecimiento": random.choice(estabs_aprobados).id_establecimiento,
-                "motivo": "spam",
+                "tipo_reporte": "spam",
                 "descripcion": "Reporte de prueba",
                 "estado": "pendiente"
             })

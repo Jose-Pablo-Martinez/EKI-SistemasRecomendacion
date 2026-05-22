@@ -18,4 +18,5 @@ email-validator==2.2.0     # Requerido por EmailStr de Pydantic (schemas.py → 
 # ─── Utilidades y Automatización ──────────────────────────────────────────────
 python-dotenv==1.1.0
 requests==2.32.3
+bcrypt==3.2.2
 passlib[bcrypt]==1.7.4
