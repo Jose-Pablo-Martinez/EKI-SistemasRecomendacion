@@ -3,7 +3,7 @@
 **Proyecto Final - Sistemas de Recomendación de Información**  
 *Facultad de Matemáticas, UADY*
  
-> 🚀 **¿Eres nuevo en el proyecto?** Lee la [Guía de Configuración Local](GUIA_LOCAL.md) para empezar.
+> 🚀 **¿Eres nuevo en el proyecto?** Lee la [Guía de Configuración Local](docs/GUIA_LOCAL.md) para empezar.
  
 ---
  
@@ -69,14 +69,23 @@ La organización de carpetas está estandarizada para facilitar el desarrollo co
 ```text
 ekiSystem/                    ← Raíz del Repositorio
 │
+├── docs/                    ← Documentación del equipo
+│   ├── GUIA_LOCAL.md        ← Guía de onboarding para nuevos devs
+│   ├── CONTRIBUTING.md      ← Convenciones de código y Git
+│   └── OPERATIONS.md        ← Manual operativo (BD, CI/CD, seeds)
+│
 ├── scripts/                 ← Automatización y Operaciones
 │   ├── setup/               ← Inicialización del entorno
-│   └── db/                  ← Gestión de Base de Datos y Migraciones
+│   └── db/
+│       ├── ops/             ← Scripts operativos del día a día
+│       └── seed/            ← Población de datos de prueba
 │
 ├── backend/                 ← Entorno Python / API
 │   ├── migrations/          ← Versiones de la BD (Alembic)
-│   ├── eki_main.py          ← Punto de entrada de FastAPI
-│   └── models.py            ← Esquemas de SQLAlchemy
+│   ├── models/              ← Modelos SQLAlchemy por dominio
+│   ├── schemas/             ← Schemas Pydantic por dominio
+│   ├── engine/              ← Motor de recomendación (ML)
+│   └── eki_main.py          ← Punto de entrada de FastAPI
 │
 └── frontend/                ← Entorno Web / UI Vanilla JS
     ├── index.html           ← Estructura web
@@ -122,4 +131,4 @@ El sistema está configurado para un despliegue automatizado en tres capas:
 2.  **Backend:** Hospedado en **Render**. Escucha cambios en la rama `main` para realizar el redeploy.
 3.  **Base de Datos:** Instancia gestionada en **Aiven (MySQL)**.
 
-*Para más detalles sobre las convenciones de despliegue y CORS, consulta el archivo [CONTRIBUTING.md](CONTRIBUTING.md).*
+*Para más detalles sobre las convenciones de despliegue y CORS, consulta el archivo [CONTRIBUTING.md](docs/CONTRIBUTING.md).*
