@@ -1,3 +1,8 @@
+/**
+ * Archivo modificado: 2026-05-23
+ * Función: Controlador de la vista de registro. 
+ * Maneja la creación de nuevas cuentas y auto-login.
+ */
 window.controllers.register = async () => {
     // 1. Cargar Vista HTML
     const loaded = await renderView('register.html');

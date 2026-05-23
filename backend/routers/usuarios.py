@@ -1,3 +1,9 @@
+"""
+Módulo: routers/usuarios.py
+Fecha de modificación: 2026-05-23
+Función: Define los endpoints (API) relacionados con la gestión de usuarios, 
+incluyendo registro, login, obtención de perfil y envío de onboarding.
+"""
 # pyrefly: ignore [missing-import]
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 # pyrefly: ignore [missing-import]

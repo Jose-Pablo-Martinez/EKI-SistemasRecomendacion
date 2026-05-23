@@ -1,3 +1,10 @@
+"""
+Módulo: auth.py
+Fecha de modificación: 2026-05-23
+Función: Manejo de autenticación, 
+generación y validación de JSON Web Tokens (JWT), 
+encriptación de contraseñas y dependencias de seguridad.
+"""
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
