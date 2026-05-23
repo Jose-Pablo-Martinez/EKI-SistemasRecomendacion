@@ -1,0 +1,21 @@
+<div class="flex-1 flex flex-col items-center justify-center p-8 w-full max-w-2xl xl:max-w-4xl 2xl:max-w-6xl mx-auto min-h-screen">
+    <h1 class="font-heading text-headline-lg xl:text-5xl 2xl:text-6xl text-primary mb-6 xl:mb-10 text-center">Personaliza tu experiencia</h1>
+    <div class="w-full bg-white/90 backdrop-blur-sm p-8 xl:p-12 2xl:p-16 rounded-md shadow-lg border border-border-default text-left relative overflow-hidden transition-all duration-300">
+        <div class="absolute top-0 left-0 w-full h-1.5 xl:h-2 bg-surface-dim">
+            <div id="progress-bar" class="h-full bg-accent transition-all duration-500 ease-out" style="width: 33.33%"></div>
+        </div>
+        
+        <div class="mt-2 flex justify-end mb-6 xl:mb-10">
+            <p id="step-indicator" class="text-xs xl:text-sm 2xl:text-base font-bold text-text-tertiary uppercase tracking-widest">Paso 1 de 3</p>
+        </div>
+        
+        <div id="step-container" class="min-h-[250px] xl:min-h-[400px]">
+            <!-- Dynamic content will be injected here -->
+        </div>
+        
+        <div class="flex justify-between mt-8 xl:mt-12 border-t border-border-subtle pt-6 xl:pt-10">
+            <button id="btn-prev" class="invisible text-text-secondary font-bold py-2 xl:py-3 px-4 xl:px-6 hover:text-primary transition-colors text-sm xl:text-base uppercase tracking-wider">Atrás</button>
+            <button id="btn-next" class="bg-accent text-white font-bold py-2 xl:py-3 px-8 xl:px-12 rounded hover:bg-accent-hover active:scale-95 transition-all text-sm xl:text-base uppercase tracking-wider shadow">Siguiente</button>
+        </div>
+    </div>
+</div>

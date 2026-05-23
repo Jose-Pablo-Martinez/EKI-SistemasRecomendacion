@@ -1,4 +1,4 @@
-window.pages.favoritos = () => {
+window.controllers.favoritos = () => {
     renderPage(`
         <div class="flex-1 flex flex-col items-start p-8 w-full max-w-5xl mx-auto">
             <h1 class="font-heading text-headline-lg text-primary mb-6">Mis Favoritos</h1>

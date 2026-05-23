@@ -87,9 +87,13 @@ ekiSystem/                    ← Raíz del Repositorio
 │   ├── engine/              ← Motor de recomendación (ML)
 │   └── eki_main.py          ← Punto de entrada de FastAPI
 │
-└── frontend/                ← Entorno Web / UI Vanilla JS
-    ├── index.html           ← Estructura web
-    └── js/app.js            ← Lógica de peticiones y detección de entorno
+└── frontend/                ← Entorno Web / UI Vanilla JS (Patrón MVC)
+    ├── index.html           ← Estructura web SPA Shell
+    ├── views/               ← Archivos HTML estáticos de las vistas
+    └── scripts/             ← Lógica de negocio
+        ├── controllers/     ← Controladores por página (login, feed, etc)
+        ├── utils/           ← Utilidades (validadores, manejo de errores)
+        └── app.js           ← Router SPA asíncrono y renderizador de vistas
 ```
 
 ---
