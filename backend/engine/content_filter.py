@@ -31,6 +31,10 @@ import logging
 import math
 from typing import TYPE_CHECKING
 
+# pyrefly: ignore [missing-import]
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+
 if TYPE_CHECKING:
     # pyrefly: ignore [missing-import]
     from sqlalchemy.orm import Session
@@ -63,14 +67,26 @@ def get_content_based_recommendations(
     Returns:
         Lista de tuplas (Establecimiento, score_contenido) ordenadas por score.
     """
-    # TODO: Implementar consulta de candidatos y cálculo de similitud coseno
-    #       con vector_preferencias del usuario
     logger.info(
         "content_filter: calculando similitud coseno para usuario_id=%d, candidatos=%d",
         usuario.id_usuario,
         len(candidatos),
     )
-    return []
+    
+    if not usuario.vector_preferencias or not candidatos:
+        return []
+
+    valid_candidatos = [c for c in candidatos if c.vector_caracteristicas]
+    if not valid_candidatos:
+        return []
+
+    user_vec = np.array(usuario.vector_preferencias).reshape(1, -1)
+    cand_vecs = np.array([c.vector_caracteristicas for c in valid_candidatos])
+
+    scores = cosine_similarity(user_vec, cand_vecs).flatten()
+    top_indices = np.argsort(-scores)[:limit]
+
+    return [(valid_candidatos[i], float(scores[i])) for i in top_indices]
 
 
 def compute_cosine_similarity(vector_a: list[float], vector_b: list[float]) -> float:
@@ -90,14 +106,10 @@ def compute_cosine_similarity(vector_a: list[float], vector_b: list[float]) -> f
     if not vector_a or not vector_b or len(vector_a) != len(vector_b):
         return 0.0
 
-    dot_product = sum(a * b for a, b in zip(vector_a, vector_b))
-    norm_a = math.sqrt(sum(a ** 2 for a in vector_a))
-    norm_b = math.sqrt(sum(b ** 2 for b in vector_b))
-
-    if norm_a == 0.0 or norm_b == 0.0:
-        return 0.0
-
-    return dot_product / (norm_a * norm_b)
+    user_vec = np.array(vector_a).reshape(1, -1)
+    item_vec = np.array(vector_b).reshape(1, -1)
+    
+    return float(cosine_similarity(user_vec, item_vec)[0, 0])
 
 
 def build_establecimiento_profile(establecimiento: "Establecimiento") -> dict:
@@ -121,3 +133,23 @@ def build_establecimiento_profile(establecimiento: "Establecimiento") -> dict:
         "tipo": establecimiento.tipo_establecimiento,
         "calificacion_promedio": float(establecimiento.calificacion_promedio or 0),
     }
+
+def calcular_diversity_score(candidato_vec: list[float], lista_vecs: list[list[float]]) -> float:
+    """
+    Calcula el diversity score: 1 - avg(cosine_similarity con los demás items de la lista).
+    
+    Args:
+        candidato_vec: Vector de características del candidato.
+        lista_vecs: Lista de vectores de los establecimientos ya seleccionados.
+        
+    Returns:
+        Diversity score en [0.0, 1.0].
+    """
+    if not lista_vecs:
+        return 1.0
+        
+    sims = cosine_similarity(
+        np.array(candidato_vec).reshape(1, -1),
+        np.array(lista_vecs)
+    )
+    return 1.0 - float(np.mean(sims))
