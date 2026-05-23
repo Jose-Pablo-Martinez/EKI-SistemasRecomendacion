@@ -27,6 +27,27 @@ class UsuarioCreate(BaseModel):
     genero: Optional[Literal["masculino", "femenino", "otro", "prefiero_no_decir"]] = None
     fecha_nacimiento: Optional[date] = None
 
+class PerfilUpdate(BaseModel):
+    """Actualización de perfil."""
+    nombre: Optional[str] = Field(None, max_length=100)
+    apellido: Optional[str] = Field(None, max_length=100)
+    foto_perfil: Optional[str] = None
+    genero: Optional[Literal["masculino", "femenino", "otro", "prefiero_no_decir"]] = None
+    fecha_nacimiento: Optional[date] = None
+    radio_busqueda_km: Optional[int] = Field(None, ge=1, le=50)
+
+
+class PreferenciasOnboarding(BaseModel):
+    categorias: list[str]
+    precios: list[str]
+
+class OnboardingData(BaseModel):
+    preferencias: PreferenciasOnboarding
+
+class UbicacionData(BaseModel):
+    latitud: float
+    longitud: float
+    precision_metros: Optional[int] = None
 
 class UsuarioResponse(BaseModel):
     """Datos públicos de un usuario. No expone password_hash ni datos sensibles."""

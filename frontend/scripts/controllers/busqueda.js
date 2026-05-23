@@ -1,4 +1,4 @@
-window.pages.busqueda = () => {
+window.controllers.busqueda = () => {
     renderPage(`
         <div class="flex-1 flex flex-col items-center p-8 w-full max-w-5xl mx-auto">
             <h1 class="font-heading text-headline-lg text-primary mb-6">Buscar</h1>

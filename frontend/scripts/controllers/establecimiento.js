@@ -1,4 +1,4 @@
-window.pages.establecimiento = (id) => {
+window.controllers.establecimiento = (id) => {
     renderPage(`
         <div class="flex-1 flex flex-col items-start p-8 w-full max-w-4xl mx-auto">
             <a href="javascript:history.back()" class="text-secondary hover:text-secondary-hover mb-4 flex items-center gap-2 font-semibold">← Volver</a>

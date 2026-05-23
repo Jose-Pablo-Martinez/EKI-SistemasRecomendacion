@@ -1,0 +1,27 @@
+<div class="flex-1 flex flex-col items-center justify-center p-4 w-full max-w-md md:max-w-lg 2xl:max-w-xl mx-auto my-auto">
+    <h1 class="font-heading text-3xl md:text-4xl text-primary mb-4 text-center transition-all">Iniciar Sesión</h1>
+    <div class="w-full bg-surface-raised p-4 md:p-6 rounded-md shadow-sm border border-border-default text-left transition-all">
+        <form id="login-form" class="flex flex-col gap-3" novalidate>
+            <div id="login-form-error" class="text-accent text-sm hidden font-bold bg-accent-faint p-2 rounded"></div>
+            <div>
+                <label class="block text-text-secondary text-xs md:text-sm font-bold mb-1 uppercase tracking-wide">Email</label>
+                <input type="email" id="email" required class="w-full p-2 border border-border-default rounded bg-surface-sunken focus:outline-none focus:border-border-focus text-sm md:text-base" />
+                <p id="email-error" class="text-accent text-xs font-bold mt-1 hidden"></p>
+            </div>
+            <div>
+                <label class="block text-text-secondary text-xs md:text-sm font-bold mb-1 uppercase tracking-wide">Contraseña</label>
+                <div class="relative">
+                    <input type="password" id="password" required class="w-full p-2 border border-border-default rounded bg-surface-sunken focus:outline-none focus:border-border-focus text-sm md:text-base pr-8" />
+                    <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 px-2 flex items-center text-text-tertiary hover:text-primary transition-colors focus:outline-none" title="Mostrar contraseña">
+                        <span class="material-symbols-outlined text-base md:text-lg" id="icon-password">visibility_off</span>
+                    </button>
+                </div>
+                <p id="password-error" class="text-accent text-xs font-bold mt-1 hidden"></p>
+            </div>
+            <button type="submit" class="bg-accent text-white font-bold py-2 md:py-3 px-4 rounded hover:bg-accent-hover active:scale-95 transition-all w-full mt-2 uppercase tracking-widest text-sm">Ingresar</button>
+            <div class="mt-2 text-center text-xs md:text-sm text-text-secondary">
+                ¿No tienes cuenta? <a href="#/registro" class="text-secondary font-bold hover:underline">Regístrate</a>
+            </div>
+        </form>
+    </div>
+</div>
