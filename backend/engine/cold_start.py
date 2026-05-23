@@ -25,13 +25,19 @@ Nota arquitectónica (§1.7 — Offline-First):
 """
 
 import logging
-import math
 from typing import TYPE_CHECKING
+
+# pyrefly: ignore [missing-import]
+import numpy as np
+# pyrefly: ignore [missing-import]
+from sqlalchemy import select
+
+from backend.models import Establecimiento, MetricaEstablecimiento
 
 if TYPE_CHECKING:
     # pyrefly: ignore [missing-import]
     from sqlalchemy.orm import Session
-    from backend.models import Establecimiento, UsuarioVisitante, ClusterUsuario
+    from backend.models import UsuarioVisitante, ClusterUsuario
 
 logger = logging.getLogger(__name__)
 
@@ -63,17 +69,22 @@ def get_cold_start_recommendations(
     Returns:
         Lista de instancias Establecimiento para el cold start.
     """
-    # TODO: Implementar consulta de establecimientos populares en el cluster provisional
-    #       JOIN metrica_establecimiento ON id_establecimiento
-    #       WHERE es_activo=TRUE AND estado='aprobado'
-    #       ORDER BY metrica_establecimiento.popularidad_7d DESC
-    #       LIMIT limit
     logger.info(
         "cold_start: generando recomendaciones para usuario_id=%d (perfil_completado=%s)",
         usuario.id_usuario,
         usuario.perfil_completado,
     )
-    return []
+    stmt = (
+        select(Establecimiento)
+        .join(MetricaEstablecimiento, Establecimiento.id_establecimiento == MetricaEstablecimiento.id_establecimiento)
+        .where(
+            Establecimiento.es_activo == True,
+            Establecimiento.estado == "aprobado"
+        )
+        .order_by(MetricaEstablecimiento.popularidad_7d.desc().nulls_last())
+        .limit(limit)
+    )
+    return list(db.scalars(stmt).all())
 
 
 def assign_cluster_provisional(
@@ -97,21 +108,17 @@ def assign_cluster_provisional(
     if not clusters or not vector_preferencias:
         return None
 
-    mejor_cluster_id: int | None = None
-    menor_distancia: float = float("inf")
+    valid_clusters = [c for c in clusters if c.centroide]
+    if not valid_clusters:
+        return None
 
-    for cluster in clusters:
-        if not cluster.centroide:
-            continue
-        centroide: list = cluster.centroide
-        if len(centroide) != len(vector_preferencias):
-            continue
-        distancia = math.sqrt(
-            sum((a - b) ** 2 for a, b in zip(vector_preferencias, centroide))
-        )
-        if distancia < menor_distancia:
-            menor_distancia = distancia
-            mejor_cluster_id = cluster.id_cluster
+    user_vec = np.array(vector_preferencias)
+    centroides = np.array([c.centroide for c in valid_clusters])
+
+    distancias = np.linalg.norm(centroides - user_vec, axis=1)
+    idx_min = int(np.argmin(distancias))
+    mejor_cluster_id = valid_clusters[idx_min].id_cluster
+    menor_distancia = float(distancias[idx_min])
 
     logger.debug(
         "cold_start: cluster asignado=%s (distancia=%.4f)",
@@ -136,9 +143,27 @@ def handle_new_establecimiento(id_establecimiento: int, db: "Session") -> dict:
     Returns:
         Diccionario con la información de visibilidad inicial asignada.
     """
-    # TODO: Insertar fila en metrica_establecimiento con scores en 0.0
-    #       y boost_informal = BOOST_FACTOR_INFORMAL si es_informal=TRUE
     logger.info(
         "cold_start: procesando establecimiento nuevo id=%d", id_establecimiento
     )
+    estab = db.get(Establecimiento, id_establecimiento)
+    if not estab:
+        return {"id_establecimiento": id_establecimiento, "status": "not_found"}
+
+    boost_informal = 0.25 if estab.es_informal else 0.0
+
+    metrica = MetricaEstablecimiento(
+        id_establecimiento=id_establecimiento,
+        score_contenido_base=0.0,
+        score_colaborativo_base=0.0,
+        boost_proximidad_zona=0.0,
+        boost_informal=boost_informal,
+        score_boost_combinado=0.0,
+        popularidad_7d=0,
+        popularidad_30d=0,
+        polaridad_promedio=0.0
+    )
+    db.add(metrica)
+    db.commit()
+
     return {"id_establecimiento": id_establecimiento, "status": "cold_start_applied"}
