@@ -68,6 +68,15 @@ const api = {
   crearResena: (id, data) => apiRequest(`/establecimientos/${id}/resena`, {
     method: 'POST', body: JSON.stringify(data)
   }),
+  actualizarHorarios: (id, horarios) => apiRequest(`/establecimientos/${id}/horarios`, {
+    method: 'PUT', body: JSON.stringify(horarios)
+  }),
+  agregarPlatillo: (id, data) => apiRequest(`/establecimientos/${id}/platillo`, {
+    method: 'POST', body: JSON.stringify(data)
+  }),
+  agregarImagen: (id, data) => apiRequest(`/establecimientos/${id}/imagen`, {
+    method: 'POST', body: JSON.stringify(data)
+  }),
   registrarInteraccion: (id, tipo) => apiRequest(`/establecimientos/${id}/interaccion`, {
     method: 'POST', body: JSON.stringify({ id_establecimiento: id, tipo_interaccion: tipo })
   }),
