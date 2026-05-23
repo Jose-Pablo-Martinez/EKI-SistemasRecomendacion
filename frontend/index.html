@@ -3,128 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Esquina Jach Ki'</title>
 
-  <!-- SEO -->
-  <title>EKI — Esquina Jach ki' | Recomendaciones Gastronómicas en Mérida</title>
-  <meta name="description" content="Descubre los mejores puestos, carritos y vendedores informales de Mérida, Yucatán. EKI te recomienda las joyas ocultas de la gastronomía local." />
-  <meta name="author" content="Equipo EKI — Facultad de Matemáticas, UADY" />
-
-  <!-- Tailwind CSS (CDN) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            eki: {
-              green:  '#2D6A4F',
-              lime:   '#52B788',
-              cream:  '#F8F3E7',
-              amber:  '#E9A738',
-              dark:   '#1B2B25',
-            }
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-          }
-        }
-      }
-    }
-  </script>
-
-  <!-- Google Fonts -->
+  <!-- Fonts: Science Gothic (headings) + Montserrat (body) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
-  <!-- Estilos personalizados -->
-  <link rel="stylesheet" href="css/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Science+Gothic:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Iconos: Material Symbols Outlined -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+ <!-- Configuración nativa de tailwind para el proyecto -->
+  <script src="scripts/tailwind-config.js"></script>
+ <!-- Estilos base de tailwind para el proyecto -->
+  <link rel="stylesheet" href="css/global.css" />
 </head>
-<body class="bg-eki-cream font-sans text-eki-dark min-h-screen">
 
-  <!-- ─── Header ─────────────────────────────────────────────────────────── -->
-  <header class="bg-eki-green text-white shadow-md">
-    <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight">
-          🌽 EKI
-        </h1>
-        <p class="text-eki-lime text-sm font-medium">Esquina Jach ki'</p>
-      </div>
-      <nav aria-label="Navegación principal">
-        <ul class="flex gap-6 text-sm font-medium">
-          <li><a href="#recomendaciones" class="hover:text-eki-amber transition-colors">Recomendaciones</a></li>
-          <li><a href="#acerca" class="hover:text-eki-amber transition-colors">Acerca de</a></li>
-        </ul>
+<body class="bg-surface font-sans text-text-primary min-h-screen flex flex-col antialiased selection:bg-accent selection:text-white">
+  <!-- Header persistente (se actualiza según auth state) -->
+  <header id="app-header" class="border-b border-border-default bg-surface-raised sticky top-0 z-40">
+    <div id="header-container" class="w-full max-w-8xl mx-auto px-4 md:px-8 2xl:px-16 min-h-[4rem] py-3 flex items-center justify-between flex-wrap gap-4">
+      <!-- Logo -->
+      <a id="logo-link" href="#/" class="flex items-center gap-3 group py-2">
+        <img src="assets/isotipoEki.svg" alt="EkiSystem Logo" class="h-12 w-auto transition-transform group-hover:scale-105" />
+        <span class="font-heading font-bold text-xl tracking-tight text-primary">Esquina Jach Ki'</span>
+      </a>
+
+      <!-- Navegación -->
+      <nav id="nav-menu" class="hidden md:flex gap-6">
+        <!-- Renderizado dinámicamente -->
       </nav>
+
+      <!-- User Actions -->
+      <div id="user-actions" class="flex items-center gap-4">
+        <!-- Renderizado dinámicamente -->
+      </div>
     </div>
   </header>
 
-  <!-- ─── Hero ────────────────────────────────────────────────────────────── -->
-  <section class="bg-eki-green text-white py-16 px-4 text-center">
-    <p class="text-eki-lime text-sm font-semibold uppercase tracking-widest mb-2">
-      Sistema de Recomendación Gastronómica
-    </p>
-    <h2 class="text-4xl font-bold mb-4">
-      Descubre las joyas ocultas<br class="hidden sm:block" /> de Mérida, Yucatán
-    </h2>
-    <p class="text-white/80 max-w-xl mx-auto mb-8">
-      EKI prioriza los puestos pequeños, carritos y vendedores informales que
-      hacen grande la gastronomía yucateca.
-    </p>
-    <button
-      id="btn-cargar-recomendaciones"
-      onclick="loadRecommendations()"
-      class="bg-eki-amber text-eki-dark font-semibold px-6 py-3 rounded-full hover:brightness-110 transition-all shadow-lg"
-    >
-      Ver Recomendaciones
-    </button>
-  </section>
-
-  <!-- ─── Sección de Recomendaciones ──────────────────────────────────────── -->
-  <main id="recomendaciones" class="max-w-5xl mx-auto px-4 py-12">
-    <h2 class="text-2xl font-bold text-eki-green mb-2">Recomendaciones</h2>
-    <p class="text-gray-500 text-sm mb-8">
-      Resultados del modelo híbrido de recomendación con boosting aplicado.
-    </p>
-
-    <!-- Estado de carga -->
-    <div id="estado-carga" class="text-center py-12 text-gray-400" aria-live="polite">
-      <p class="text-5xl mb-4">🍽️</p>
-      <p>Presiona el botón para cargar recomendaciones.</p>
+  <!-- Contenedor principal donde el router inyecta cada página -->
+  <main id="app-root" class="flex-1 flex flex-col">
+    <!-- Cada página se renderiza aquí -->
+    <div id="loading-screen" class="flex-1 flex flex-col items-center justify-center p-8 text-center text-accent gap-4">
+      <span class="material-symbols-outlined text-5xl animate-spin">progress_activity</span>
+      <p class="font-medium text-text-tertiary animate-pulse tracking-wide">Cargando aplicación...</p>
     </div>
-
-    <!-- Contenedor de tarjetas -->
-    <div
-      id="contenedor-recomendaciones"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 hidden"
-      role="list"
-      aria-label="Lista de vendedores recomendados"
-    ></div>
   </main>
 
-  <!-- ─── Acerca de ────────────────────────────────────────────────────────── -->
-  <section id="acerca" class="bg-eki-dark text-white py-12 px-4">
-    <div class="max-w-3xl mx-auto text-center">
-      <h2 class="text-2xl font-bold mb-4">¿Qué es EKI?</h2>
-      <p class="text-white/70 mb-6">
-        <strong class="text-eki-lime">Esquina Jach ki'</strong> es un sistema de recomendación
-        que combina filtrado por contenido, filtrado colaborativo y algoritmos de boosting
-        para dar visibilidad a los pequeños comercios gastronómicos de Mérida.
-      </p>
-      <p class="text-xs text-white/40">
-        Proyecto Final — Sistemas de Recomendación · Facultad de Matemáticas, UADY
-      </p>
+  <!-- Footer persistente -->
+  <footer id="app-footer" class="border-t border-border-default bg-surface-overlay py-5 mt-auto">
+    <div id="footer-container" class="w-full max-w-8xl mx-auto px-4 md:px-8 2xl:px-16 text-center">
+      <img src="assets/imagotipoEki.svg" alt="Logo de Esquina Jach Ki'" class="h-12 md:h-20 mx-auto mb-3 opacity-60 grayscale hover:grayscale-0 transition-all duration-300" />
+      <p class="text-sm text-text-tertiary">Esquina Jach Ki' — ¡El descubrimiento a la vuelta de la esquina!</p>
     </div>
-  </section>
-
-  <!-- ─── Footer ──────────────────────────────────────────────────────────── -->
-  <footer class="bg-eki-green text-white/60 text-xs text-center py-4">
-    <p>© 2025 EKI — Esquina Jach ki' · Facultad de Matemáticas, UADY</p>
   </footer>
 
-  <!-- Scripts -->
-  <script src="js/app.js"></script>
+  <!-- Toast container para notificaciones -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
 
+  <!-- Scripts (orden importa: utils → state → api → auth → pages → app) -->
+  <script src="scripts/utils.js"></script>
+  <script src="scripts/state.js"></script>
+  <script src="scripts/api.js"></script>
+  <script src="scripts/auth.js"></script>
+  <script src="scripts/pages/home.js"></script>
+  <script src="scripts/pages/login.js"></script>
+  <script src="scripts/pages/register.js"></script>
+  <script src="scripts/pages/onboarding.js"></script>
+  <script src="scripts/pages/feed.js"></script>
+  <script src="scripts/pages/establecimiento.js"></script>
+  <script src="scripts/pages/busqueda.js"></script>
+  <script src="scripts/pages/perfil.js"></script>
+  <script src="scripts/pages/favoritos.js"></script>
+  <script src="scripts/pages/admin.js"></script>
+  <script src="scripts/app.js"></script>
 </body>
 </html>
