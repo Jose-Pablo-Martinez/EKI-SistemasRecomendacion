@@ -44,17 +44,19 @@ window.controllers.onboarding = async () => {
         let stepHtml = '';
         if (step === 1) {
             const gruposPredefinidos = {
-                "Regionales & Tradicionales": ["Yucateca", "Antojitos", "Mexicana"],
-                "Platos Fuertes": ["Mariscos", "Carnes", "Gourmet"],
-                "Rápidas & Casuales": ["Rápida", "Snacks", "Tacos", "Pizzas", "Hamburguesas"],
-                "Postres & Bebidas": ["Postres", "Café", "Bebidas", "Saludable"]
+                "Regionales & Tradicionales": ["yucateca", "mexicana", "antojitos", "cochinita", "pozole", "mercado"],
+                "Rápidas & Casuales": ["tacos", "tortas", "rápida", "hamburguesas", "pizza"],
+                "Platos Fuertes": ["mariscos", "internacional", "asiática", "carnes"],
+                "Postres & Bebidas": ["bebidas", "repostería", "dulces", "panadería", "helados", "café", "aguas", "jugos", "fermentadas"],
+                "Fitness & Saludable": ["saludable", "ensaladas", "vegano", "vegetariano", "proteínas"]
             };
 
             const categoriasAgrupadas = {};
             categoriasData.forEach(c => {
                 let grupoEncontrado = "Otras Opciones";
-                for (const [grupo, lista] of Object.entries(gruposPredefinidos)) {
-                    if (lista.includes(c.nombre)) {
+                const nombreCat = c.nombre.toLowerCase();
+                for (const [grupo, palabrasClave] of Object.entries(gruposPredefinidos)) {
+                    if (palabrasClave.some(palabra => nombreCat.includes(palabra))) {
                         grupoEncontrado = grupo;
                         break;
                     }

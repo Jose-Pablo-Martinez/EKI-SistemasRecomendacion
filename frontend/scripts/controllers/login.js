@@ -68,7 +68,7 @@ window.controllers.login = async () => {
         if (hasError) return;
 
         submitBtn.disabled = true;
-        submitBtn.textContent = 'CARGANDO...';
+        submitBtn.innerHTML = '<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin">progress_activity</span> Cargando...</div>';
 
         try {
             const data = await api.login(email, password);
@@ -90,7 +90,7 @@ window.controllers.login = async () => {
                 errorDiv.classList.remove('hidden');
             }
             submitBtn.disabled = false;
-            submitBtn.textContent = 'INGRESAR';
+            submitBtn.innerHTML = 'INGRESAR';
         }
     });
 };
