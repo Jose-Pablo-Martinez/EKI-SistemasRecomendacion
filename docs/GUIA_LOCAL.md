@@ -143,7 +143,7 @@ Verifica que funcione abriendo en tu navegador:
 - **Documentación interactiva (Swagger):** `http://localhost:8000/docs`
 - **Health check:** `http://localhost:8000/health` → debe responder `{"status": "healthy"}`
 
-Para el **frontend**, abre `frontend/index.html` con **Live Server** (extensión de VS Code) en el puerto `5500`. El `app.js` detecta automáticamente que estás en `localhost` y apunta al backend local.
+Para el **frontend**, abre `frontend/index.html` con **Live Server** (extensión de VS Code) en el puerto `5500`. El archivo `scripts/app.js` detecta automáticamente que estás en `localhost` y apunta al backend local.
 
 ---
 
