@@ -1,0 +1,63 @@
+# pyrefly: ignore [missing-import]
+from sqlalchemy.orm import Session
+from backend.models.establecimientos import Establecimiento
+from backend.models.interacciones import Resena
+from backend.services.gamificacion_service import otorgar_puntos
+# pyrefly: ignore [missing-import]
+from sqlalchemy.sql import func
+
+def aprobar_establecimiento(db: Session, id_establecimiento: int) -> bool:
+    est = db.query(Establecimiento).filter(Establecimiento.id_establecimiento == id_establecimiento).first()
+    if not est or est.estado != "pendiente":
+        return False
+        
+    est.estado = "aprobado"
+    # Otorgar puntos al usuario que lo propuso
+    otorgar_puntos(db, est.id_usuario_registro, "nuevo_lugar", f"Lugar aprobado: {est.nombre}")
+    db.commit()
+    return True
+
+def rechazar_establecimiento(db: Session, id_establecimiento: int) -> bool:
+    est = db.query(Establecimiento).filter(Establecimiento.id_establecimiento == id_establecimiento).first()
+    if not est or est.estado != "pendiente":
+        return False
+        
+    est.estado = "rechazado"
+    db.commit()
+    return True
+
+
+def aprobar_resena(db: Session, id_resena: int) -> bool:
+    resena = db.query(Resena).filter(Resena.id_resena == id_resena).first()
+    if not resena or resena.estado != "pendiente":
+        return False
+        
+    resena.estado = "aprobado"
+    resena.procesado_nlp = False # Para que el NLP lo pase a analizar
+    
+    # Recalcular desnormalizados de establecimiento
+    est = db.query(Establecimiento).filter(Establecimiento.id_establecimiento == resena.id_establecimiento).first()
+    if est:
+        # Calcular nuevo promedio y total
+        stats = db.query(
+            func.count(Resena.id_resena).label("total"),
+            func.avg(Resena.calificacion).label("promedio")
+        ).filter(
+            Resena.id_establecimiento == resena.id_establecimiento,
+            Resena.estado == "aprobado"
+        ).first()
+        
+        est.total_resenas = stats.total
+        est.calificacion_promedio = stats.promedio or 0.0
+
+    otorgar_puntos(db, resena.id_usuario, "crear_resena", f"Reseña aprobada en {resena.id_establecimiento}")
+    db.commit()
+    return True
+
+def obtener_pendientes(db: Session):
+    return db.query(Establecimiento).filter(Establecimiento.estado == "pendiente").all()
+
+def disparar_job(tipo_job: str):
+    from backend.jobs.runner import run_job
+    from backend.database import SessionLocal
+    return run_job(tipo_job, SessionLocal)

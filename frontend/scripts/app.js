@@ -1,17 +1,46 @@
 // frontend/js/app.js
 
 const routes = {
-  '':            () => window.pages.home(),
-  '#/':          () => window.pages.home(),
-  '#/login':     () => window.pages.login(),
-  '#/registro':  () => window.pages.register(),
-  '#/onboarding':() => { if (requireAuth()) window.pages.onboarding() },
-  '#/feed':      () => { if (requireAuth()) window.pages.feed() },
-  '#/buscar':    () => window.pages.busqueda(),
-  '#/perfil':    () => { if (requireAuth()) window.pages.perfil() },
-  '#/favoritos': () => { if (requireAuth()) window.pages.favoritos() },
-  '#/admin':     () => { if (requireAuth()) window.pages.admin() },
+  '':            () => window.controllers.home(),
+  '#/':          () => window.controllers.home(),
+  '#/login':     () => window.controllers.login(),
+  '#/registro':  () => window.controllers.register(),
+  '#/onboarding':() => { if (requireAuth()) window.controllers.onboarding() },
+  '#/feed':      () => { if (requireAuth()) window.controllers.feed() },
+  '#/buscar':    () => window.controllers.busqueda(),
+  '#/perfil':    () => { if (requireAuth()) window.controllers.perfil() },
+  '#/favoritos': () => { if (requireAuth()) window.controllers.favoritos() },
+  '#/admin':     () => { if (requireAuth()) window.controllers.admin() },
 };
+
+async function renderView(viewPath) {
+  const root = document.getElementById('app-root');
+  
+  // Guardamos el estado anterior para la transición
+  root.style.opacity = 0;
+  
+  try {
+      const response = await fetch(`views/${viewPath}`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const htmlContent = await response.text();
+      
+      // Asegurar que ocurra después de que la opacidad haya bajado
+      setTimeout(() => {
+          root.innerHTML = htmlContent;
+          root.style.transition = 'opacity 400ms cubic-bezier(0, 0, 0.2, 1)';
+          root.style.opacity = 1;
+      }, 150);
+      
+      // Devolvemos la promesa para saber cuándo el HTML ya está en el DOM
+      // (asumimos un pequeño retraso artificial para asegurar inyección)
+      return new Promise(resolve => setTimeout(() => resolve(true), 200));
+  } catch (e) {
+      console.error("Error loading view:", e);
+      root.innerHTML = `<p class="p-8 text-accent">Error al cargar la vista: ${e.message}</p>`;
+      root.style.opacity = 1;
+      return false;
+  }
+}
 
 function renderPage(htmlContent) {
   const root = document.getElementById('app-root');
@@ -19,24 +48,23 @@ function renderPage(htmlContent) {
   
   setTimeout(() => {
     root.innerHTML = htmlContent;
-    // Ejecutar scripts si los hay (opcional para componentes más complejos)
     root.style.transition = 'opacity 400ms cubic-bezier(0, 0, 0.2, 1)';
     root.style.opacity = 1;
-  }, 100); // pequeña pausa para asegurar la animación
+  }, 100); 
 }
 
-function handleRoute() {
-  const hash = window.location.hash.split('?')[0]; // quitar query params si hay
+async function handleRoute() {
+  const hash = window.location.hash.split('?')[0]; 
   
   // Rutas dinámicas
   if (hash.startsWith('#/establecimiento/')) {
     const id = hash.split('/')[2];
-    window.pages.establecimiento(id);
+    await window.controllers.establecimiento(id);
     return;
   }
   
   const routeAction = routes[hash] || routes['#/'];
-  routeAction();
+  await routeAction();
 }
 
 function updateHeader() {

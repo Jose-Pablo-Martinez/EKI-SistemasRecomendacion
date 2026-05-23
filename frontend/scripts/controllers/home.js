@@ -1,4 +1,4 @@
-window.pages.home = () => {
+window.controllers.home = () => {
     renderPage(`
         <div id="home-hero-section" class="flex-1 flex flex-col items-center justify-center p-8 py-12 md:py-24 2xl:py-32 text-center eki-texture-bg relative w-full">
             <h1 class="font-heading text-display-lg 2xl:text-display-xl text-primary mb-4 relative z-10 transition-all duration-300">Descubre la verdadera esencia gastronómica</h1>

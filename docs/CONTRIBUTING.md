@@ -47,8 +47,9 @@ ekiSystem/
 │   └── logic/                  ← Algoritmos de recomendación
 │
 └── frontend/
-    ├── index.html              ← Estructura HTML
-    ├── js/app.js               ← Lógica de peticiones HTTP y detección de entorno
+    ├── index.html              ← Estructura HTML SPA Shell
+    ├── views/                  ← Archivos HTML estáticos de las vistas
+    ├── scripts/app.js          ← Router SPA asíncrono y renderizador de vistas
     └── css/styles.css          ← Ajustes de diseño
 ```
 
@@ -219,7 +220,7 @@ class Vendor(Base):
 ### 6.4 Plantilla: Fetch API (Frontend)
 
 ```javascript
-// frontend/js/app.js
+// frontend/scripts/app.js
 const API_BASE_URL = "http://localhost:8000";
 
 /**

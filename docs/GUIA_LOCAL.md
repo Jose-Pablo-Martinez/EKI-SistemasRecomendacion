@@ -61,6 +61,10 @@ El script verificará el certificado y te pedirá los datos de conexión de form
 - **Host, Puerto y Password**: pídelos al líder del equipo. Los encontrará en `Aiven Console → Tu Servicio → Overview`.
 - **Nombre de BD**: usa `defaultdb` (base de datos de **desarrollo**).
 
+> [!NOTE]
+> **Sobre la variable `JWT_SECRET_KEY`:** 
+> Esta variable se usa para firmar las sesiones de los usuarios. **Para tu entorno local de desarrollo, puedes inventar cualquier valor** (ejemplo: `JWT_SECRET_KEY=mi_llave_local_123`). Esto es seguro porque solo se usa en tu propia computadora. La llave real, segura y encriptada, **solo existe configurada en la nube (Render)**. Nunca coloques una llave real de producción en tu `.env` local.
+
 Al finalizar, tendrás un archivo `.env` listo en la raíz del proyecto.
 
 ---
@@ -143,7 +147,7 @@ Verifica que funcione abriendo en tu navegador:
 - **Documentación interactiva (Swagger):** `http://localhost:8000/docs`
 - **Health check:** `http://localhost:8000/health` → debe responder `{"status": "healthy"}`
 
-Para el **frontend**, abre `frontend/index.html` con **Live Server** (extensión de VS Code) en el puerto `5500`. El `app.js` detecta automáticamente que estás en `localhost` y apunta al backend local.
+Para el **frontend**, abre `frontend/index.html` con **Live Server** (extensión de VS Code) en el puerto `5500`. El archivo `scripts/app.js` detecta automáticamente que estás en `localhost` y apunta al backend local.
 
 ---
 

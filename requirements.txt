@@ -20,3 +20,8 @@ python-dotenv==1.1.0
 requests==2.32.3
 bcrypt==3.2.2
 passlib[bcrypt]==1.7.4
+
+# ─── Seguridad y Sesiones ─────────────────────────────────────────────────────
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.18
+user-agents==2.2.0
