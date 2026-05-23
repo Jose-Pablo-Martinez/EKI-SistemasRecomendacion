@@ -1,4 +1,8 @@
-// frontend/js/api.js
+/**
+ * Archivo modificado: 2026-05-23
+ * Función: Capa de abstracción para la comunicación HTTP con FastAPI. 
+ * Maneja JWT y rutas del sistema.
+ */
 
 const API_BASE_URL = window.location.hostname === "localhost"
   ? "http://localhost:8000"

@@ -1,3 +1,8 @@
+/**
+ * Archivo modificado: 2026-05-23
+ * Función: Controlador de la vista de inicio de sesión. 
+ * Maneja la validación de credenciales y la autenticación.
+ */
 window.controllers.login = async () => {
     // 1. Cargar Vista HTML mediante fetch
     const loaded = await renderView('login.html');

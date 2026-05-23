@@ -1,3 +1,8 @@
+/**
+ * Archivo modificado: 2026-05-23
+ * Función: Centraliza el manejo de errores del sistema, 
+ * traduciendo respuestas HTTP en mensajes amigables.
+ */
 window.errorHandler = {
     handle(error, context) {
         console.error(`[Error en ${context}]:`, error);

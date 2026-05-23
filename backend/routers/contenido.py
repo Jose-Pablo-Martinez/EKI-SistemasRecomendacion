@@ -1,3 +1,9 @@
+"""
+Módulo: routers/contenido.py
+Fecha de modificación: 2026-05-23
+Función: Endpoints de solo lectura para obtener catálogos maestros 
+estáticos de la aplicación (como la lista de categorías y etiquetas).
+"""
 # pyrefly: ignore [missing-import]
 from fastapi import APIRouter, Depends
 # pyrefly: ignore [missing-import]

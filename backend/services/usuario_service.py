@@ -1,3 +1,10 @@
+"""
+Módulo: services/usuario_service.py
+Fecha de modificación: 2026-05-23
+Función: Contiene la lógica de negocio pesada para crear, 
+actualizar y validar usuarios, separando estas operaciones de los 
+controladores (routers).
+"""
 import uuid
 # pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session

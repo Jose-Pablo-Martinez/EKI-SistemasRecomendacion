@@ -1,3 +1,8 @@
+/**
+ * Archivo modificado: 2026-05-23
+ * Función: Controlador del flujo de bienvenida (Cold Start). 
+ * Captura gustos, presupuesto y ubicación inicial.
+ */
 window.controllers.onboarding = async () => {
     let step = 1;
     let categoriasSeleccionadas = [];
