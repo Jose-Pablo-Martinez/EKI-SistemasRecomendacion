@@ -61,6 +61,12 @@ class Usuario(Base):
     reportes        = relationship("Reporte", back_populates="usuario")
     historial_visitas = relationship("HistorialVisita", back_populates="usuario")
 
+    @property
+    def perfil_completado(self) -> bool:
+        """Helper para exponer el estado del onboarding directamente desde la entidad raíz."""
+        if self.visitante:
+            return self.visitante.perfil_completado
+        return False
 
 class DispositivoUsuario(Base):
     """

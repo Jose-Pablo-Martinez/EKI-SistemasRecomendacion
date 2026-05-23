@@ -1,3 +1,8 @@
+"""
+Módulo: routers/establecimientos.py
+Fecha de modificación: 2026-05-23
+Función: Endpoints para la visualización, búsqueda y gestión de establecimientos gastronómicos, y la interacción con ellos (reseñas, favoritos, likes).
+"""
 # pyrefly: ignore [missing-import]
 from fastapi import APIRouter, Depends, HTTPException, status
 # pyrefly: ignore [missing-import]

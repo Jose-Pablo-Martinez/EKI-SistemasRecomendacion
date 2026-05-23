@@ -1,4 +1,8 @@
-// frontend/js/api.js
+/**
+ * Archivo modificado: 2026-05-23
+ * Función: Capa de abstracción para la comunicación HTTP con FastAPI. 
+ * Maneja JWT y rutas del sistema.
+ */
 
 const API_BASE_URL = window.location.hostname === "localhost"
   ? "http://localhost:8000"
@@ -24,11 +28,11 @@ async function apiRequest(endpoint, options = {}) {
     headers,
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !endpoint.includes('/login')) {
     // Token expirado o inválido → redirigir a login
     localStorage.removeItem('eki_token');
     window.location.hash = '#/login';
-    throw new Error('Sesión expirada');
+    throw new Error('Tu sesión ha terminado por seguridad, por favor vuelve a ingresar.');
   }
 
   if (!response.ok) {

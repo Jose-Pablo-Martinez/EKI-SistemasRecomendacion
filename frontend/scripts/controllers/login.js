@@ -1,3 +1,8 @@
+/**
+ * Archivo modificado: 2026-05-23
+ * Función: Controlador de la vista de inicio de sesión. 
+ * Maneja la validación de credenciales y la autenticación.
+ */
 window.controllers.login = async () => {
     // 1. Cargar Vista HTML mediante fetch
     const loaded = await renderView('login.html');
@@ -63,7 +68,7 @@ window.controllers.login = async () => {
         if (hasError) return;
 
         submitBtn.disabled = true;
-        submitBtn.textContent = 'CARGANDO...';
+        submitBtn.innerHTML = '<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin">progress_activity</span> Cargando...</div>';
 
         try {
             const data = await api.login(email, password);
@@ -77,10 +82,15 @@ window.controllers.login = async () => {
             }
         } catch (err) {
             const userMsg = window.errorHandler.handle(err, 'Login');
-            errorDiv.textContent = userMsg;
-            errorDiv.classList.remove('hidden');
+            if (err.status === 401) {
+                showError(emailError, userMsg, emailInput);
+                showError(passwordError, '', passwordInput); // Solo borde para password
+            } else {
+                errorDiv.textContent = userMsg;
+                errorDiv.classList.remove('hidden');
+            }
             submitBtn.disabled = false;
-            submitBtn.textContent = 'INGRESAR';
+            submitBtn.innerHTML = 'INGRESAR';
         }
     });
 };
