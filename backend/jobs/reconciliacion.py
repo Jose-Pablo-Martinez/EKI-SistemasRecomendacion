@@ -4,9 +4,7 @@ Usar solo en caso de emergencia si se detecta desincronización de contadores.
 """
 
 import logging
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
-# pyrefly: ignore [missing-import]
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)

@@ -5,17 +5,13 @@ Incluye: InteraccionUsuario, RecomendacionGenerada, HistorialVisita,
          ContribucionInformacion, LogPuntos,
          + tablas de archivado (InteraccionUsuarioHistorico, RecomendacionGeneradaHistorico)
 """
-# pyrefly: ignore [missing-import]
 from datetime import datetime
 
-# pyrefly: ignore [missing-import]
 from sqlalchemy import (
     Column, Integer, String, Text, Boolean, DateTime, Enum,
     ForeignKey, DECIMAL, Index, UniqueConstraint, CheckConstraint,
 )
-# pyrefly: ignore [missing-import]
 from sqlalchemy.dialects.mysql import TINYINT
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import relationship
 
 from backend.database import Base

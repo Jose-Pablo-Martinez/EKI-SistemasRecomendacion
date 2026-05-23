@@ -22,10 +22,13 @@ Nota arquitectónica (§1.7 — Offline-First):
 import logging
 from typing import TYPE_CHECKING
 
+import numpy as np
+from sqlalchemy import select
+
+from backend.models import Establecimiento, MetricaEstablecimiento
+
 if TYPE_CHECKING:
-    # pyrefly: ignore [missing-import]
     from sqlalchemy.orm import Session
-    from backend.models import Establecimiento, MetricaEstablecimiento
 
 logger = logging.getLogger(__name__)
 
@@ -58,10 +61,18 @@ def get_top_establecimientos(
     Returns:
         Lista de instancias Establecimiento ordenadas por score_boost_combinado.
     """
-    # TODO: Consultar establecimientos activos+aprobados con JOIN a metrica_establecimiento
-    #       ORDER BY metrica_establecimiento.score_boost_combinado DESC LIMIT limit
-    logger.info("ranking: obteniendo top %d establecimientos por score_boost", limit)
-    return []
+    limit = min(limit, MAX_RESULTS)
+    stmt = (
+        select(Establecimiento)
+        .join(MetricaEstablecimiento, Establecimiento.id_establecimiento == MetricaEstablecimiento.id_establecimiento)
+        .where(
+            Establecimiento.es_activo == True,
+            Establecimiento.estado == "aprobado"
+        )
+        .order_by(MetricaEstablecimiento.score_boost_combinado.desc().nulls_last())
+        .limit(limit)
+    )
+    return list(db.scalars(stmt).all())
 
 
 def compute_score_final(
@@ -115,16 +126,17 @@ def compute_haversine_km(
     Returns:
         Distancia en kilómetros (línea recta).
     """
-    import math
-
     R = 6371.0  # Radio de la Tierra en km
 
-    phi1 = math.radians(lat1)
-    phi2 = math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lon2 - lon1)
+    phi1 = np.radians(lat1)
+    phi2 = np.radians(lat2)
+    dphi = np.radians(lat2 - lat1)
+    dlambda = np.radians(lon2 - lon1)
 
-    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    a = np.sin(dphi / 2) ** 2 + np.cos(phi1) * np.cos(phi2) * np.sin(dlambda / 2) ** 2
+    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
 
-    return R * c
+    res = R * c
+    if isinstance(res, np.ndarray):
+        return res  # type: ignore
+    return float(res)

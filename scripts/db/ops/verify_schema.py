@@ -22,11 +22,9 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
-# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 load_dotenv(ROOT / ".env")
 
-# pyrefly: ignore [missing-import]
 from sqlalchemy import create_engine, inspect, text
 
 # ─── Conexión ─────────────────────────────────────────────────────────────────

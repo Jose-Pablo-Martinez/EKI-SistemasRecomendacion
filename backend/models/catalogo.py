@@ -3,11 +3,8 @@ Dominio: CATÁLOGO BASE
 Tablas de configuración estática: rangos, categorías y etiquetas.
 Se definen antes de Usuarios y Establecimientos porque ambos las referencian.
 """
-# pyrefly: ignore [missing-import]
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DECIMAL, CHAR
-# pyrefly: ignore [missing-import]
 from sqlalchemy.dialects.mysql import TINYINT
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import relationship
 
 from backend.database import Base

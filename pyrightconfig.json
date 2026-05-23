@@ -1,0 +1,10 @@
+{
+  "//": "Este archivo le indica a los motores de análisis de código (como Pyright/Pyrefly) dónde encontrar tu entorno virtual (venv) para que reconozcan las librerías instaladas independientemente del editor de código que se use.",
+  "venvPath": ".",
+  "venv": "venv",
+  "executionEnvironments": [
+    {
+      "root": "."
+    }
+  ]
+}

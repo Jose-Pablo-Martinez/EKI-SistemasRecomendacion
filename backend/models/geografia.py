@@ -2,11 +2,8 @@
 Dominio: GEOGRAFÍA
 Tablas base sin dependencias externas. Se definen primero.
 """
-# pyrefly: ignore [missing-import]
 from sqlalchemy import Column, Integer, String
-# pyrefly: ignore [missing-import]
 from sqlalchemy import CHAR, ForeignKey
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import relationship
 
 from backend.database import Base

@@ -1,6 +1,4 @@
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
-# pyrefly: ignore [missing-import]
 from sqlalchemy import or_
 
 from backend.models.establecimientos import Establecimiento, Platillo, Imagen, Horario

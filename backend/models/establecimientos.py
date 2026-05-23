@@ -5,17 +5,13 @@ Subtipos: Restaurante, LocalComercial, PuestoInformal
 Tablas de contenido vinculadas: Horario, Platillo, Imagen, MetricaEstablecimiento
 Pivotes: EstablecimientoCategoria, EstablecimientoEtiqueta, PropietarioEstablecimiento
 """
-# pyrefly: ignore [missing-import]
 from datetime import datetime
 
-# pyrefly: ignore [missing-import]
 from sqlalchemy import (
     Column, Integer, String, Text, Boolean, DateTime, Enum,
     ForeignKey, JSON, DECIMAL, Index, UniqueConstraint, Time,
 )
-# pyrefly: ignore [missing-import]
 from sqlalchemy.dialects.mysql import TINYINT
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import relationship
 
 from backend.database import Base

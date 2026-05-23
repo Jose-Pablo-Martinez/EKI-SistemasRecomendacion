@@ -6,14 +6,11 @@ Dispositivos, sesiones y ubicaciones de usuario incluidos aquí.
 """
 from datetime import datetime
 
-# pyrefly: ignore [missing-import]
 from sqlalchemy import (
     Column, Integer, String, Boolean, DateTime, Date, Enum, JSON,
     Index, ForeignKey, DECIMAL
 )
-# pyrefly: ignore [missing-import]
 from sqlalchemy.dialects.mysql import TINYINT
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import relationship
 
 from backend.database import Base

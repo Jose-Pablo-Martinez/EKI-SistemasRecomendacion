@@ -1,7 +1,5 @@
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from backend.models import ClusterUsuario, ClusterEstablecimiento
-# pyrefly: ignore [missing-import]
 from sqlalchemy.dialects.mysql import insert
 
 # Vectores de centroide extraídos del documento de plan (dimensión 22)
