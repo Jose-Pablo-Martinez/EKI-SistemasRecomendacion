@@ -72,9 +72,9 @@ window.controllers.onboarding = async () => {
                     ${Object.entries(categoriasAgrupadas).map(([nombreGrupo, cats]) => `
                         <div class="bg-surface-overlay p-4 xl:p-6 rounded-lg border border-border-default">
                             <h3 class="text-lg xl:text-xl font-bold text-primary mb-4 border-b border-border-strong pb-2">${nombreGrupo}</h3>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-6 2xl:gap-8">
+                            <div class="flex flex-wrap justify-center gap-4 xl:gap-6 2xl:gap-8">
                                 ${cats.map(c => `
-                                    <div class="category-card bg-surface-raised border border-border-default rounded-md p-4 xl:p-6 flex flex-col items-center justify-center cursor-pointer hover:border-border-strong hover:-translate-y-1 transition-all ${categoriasSeleccionadas.includes(c.nombre) ? 'border-accent bg-accent-faint scale-[1.02] shadow-sm' : ''}" data-name="${c.nombre}">
+                                    <div class="category-card w-full sm:w-[calc(50%-1rem)] md:w-56 xl:w-64 bg-surface-raised border border-border-default rounded-md p-4 xl:p-6 flex flex-col items-center justify-center cursor-pointer hover:border-border-strong hover:-translate-y-1 transition-all ${categoriasSeleccionadas.includes(c.nombre) ? 'border-accent bg-accent-faint scale-[1.02] shadow-sm' : ''}" data-name="${c.nombre}">
                                         <span class="font-bold text-sm xl:text-base 2xl:text-lg text-center ${categoriasSeleccionadas.includes(c.nombre) ? 'text-accent' : 'text-primary'}">${c.nombre}</span>
                                     </div>
                                 `).join('')}
@@ -84,15 +84,34 @@ window.controllers.onboarding = async () => {
                 </div>
             `;
         } else if (step === 2) {
+            const priceIconsMap = {
+                "Popular": `
+                    <div class="flex justify-center mb-2 text-3xl xl:text-4xl 2xl:text-5xl">
+                        <span class="material-symbols-outlined">payments</span>
+                    </div>`,
+                "Casual": `
+                    <div class="flex justify-center mb-2 text-3xl xl:text-4xl 2xl:text-5xl">
+                        <span class="material-symbols-outlined">payments</span>
+                        <span class="material-symbols-outlined">payments</span>
+                    </div>`,
+                "Premium": `
+                    <div class="flex justify-center mb-2 text-3xl xl:text-4xl 2xl:text-5xl">
+                        <span class="material-symbols-outlined">payments</span>
+                        <span class="material-symbols-outlined">payments</span>
+                        <span class="material-symbols-outlined">payments</span>
+                    </div>`
+            };
+
             stepHtml = `
                 <h2 class="text-2xl xl:text-4xl 2xl:text-5xl font-heading font-bold mb-4 xl:mb-8 text-primary text-center">¿Cuánto es tu presupuesto?</h2>
                 <p class="mb-6 xl:mb-10 text-text-secondary text-sm xl:text-lg 2xl:text-xl text-center">Selecciona tu presupuestos preferidos.</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 xl:gap-8 2xl:gap-10 mb-6">
-                    ${["Económico", "Accesible", "Premium"].map(p => `
-                        <div class="price-card bg-surface-raised border border-border-default rounded-md p-6 xl:p-10 flex flex-col items-center justify-center cursor-pointer hover:border-border-strong hover:-translate-y-1 transition-all ${preciosSeleccionados.includes(p) ? 'border-accent bg-accent-faint scale-[1.02] shadow-sm' : ''}" data-name="${p}">
-                            <span class="font-bold text-lg xl:text-xl 2xl:text-2xl text-center w-full ${preciosSeleccionados.includes(p) ? 'text-accent' : 'text-primary'}">
-                                ${p === 'Económico' ? '💵<br><span class="text-sm xl:text-base 2xl:text-lg mt-2 block">Económico</span>' : p === 'Accesible' ? '💵💵<br><span class="text-sm xl:text-base 2xl:text-lg mt-2 block">Accesible</span>' : '💵💵💵<br><span class="text-sm xl:text-base 2xl:text-lg mt-2 block">Premium</span>'}
-                            </span>
+                <div class="flex flex-wrap justify-center gap-4 xl:gap-8 2xl:gap-10 mb-6 w-full">
+                    ${["Popular", "Casual", "Premium"].map(p => `
+                        <div class="price-card w-full sm:w-64 xl:w-80 bg-surface-raised border border-border-default rounded-md p-6 xl:p-10 flex flex-col items-center justify-center cursor-pointer hover:border-border-strong hover:-translate-y-1 transition-all ${preciosSeleccionados.includes(p) ? 'border-accent bg-accent-faint scale-[1.02] shadow-sm' : ''}" data-name="${p}">
+                            <div class="text-center w-full ${preciosSeleccionados.includes(p) ? 'text-accent' : 'text-primary'}">
+                                ${priceIconsMap[p]}
+                                <span class="text-sm xl:text-base 2xl:text-lg mt-2 block font-bold">${p}</span>
+                            </div>
                         </div>
                     `).join('')}
                 </div>

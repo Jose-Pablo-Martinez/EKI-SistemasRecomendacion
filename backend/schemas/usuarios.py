@@ -61,6 +61,7 @@ class UsuarioResponse(BaseModel):
     tipo_usuario: str
     activo: bool
     fecha_registro: datetime
+    perfil_completado: bool = False
 
 
 class UsuarioVisitanteResponse(BaseModel):
