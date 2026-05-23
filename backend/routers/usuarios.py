@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.models.usuarios import UsuarioVisitante
-from backend.schemas.usuarios import UsuarioCreate, UsuarioResponse, UsuarioVisitanteResponse
+from backend.schemas.usuarios import UsuarioCreate, UsuarioResponse, UsuarioVisitanteResponse, PerfilUpdate
 from backend.services import usuario_service
 from backend.auth import create_access_token, get_current_user
 
@@ -42,6 +42,18 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db
 def get_my_profile(current_user: UsuarioVisitante = Depends(get_current_user)):
     """Obtiene el perfil del usuario autenticado."""
     return current_user
+
+@router.patch("/me", response_model=UsuarioResponse)
+def update_my_profile(data: PerfilUpdate, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Actualiza el perfil del usuario autenticado."""
+    updated = usuario_service.actualizar_perfil(db, current_user.id_usuario, data.model_dump(exclude_unset=True))
+    return updated
+
+@router.post("/logout")
+def logout(id_sesion: str, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Cierra la sesión actual."""
+    usuario_service.cerrar_sesion(db, id_sesion)
+    return {"status": "ok", "message": "Sesión cerrada"}
 
 @router.post("/onboarding")
 def guardar_onboarding(categorias: list[int], etiquetas: list[int], current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):

@@ -32,11 +32,16 @@ def rechazar_establecimiento(id_establecimiento: int, current_admin: Administrad
         raise HTTPException(status_code=400, detail="No se pudo rechazar")
     return {"status": "ok", "message": "Rechazado"}
 
-@router.post("/jobs/reconciliacion")
-def run_reconciliacion(current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
-    """Dispara el job asíncrono de reconciliación de datos."""
-    # Como placeholder de la arquitectura, usamos un hilo para no bloquear.
-    # En producción se usará Celery o colas de AWS.
-    thread = threading.Thread(target=reconciliar_campos_desnormalizados, args=(db,))
-    thread.start()
-    return {"status": "ok", "message": "Job de reconciliación iniciado en background"}
+@router.post("/resenas/{id_resena}/aprobar")
+def aprobar_resena(id_resena: int, current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
+    """Aprueba una reseña pendiente."""
+    exito = admin_service.aprobar_resena(db, id_resena)
+    if not exito:
+        raise HTTPException(status_code=400, detail="No se pudo aprobar")
+    return {"status": "ok", "message": "Reseña aprobada"}
+
+@router.post("/jobs/{tipo_job}")
+def trigger_job(tipo_job: str, current_admin: Administrador = Depends(get_current_admin)):
+    """Dispara un job asíncrono."""
+    resultado = admin_service.disparar_job(tipo_job)
+    return resultado

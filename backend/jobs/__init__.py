@@ -1,1 +1,1 @@
-# Módulo de jobs offline
+# Init file para el paquete jobs

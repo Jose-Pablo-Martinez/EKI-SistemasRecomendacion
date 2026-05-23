@@ -26,6 +26,16 @@ class EstablecimientoCreate(BaseModel):
     tipo_establecimiento: Literal["restaurante", "local", "puesto_informal"]
 
 
+class EstablecimientoUpdate(BaseModel):
+    """Actualización de establecimiento."""
+    nombre: Optional[str] = Field(None, max_length=200)
+    descripcion: Optional[str] = None
+    latitud: Optional[Decimal] = Field(None, ge=-90, le=90)
+    longitud: Optional[Decimal] = Field(None, ge=-180, le=180)
+    direccion_texto: Optional[str] = Field(None, max_length=500)
+    id_colonia: Optional[int] = None
+
+
 class EstablecimientoResponse(BaseModel):
     """Datos públicos de un establecimiento aprobado."""
     model_config = ConfigDict(from_attributes=True)

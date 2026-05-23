@@ -93,6 +93,35 @@ def registrar_dispositivo_sesion(db: Session, id_usuario: int, user_agent_string
     
     return id_sesion
 
+from datetime import datetime
+
+def cerrar_sesion(db: Session, id_sesion: str):
+    """
+    Cierra la sesión actual y calcula la duración.
+    """
+    sesion = db.query(SesionUsuario).filter(SesionUsuario.id_sesion == id_sesion).first()
+    if sesion and sesion.fecha_inicio:
+        duracion = (datetime.utcnow() - sesion.fecha_inicio).total_seconds()
+        sesion.duracion_segundos = int(duracion)
+        db.commit()
+
+def actualizar_perfil(db: Session, id_usuario: int, data: dict):
+    usuario = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
+    if not usuario:
+        return
+        
+    for key, value in data.items():
+        if value is not None and hasattr(usuario, key):
+            setattr(usuario, key, value)
+            
+    visitante = db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).first()
+    if visitante and "radio_busqueda_km" in data and data["radio_busqueda_km"] is not None:
+        visitante.radio_busqueda_km = data["radio_busqueda_km"]
+        
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
 def registrar_ubicacion(db: Session, id_usuario: int, lat: float, lon: float, precision: int = None, id_sesion: str = None):
     """
     Inserta una nueva ubicación y mantiene un máximo de 3 ubicaciones recientes.
