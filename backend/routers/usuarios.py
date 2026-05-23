@@ -1,0 +1,56 @@
+# pyrefly: ignore [missing-import]
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+# pyrefly: ignore [missing-import]
+from fastapi.security import OAuth2PasswordRequestForm
+# pyrefly: ignore [missing-import]
+from sqlalchemy.orm import Session
+
+from backend.database import get_db
+from backend.models.usuarios import UsuarioVisitante
+from backend.schemas.usuarios import UsuarioCreate, UsuarioResponse, UsuarioVisitanteResponse
+from backend.services import usuario_service
+from backend.auth import create_access_token, get_current_user
+
+router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
+
+@router.post("/registro", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
+def registro(user_data: UsuarioCreate, db: Session = Depends(get_db)):
+    """Registra un nuevo usuario en la plataforma."""
+    usuario = usuario_service.crear_usuario(db, user_data)
+    return usuario
+
+@router.post("/login")
+def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """Inicia sesión, registra el dispositivo y retorna JWT."""
+    usuario = usuario_service.autenticar_usuario(db, form_data.username, form_data.password)
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Correo o contraseña incorrectos",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Registrar Sesión y Dispositivo
+    user_agent = request.headers.get("User-Agent", "")
+    id_sesion = usuario_service.registrar_dispositivo_sesion(db, usuario.id_usuario, user_agent)
+    
+    # Generar Token JWT
+    access_token = create_access_token(data={"sub": usuario.email, "sesion": id_sesion})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/me", response_model=UsuarioVisitanteResponse)
+def get_my_profile(current_user: UsuarioVisitante = Depends(get_current_user)):
+    """Obtiene el perfil del usuario autenticado."""
+    return current_user
+
+@router.post("/onboarding")
+def guardar_onboarding(categorias: list[int], etiquetas: list[int], current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Guarda las preferencias iniciales de un usuario."""
+    usuario_service.procesar_onboarding(db, current_user.id_usuario, categorias, etiquetas)
+    return {"status": "ok", "message": "Onboarding completado exitosamente."}
+
+@router.post("/ubicacion")
+def actualizar_ubicacion(latitud: float, longitud: float, precision_metros: int = None, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Registra una nueva ubicación del usuario (máx. 3 en BD)."""
+    usuario_service.registrar_ubicacion(db, current_user.id_usuario, latitud, longitud, precision_metros)
+    return {"status": "ok"}

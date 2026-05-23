@@ -12,7 +12,13 @@ import logging
 import os
 
 # pyrefly: ignore [missing-import]
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+# pyrefly: ignore [missing-import]
+from fastapi.responses import JSONResponse
+# pyrefly: ignore [missing-import]
+from fastapi.exceptions import RequestValidationError
+# pyrefly: ignore [missing-import]
+from sqlalchemy.exc import IntegrityError
 # pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
 # pyrefly: ignore [missing-import]
@@ -53,21 +59,50 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
 
 logger.info("CORS configurado para los orígenes: %s", ALLOWED_ORIGINS)
 
+# ─── Manejadores de Excepciones Globales ──────────────────────────────────────
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = []
+    for error in exc.errors():
+        field = " -> ".join(str(loc) for loc in error.get("loc", []))
+        msg = error.get("msg", "Error de validación")
+        errors.append(f"{field}: {msg}")
+    
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": "Error de validación de campos", "errors": errors},
+    )
+
+@app.exception_handler(IntegrityError)
+async def sqlalchemy_integrity_exception_handler(request: Request, exc: IntegrityError):
+    msg = str(exc.orig) if exc.orig else str(exc)
+    logger.error("Error de integridad en BD: %s", msg)
+    if "usuario_visitante_email_key" in msg or "Duplicate entry" in msg or "unique constraint" in msg.lower():
+         return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": "El correo electrónico ya está en uso por otro usuario."},
+        )
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": "Error de integridad o restricción única en la base de datos."},
+    )
+
 # ─── Routers ──────────────────────────────────────────────────────────────────
 # Importar y registrar aquí los routers de cada módulo con APIRouter.
-# Ejemplo (descomentar cuando se creen los módulos de rutas):
-# from backend.routers import usuarios, establecimientos, recomendaciones, contenido
-# app.include_router(usuarios.router)
-# app.include_router(establecimientos.router)
-# app.include_router(recomendaciones.router)
-# app.include_router(contenido.router)
+from backend.routers import usuarios, establecimientos, gamificacion, contenido, admin
 
+app.include_router(usuarios.router)
+app.include_router(establecimientos.router)
+app.include_router(gamificacion.router)
+app.include_router(contenido.router)
+app.include_router(admin.router)
 
 # ─── Endpoints de Utilidad ────────────────────────────────────────────────────
 
