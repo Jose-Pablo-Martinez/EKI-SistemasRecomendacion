@@ -45,12 +45,15 @@
 }
 
 @layer components {
+
   /* Textura de fondo */
   .eki-texture-bg {
     background-image: url('../assets/backgroundEki.svg');
-    background-repeat: repeat;
-    background-size: auto;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
     position: relative;
+    /* Esencial para que el ::before funcione */
   }
 
   .eki-texture-bg::before {
@@ -60,7 +63,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(255, 255, 255, 0.85); /* bg-white/85 */
+    /* Utilizamos el color base (surface) casi opaco para difuminar la imagen de fondo */
+    background-color: rgba(253, 248, 241, 0.96);
     pointer-events: none;
     z-index: 0;
   }
@@ -69,10 +73,15 @@
   .fade-in {
     animation: fadeIn 400ms cubic-bezier(0, 0, 0.2, 1) forwards;
   }
-  
+
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
   }
 
   .card-enter {
@@ -85,6 +94,7 @@
       opacity: 0;
       transform: translateY(8px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -98,9 +108,17 @@
   }
 
   @keyframes skeletonPulse {
-    0% { opacity: 0.4; }
-    50% { opacity: 0.8; }
-    100% { opacity: 0.4; }
+    0% {
+      opacity: 0.4;
+    }
+
+    50% {
+      opacity: 0.8;
+    }
+
+    100% {
+      opacity: 0.4;
+    }
   }
 
   /* Barra de progreso onboarding */
@@ -120,53 +138,155 @@
   }
 
   @keyframes progressGrow {
-    from { transform: scaleX(0); }
-    to { transform: scaleX(1); }
+    from {
+      transform: scaleX(0);
+    }
+
+    to {
+      transform: scaleX(1);
+    }
   }
 }
 
 /* Tipografía de jerarquía */
-.text-display-xl { font-size: 64px; line-height: 72px; font-weight: 800; letter-spacing: -0.02em; }
-.text-display-lg { font-size: 48px; line-height: 56px; font-weight: 700; letter-spacing: -0.015em; }
-.text-display-md { font-size: 36px; line-height: 44px; font-weight: 600; letter-spacing: -0.01em; }
+.text-display-xl {
+  font-size: 64px;
+  line-height: 72px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
 
-.text-headline-lg { font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.005em; }
-.text-headline-md { font-size: 22px; line-height: 30px; font-weight: 500; }
-.text-headline-sm { font-size: 18px; line-height: 26px; font-weight: 500; }
+.text-display-lg {
+  font-size: 48px;
+  line-height: 56px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
 
-.text-body-lg { font-size: 18px; line-height: 28px; font-weight: 400; }
-.text-body-md { font-size: 16px; line-height: 24px; font-weight: 400; }
-.text-body-sm { font-size: 14px; line-height: 20px; font-weight: 400; }
+.text-display-md {
+  font-size: 36px;
+  line-height: 44px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
 
-.text-label-xl { font-size: 16px; line-height: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
-.text-label-lg { font-size: 13px; line-height: 18px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-.text-label-md { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.03em; }
-.text-label-sm { font-size: 11px; line-height: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+.text-headline-lg {
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
 
-.text-numeric-lg { font-size: 32px; line-height: 36px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.text-numeric-md { font-size: 20px; line-height: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.text-numeric-sm { font-size: 14px; line-height: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.text-headline-md {
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 500;
+}
+
+.text-headline-sm {
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 500;
+}
+
+.text-body-lg {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
+}
+
+.text-body-md {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+}
+
+.text-body-sm {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+}
+
+.text-label-xl {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.text-label-lg {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.text-label-md {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.text-label-sm {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.text-numeric-lg {
+  font-size: 32px;
+  line-height: 36px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-numeric-md {
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-numeric-sm {
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Grid de diseño (basado en DESIGN.md) */
 @layer components {
   .eki-grid {
     display: grid;
     grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 16px; /* gutter mobile */
-    padding: 0 16px; /* margin mobile */
+    gap: 16px;
+    /* gutter mobile */
+    padding: 0 16px;
+    /* margin mobile */
   }
+
   @media (min-width: 768px) {
     .eki-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 24px; /* gutter tablet */
-      padding: 0 32px; /* margin tablet */
+      gap: 24px;
+      /* gutter tablet */
+      padding: 0 32px;
+      /* margin tablet */
     }
   }
+
   @media (min-width: 1024px) {
     .eki-grid {
       grid-template-columns: repeat(12, minmax(0, 1fr));
-      gap: 24px; /* gutter desktop */
-      padding: 0 64px; /* margin desktop */
+      gap: 24px;
+      /* gutter desktop */
+      padding: 0 64px;
+      /* margin desktop */
     }
   }
 }
