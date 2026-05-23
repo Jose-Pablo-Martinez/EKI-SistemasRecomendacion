@@ -4,19 +4,54 @@ window.controllers.register = async () => {
     if (!loaded) return;
 
     // 2. Controladores y Lógica de Eventos
+    const nombreInput = document.getElementById('nombre');
+    const apellidoInput = document.getElementById('apellido');
+    const emailInput = document.getElementById('email');
     const passInput = document.getElementById('password');
     const confirmInput = document.getElementById('password_confirm');
+    
     const errorDiv = document.getElementById('register-form-error');
+    const nombreError = document.getElementById('nombre-error');
+    const apellidoError = document.getElementById('apellido-error');
+    const emailError = document.getElementById('email-error');
+    const passError = document.getElementById('password-error');
+    const confirmError = document.getElementById('password_confirm-error');
+
+    // Toggles Password Visibility
+    const setupToggle = (btnId, inputElement, iconId) => {
+        const btn = document.getElementById(btnId);
+        const icon = document.getElementById(iconId);
+        btn.addEventListener('click', () => {
+            if (inputElement.type === 'password') {
+                inputElement.type = 'text';
+                icon.textContent = 'visibility';
+            } else {
+                inputElement.type = 'password';
+                icon.textContent = 'visibility_off';
+            }
+        });
+    };
+    setupToggle('toggle-password', passInput, 'icon-password');
+    setupToggle('toggle-password-confirm', confirmInput, 'icon-password-confirm');
+
+    const clearErrors = () => {
+        [errorDiv, nombreError, apellidoError, emailError, passError, confirmError].forEach(el => el.classList.add('hidden'));
+        [nombreInput, apellidoInput, emailInput, passInput, confirmInput].forEach(el => el.classList.remove('border-accent'));
+    };
+
+    const showError = (element, message, input) => {
+        element.textContent = message;
+        element.classList.remove('hidden');
+        if (input) input.classList.add('border-accent');
+    };
 
     // Validación interactiva de contraseñas
     const validatePasswordsMatch = () => {
         if (confirmInput.value && passInput.value !== confirmInput.value) {
-            confirmInput.classList.add('border-accent');
-            errorDiv.textContent = 'Las contraseñas no coinciden.';
-            errorDiv.classList.remove('hidden');
+            showError(confirmError, 'Las contraseñas no coinciden.', confirmInput);
         } else {
+            confirmError.classList.add('hidden');
             confirmInput.classList.remove('border-accent');
-            errorDiv.classList.add('hidden');
         }
     };
 
@@ -26,44 +61,58 @@ window.controllers.register = async () => {
     // Manejo de Formulario
     document.getElementById('register-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const nombre = document.getElementById('nombre').value.trim();
-        const apellido = document.getElementById('apellido').value.trim();
-        const email = document.getElementById('email').value.trim();
+        const nombre = nombreInput.value.trim();
+        const apellido = apellidoInput.value.trim();
+        const email = emailInput.value.trim();
         const password = passInput.value;
         const passwordConfirm = confirmInput.value;
         const submitBtn = e.target.querySelector('button[type="submit"]');
         
-        errorDiv.classList.add('hidden');
+        clearErrors();
         
-        if (!nombre || !apellido || !email || !password || !passwordConfirm) {
-            errorDiv.textContent = 'Por favor llena todos los campos.';
-            errorDiv.classList.remove('hidden');
-            return;
-        }
-        
-        if (password.length < 8) {
-            errorDiv.textContent = 'La contraseña debe tener al menos 8 caracteres.';
-            errorDiv.classList.remove('hidden');
-            return;
-        }
-        
-        if (password !== passwordConfirm) {
-            errorDiv.textContent = 'Las contraseñas no coinciden.';
-            errorDiv.classList.remove('hidden');
-            return;
+        let hasError = false;
+
+        if (!nombre) {
+            showError(nombreError, 'El nombre es requerido.', nombreInput);
+            hasError = true;
+        } else if (!window.validators.isValidName(nombre)) {
+            showError(nombreError, 'Nombre inválido.', nombreInput);
+            hasError = true;
         }
 
-        if (!window.validators.isValidEmail(email)) {
-            errorDiv.textContent = 'Por favor ingresa un correo válido.';
-            errorDiv.classList.remove('hidden');
-            return;
+        if (!apellido) {
+            showError(apellidoError, 'El apellido es requerido.', apellidoInput);
+            hasError = true;
+        } else if (!window.validators.isValidName(apellido)) {
+            showError(apellidoError, 'Apellido inválido.', apellidoInput);
+            hasError = true;
         }
 
-        if (!window.validators.isValidName(nombre) || !window.validators.isValidName(apellido)) {
-            errorDiv.textContent = 'Por favor ingresa nombres válidos (sin caracteres especiales ni palabras ofensivas).';
-            errorDiv.classList.remove('hidden');
-            return;
+        if (!email) {
+            showError(emailError, 'El correo es requerido.', emailInput);
+            hasError = true;
+        } else if (!window.validators.isValidEmail(email)) {
+            showError(emailError, 'Por favor ingresa un correo válido.', emailInput);
+            hasError = true;
         }
+
+        if (!password) {
+            showError(passError, 'La contraseña es requerida.', passInput);
+            hasError = true;
+        } else if (password.length < 8) {
+            showError(passError, 'La contraseña debe tener al menos 8 caracteres.', passInput);
+            hasError = true;
+        }
+
+        if (!passwordConfirm) {
+            showError(confirmError, 'Confirma tu contraseña.', confirmInput);
+            hasError = true;
+        } else if (password !== passwordConfirm) {
+            showError(confirmError, 'Las contraseñas no coinciden.', confirmInput);
+            hasError = true;
+        }
+
+        if (hasError) return;
 
         submitBtn.disabled = true;
         submitBtn.textContent = 'CREANDO CUENTA...';

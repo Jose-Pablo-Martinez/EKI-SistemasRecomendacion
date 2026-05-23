@@ -4,32 +4,66 @@ window.controllers.login = async () => {
     if (!loaded) return;
 
     // 2. Controladores y Lógica de Eventos
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const errorDiv = document.getElementById('login-form-error');
+    const emailError = document.getElementById('email-error');
+    const passwordError = document.getElementById('password-error');
+    
+    // Toggle Password Visibility
+    const togglePasswordBtn = document.getElementById('toggle-password');
+    const iconPassword = document.getElementById('icon-password');
+    togglePasswordBtn.addEventListener('click', () => {
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            iconPassword.textContent = 'visibility';
+        } else {
+            passwordInput.type = 'password';
+            iconPassword.textContent = 'visibility_off';
+        }
+    });
+
+    const clearErrors = () => {
+        errorDiv.classList.add('hidden');
+        emailError.classList.add('hidden');
+        passwordError.classList.add('hidden');
+        emailInput.classList.remove('border-accent');
+        passwordInput.classList.remove('border-accent');
+    };
+
+    const showError = (element, message, input) => {
+        element.textContent = message;
+        element.classList.remove('hidden');
+        if (input) input.classList.add('border-accent');
+    };
+
     document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
-        const errorDiv = document.getElementById('login-form-error');
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
         const submitBtn = e.target.querySelector('button[type="submit"]');
         
-        errorDiv.classList.add('hidden');
+        clearErrors();
+        
+        let hasError = false;
+        
+        if (!email) {
+            showError(emailError, 'El correo es requerido.', emailInput);
+            hasError = true;
+        } else if (!window.validators.isValidEmail(email)) {
+            showError(emailError, 'Por favor ingresa un correo válido.', emailInput);
+            hasError = true;
+        }
+        
+        if (!password) {
+            showError(passwordError, 'La contraseña es requerida.', passwordInput);
+            hasError = true;
+        }
+
+        if (hasError) return;
+
         submitBtn.disabled = true;
         submitBtn.textContent = 'CARGANDO...';
-        
-        if (!email || !password) {
-            errorDiv.textContent = 'Por favor ingresa tu correo y contraseña.';
-            errorDiv.classList.remove('hidden');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'INGRESAR';
-            return;
-        }
-        
-        if (!window.validators.isValidEmail(email)) {
-            errorDiv.textContent = 'Por favor ingresa un correo válido.';
-            errorDiv.classList.remove('hidden');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'INGRESAR';
-            return;
-        }
 
         try {
             const data = await api.login(email, password);

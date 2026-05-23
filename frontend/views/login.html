@@ -6,10 +6,17 @@
             <div>
                 <label class="block text-text-secondary text-sm font-bold mb-2 uppercase tracking-wide">Email</label>
                 <input type="email" id="email" required class="w-full p-2 xl:p-3 2xl:p-4 border border-border-default rounded bg-surface-sunken focus:outline-none focus:border-border-focus text-base xl:text-lg" />
+                <p id="email-error" class="text-accent text-xs font-bold mt-1 hidden"></p>
             </div>
             <div>
                 <label class="block text-text-secondary text-sm font-bold mb-2 uppercase tracking-wide">Contraseña</label>
-                <input type="password" id="password" required class="w-full p-2 xl:p-3 2xl:p-4 border border-border-default rounded bg-surface-sunken focus:outline-none focus:border-border-focus text-base xl:text-lg" />
+                <div class="relative">
+                    <input type="password" id="password" required class="w-full p-2 xl:p-3 2xl:p-4 border border-border-default rounded bg-surface-sunken focus:outline-none focus:border-border-focus text-base xl:text-lg pr-12" />
+                    <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 px-3 flex items-center text-text-tertiary hover:text-primary transition-colors focus:outline-none" title="Mostrar contraseña">
+                        <span class="material-symbols-outlined text-xl" id="icon-password">visibility_off</span>
+                    </button>
+                </div>
+                <p id="password-error" class="text-accent text-xs font-bold mt-1 hidden"></p>
             </div>
             <button type="submit" class="bg-accent text-white font-bold py-3 xl:py-4 px-4 rounded hover:bg-accent-hover active:scale-95 transition-all w-full mt-4 xl:mt-8 uppercase tracking-widest text-sm xl:text-base">Ingresar</button>
             <div class="mt-4 xl:mt-6 text-center text-sm xl:text-base text-text-secondary">
