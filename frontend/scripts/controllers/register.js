@@ -35,6 +35,18 @@ window.controllers.register = async () => {
         
         errorDiv.classList.add('hidden');
         
+        if (!nombre || !apellido || !email || !password || !passwordConfirm) {
+            errorDiv.textContent = 'Por favor llena todos los campos.';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+        
+        if (password.length < 8) {
+            errorDiv.textContent = 'La contraseña debe tener al menos 8 caracteres.';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+        
         if (password !== passwordConfirm) {
             errorDiv.textContent = 'Las contraseñas no coinciden.';
             errorDiv.classList.remove('hidden');

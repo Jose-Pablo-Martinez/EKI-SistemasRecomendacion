@@ -1,6 +1,6 @@
 // frontend/js/utils.js
 
-window.pages = {}; // Inicializar namespace para páginas
+window.controllers = {}; // Inicializar namespace para controladores
 
 function solicitarUbicacion() {
     return new Promise((resolve, reject) => {

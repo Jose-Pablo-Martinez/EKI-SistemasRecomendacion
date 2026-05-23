@@ -33,7 +33,7 @@ async function renderView(viewPath) {
       
       // Devolvemos la promesa para saber cuándo el HTML ya está en el DOM
       // (asumimos un pequeño retraso artificial para asegurar inyección)
-      return new Promise(resolve => setTimeout(resolve, 200));
+      return new Promise(resolve => setTimeout(() => resolve(true), 200));
   } catch (e) {
       console.error("Error loading view:", e);
       root.innerHTML = `<p class="p-8 text-accent">Error al cargar la vista: ${e.message}</p>`;

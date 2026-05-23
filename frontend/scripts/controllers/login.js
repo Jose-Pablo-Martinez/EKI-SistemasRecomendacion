@@ -15,6 +15,14 @@ window.controllers.login = async () => {
         submitBtn.disabled = true;
         submitBtn.textContent = 'CARGANDO...';
         
+        if (!email || !password) {
+            errorDiv.textContent = 'Por favor ingresa tu correo y contraseña.';
+            errorDiv.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'INGRESAR';
+            return;
+        }
+        
         if (!window.validators.isValidEmail(email)) {
             errorDiv.textContent = 'Por favor ingresa un correo válido.';
             errorDiv.classList.remove('hidden');
