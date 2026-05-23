@@ -16,8 +16,8 @@ class EstablecimientoCreate(BaseModel):
     """Registro de un nuevo establecimiento. Estado inicial: 'pendiente'."""
     nombre: str = Field(..., max_length=200, examples=["Tacos El Camarón"])
     descripcion: Optional[str] = Field(None, examples=["Tacos de camarón frente al mercado."])
-    latitud: Decimal = Field(..., ge=-90, le=90, examples=[20.9674])
-    longitud: Decimal = Field(..., ge=-180, le=180, examples=[-89.5926])
+    latitud: Decimal = Field(..., ge=Decimal("-90"), le=Decimal("90"), examples=[20.9674])
+    longitud: Decimal = Field(..., ge=Decimal("-180"), le=Decimal("180"), examples=[-89.5926])
     direccion_texto: Optional[str] = Field(
         None, max_length=500, examples=["Frente al Mercado Lucas de Gálvez"]
     )
@@ -29,8 +29,8 @@ class EstablecimientoUpdate(BaseModel):
     """Actualización de establecimiento."""
     nombre: Optional[str] = Field(None, max_length=200)
     descripcion: Optional[str] = None
-    latitud: Optional[Decimal] = Field(None, ge=-90, le=90)
-    longitud: Optional[Decimal] = Field(None, ge=-180, le=180)
+    latitud: Optional[Decimal] = Field(None, ge=Decimal("-90"), le=Decimal("90"))
+    longitud: Optional[Decimal] = Field(None, ge=Decimal("-180"), le=Decimal("180"))
     direccion_texto: Optional[str] = Field(None, max_length=500)
     id_colonia: Optional[int] = None
 
@@ -168,7 +168,7 @@ class PlatilloCreate(BaseModel):
     id_establecimiento: int
     nombre: str = Field(..., max_length=200, examples=["Sopa de Lima"])
     descripcion: Optional[str] = None
-    precio: Optional[Decimal] = Field(None, gt=0)
+    precio: Optional[Decimal] = Field(None, gt=Decimal("0"))
     disponible: bool = True
 
 

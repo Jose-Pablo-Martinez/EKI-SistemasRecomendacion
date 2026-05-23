@@ -33,7 +33,7 @@ from sqlalchemy import select
 from backend.models import Establecimiento, MetricaEstablecimiento
 
 if TYPE_CHECKING:
-        from sqlalchemy.orm import Session
+    from sqlalchemy.orm import Session
     from backend.models import UsuarioVisitante, ClusterUsuario
 
 logger = logging.getLogger(__name__)
@@ -114,7 +114,7 @@ def assign_cluster_provisional(
 
     distancias = np.linalg.norm(centroides - user_vec, axis=1)
     idx_min = int(np.argmin(distancias))
-    mejor_cluster_id = valid_clusters[idx_min].id_cluster
+    mejor_cluster_id = int(valid_clusters[idx_min].id_cluster)  # type: ignore
     menor_distancia = float(distancias[idx_min])
 
     logger.debug(

@@ -138,5 +138,5 @@ def compute_haversine_km(
 
     res = R * c
     if isinstance(res, np.ndarray):
-        return res
+        return res  # type: ignore
     return float(res)

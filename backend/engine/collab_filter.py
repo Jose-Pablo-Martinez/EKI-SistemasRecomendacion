@@ -34,7 +34,7 @@ Nota arquitectónica (§1.7 — Offline-First):
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -45,7 +45,7 @@ from sqlalchemy import select
 from backend.models import InteraccionUsuario, UsuarioVisitante
 
 if TYPE_CHECKING:
-        from sqlalchemy.orm import Session
+    from sqlalchemy.orm import Session
     from backend.models import Establecimiento, InteraccionUsuario, ClusterUsuario
 
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ def get_collaborative_recommendations(
     if not candidatos:
         return []
 
-    fecha_limite = datetime.utcnow() - timedelta(days=90)
+    fecha_limite = datetime.now(timezone.utc) - timedelta(days=90)
     stmt = (
         select(
             InteraccionUsuario.id_usuario,
@@ -197,14 +197,17 @@ def compute_item_similarity(
     usuarios_b: dict[int, float] = {}
 
     for interaccion in interacciones:
-        peso = float(interaccion.peso_interaccion or 0)
-        if interaccion.id_establecimiento == id_estab_a:
-            usuarios_a[interaccion.id_usuario] = (
-                usuarios_a.get(interaccion.id_usuario, 0) + peso
+        peso = float(interaccion.peso_interaccion or 0)  # type: ignore
+        id_estab = int(interaccion.id_establecimiento)   # type: ignore
+        id_usu = int(interaccion.id_usuario)             # type: ignore
+
+        if id_estab == id_estab_a:
+            usuarios_a[id_usu] = (
+                usuarios_a.get(id_usu, 0) + peso
             )
-        elif interaccion.id_establecimiento == id_estab_b:
-            usuarios_b[interaccion.id_usuario] = (
-                usuarios_b.get(interaccion.id_usuario, 0) + peso
+        elif id_estab == id_estab_b:
+            usuarios_b[id_usu] = (
+                usuarios_b.get(id_usu, 0) + peso
             )
 
     # Usuarios que interactuaron con al menos uno de los establecimientos
