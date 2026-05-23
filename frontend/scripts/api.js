@@ -47,9 +47,16 @@ async function apiRequest(endpoint, options = {}) {
 // Funciones específicas por dominio
 const api = {
   // Auth
-  login: (email, password) => apiRequest('/usuarios/login', {
-    method: 'POST', body: JSON.stringify({ email, password })
-  }),
+  login: (email, password) => {
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
+    return apiRequest('/usuarios/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData
+    });
+  },
   registro: (data) => apiRequest('/usuarios/registro', {
     method: 'POST', body: JSON.stringify(data)
   }),
@@ -83,8 +90,8 @@ const api = {
   toggleFavorito: (id, method) => apiRequest(`/establecimientos/${id}/favorito`, { method }),
   
   // Perfil
-  getPerfil: () => apiRequest('/usuarios/perfil'),
-  actualizarPerfil: (data) => apiRequest('/usuarios/perfil', {
+  getPerfil: () => apiRequest('/usuarios/me'),
+  actualizarPerfil: (data) => apiRequest('/usuarios/me', {
     method: 'PATCH', body: JSON.stringify(data)
   }),
   enviarUbicacion: (lat, lon) => apiRequest('/usuarios/ubicacion', {
@@ -101,8 +108,8 @@ const api = {
   getRango: () => apiRequest('/usuarios/rango'),
   
   // Contenido
-  getCategorias: () => apiRequest('/categorias'),
-  getEtiquetas: () => apiRequest('/etiquetas'),
+  getCategorias: () => apiRequest('/contenido/categorias'),
+  getEtiquetas: () => apiRequest('/contenido/etiquetas'),
   
   // Admin
   getPendientes: (tipo) => apiRequest(`/admin/${tipo}/pendientes`),

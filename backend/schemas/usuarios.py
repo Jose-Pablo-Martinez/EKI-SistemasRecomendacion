@@ -37,6 +37,18 @@ class PerfilUpdate(BaseModel):
     radio_busqueda_km: Optional[int] = Field(None, ge=1, le=50)
 
 
+class PreferenciasOnboarding(BaseModel):
+    categorias: list[str]
+    precios: list[str]
+
+class OnboardingData(BaseModel):
+    preferencias: PreferenciasOnboarding
+
+class UbicacionData(BaseModel):
+    latitud: float
+    longitud: float
+    precision_metros: Optional[int] = None
+
 class UsuarioResponse(BaseModel):
     """Datos públicos de un usuario. No expone password_hash ni datos sensibles."""
     model_config = ConfigDict(from_attributes=True)

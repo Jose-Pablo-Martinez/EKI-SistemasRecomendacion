@@ -12,7 +12,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.models.usuarios import UsuarioVisitante
+from backend.models.usuarios import Usuario
 
 # ─── Configuración de JWT ─────────────────────────────────────────────────────
 # Idealmente usar variables de entorno para esto en producción
@@ -47,7 +47,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 # ─── Dependencias de Autenticación ───────────────────────────────────────────
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> UsuarioVisitante:
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Usuario:
     """
     Decodifica el JWT, verifica que el usuario exista en la base de datos
     y lo retorna. Levanta HTTPException 401 si falla la autenticación.
@@ -66,16 +66,16 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except JWTError:
         raise credentials_exception
         
-    usuario = db.query(UsuarioVisitante).filter(UsuarioVisitante.email == email).first()
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
     if usuario is None:
         raise credentials_exception
         
-    if not usuario.es_activo:
+    if not usuario.activo:
         raise HTTPException(status_code=400, detail="Usuario inactivo")
         
     return usuario
 
-def get_current_admin(current_user: UsuarioVisitante = Depends(get_current_user)) -> UsuarioVisitante:
+def get_current_admin(current_user: Usuario = Depends(get_current_user)) -> Usuario:
     """Verifica que el usuario autenticado sea un administrador."""
     if current_user.tipo_usuario != "admin":
         raise HTTPException(

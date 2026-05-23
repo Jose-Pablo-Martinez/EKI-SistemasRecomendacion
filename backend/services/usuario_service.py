@@ -147,7 +147,7 @@ def registrar_ubicacion(db: Session, id_usuario: int, lat: float, lon: float, pr
             
     db.commit()
     
-def procesar_onboarding(db: Session, id_usuario: int, categorias_ids: list[int], etiquetas_ids: list[int]):
+def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], precios: list[str]):
     """
     Genera el vector de preferencias basado en el onboarding inicial.
     Actualiza perfil_completado=True.
@@ -156,8 +156,8 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias_ids: list[int],
     if visitante:
         # Por simplicidad, guardaremos los arrays tal cual como seed del vector K-Means
         visitante.vector_preferencias = {
-            "categorias_preferidas": categorias_ids,
-            "etiquetas_preferidas": etiquetas_ids
+            "categorias_preferidas": categorias,
+            "precios_preferidos": precios
         }
         visitante.perfil_completado = True
         db.commit()
