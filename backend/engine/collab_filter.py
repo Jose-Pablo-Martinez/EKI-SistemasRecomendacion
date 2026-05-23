@@ -34,10 +34,17 @@ Nota arquitectónica (§1.7 — Offline-First):
 """
 
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
+import numpy as np
+from scipy.sparse import csr_matrix
+from sklearn.metrics.pairwise import cosine_similarity
+from sqlalchemy import select
+
+from backend.models import InteraccionUsuario, UsuarioVisitante
+
 if TYPE_CHECKING:
-    # pyrefly: ignore [missing-import]
     from sqlalchemy.orm import Session
     from backend.models import Establecimiento, InteraccionUsuario, ClusterUsuario
 
@@ -82,18 +89,72 @@ def get_collaborative_recommendations(
     Returns:
         Lista de tuplas (Establecimiento, score_colaborativo) ordenadas por score.
     """
-    # TODO: Implementar consulta sobre interaccion_usuario con JOIN a usuario_visitante
-    #       WHERE usuario_visitante.id_cluster = id_cluster
-    #         AND interaccion_usuario.fecha > NOW() - INTERVAL 90 DAY
-    #         AND interaccion_usuario.id_usuario != id_usuario
-    #       GROUP BY id_establecimiento
-    #       ORDER BY SUM(peso_interaccion) DESC
     logger.info(
         "collab_filter: calculando scores item-to-item para usuario_id=%d cluster=%d",
         id_usuario,
         id_cluster,
     )
-    return []
+    if not candidatos:
+        return []
+
+    fecha_limite = datetime.now(timezone.utc) - timedelta(days=90)
+    stmt = (
+        select(
+            InteraccionUsuario.id_usuario,
+            InteraccionUsuario.id_establecimiento,
+            InteraccionUsuario.peso_interaccion
+        )
+        .join(UsuarioVisitante, InteraccionUsuario.id_usuario == UsuarioVisitante.id_usuario)
+        .where(
+            UsuarioVisitante.id_cluster == id_cluster,
+            InteraccionUsuario.fecha > fecha_limite
+        )
+    )
+    rows = db.execute(stmt).all()
+
+    if not rows:
+        return []
+
+    user_ids = sorted(list(set(r.id_usuario for r in rows)))
+    estab_ids = sorted(list(set(r.id_establecimiento for r in rows)))
+    
+    user_idx = {uid: idx for idx, uid in enumerate(user_ids)}
+    estab_idx = {eid: idx for idx, eid in enumerate(estab_ids)}
+
+    rows_idx = []
+    cols_idx = []
+    data = []
+
+    for r in rows:
+        rows_idx.append(user_idx[r.id_usuario])
+        cols_idx.append(estab_idx[r.id_establecimiento])
+        data.append(float(r.peso_interaccion or 0.1))
+
+    # Definición de la matriz dispersa
+    matrix = csr_matrix((data, (rows_idx, cols_idx)), shape=(len(user_ids), len(estab_ids)))
+
+    # Similitud coseno entre items (transponer matriz)
+    item_sim = cosine_similarity(matrix.T)
+
+    # Items visitados por el usuario
+    user_items = {r.id_establecimiento for r in rows if r.id_usuario == id_usuario}
+
+    scores = []
+    for candidates in candidatos:
+        cid = candidates.id_establecimiento
+        if cid in user_items:
+            continue
+        if cid in estab_idx:
+            c_idx = estab_idx[cid]
+            sim_sum = sum(
+                item_sim[estab_idx[ui], c_idx]
+                for ui in user_items if ui in estab_idx
+            )
+            if sim_sum > 0:
+                scores.append((candidates, float(sim_sum)))
+
+    scores.sort(key=lambda x: x[1], reverse=True)
+    return scores[:limit]
 
 
 def compute_peso_interaccion(tipo_interaccion: str) -> float:
@@ -132,33 +193,29 @@ def compute_item_similarity(
     Returns:
         Similitud en [0.0, 1.0].
     """
-    import math
-
-    # Construir vectores de usuarios para cada establecimiento
     usuarios_a: dict[int, float] = {}
     usuarios_b: dict[int, float] = {}
 
     for interaccion in interacciones:
-        peso = float(interaccion.peso_interaccion or 0)
-        if interaccion.id_establecimiento == id_estab_a:
-            usuarios_a[interaccion.id_usuario] = (
-                usuarios_a.get(interaccion.id_usuario, 0) + peso
+        peso = float(interaccion.peso_interaccion or 0)  # type: ignore
+        id_estab = int(interaccion.id_establecimiento)   # type: ignore
+        id_usu = int(interaccion.id_usuario)             # type: ignore
+
+        if id_estab == id_estab_a:
+            usuarios_a[id_usu] = (
+                usuarios_a.get(id_usu, 0) + peso
             )
-        elif interaccion.id_establecimiento == id_estab_b:
-            usuarios_b[interaccion.id_usuario] = (
-                usuarios_b.get(interaccion.id_usuario, 0) + peso
+        elif id_estab == id_estab_b:
+            usuarios_b[id_usu] = (
+                usuarios_b.get(id_usu, 0) + peso
             )
 
-    # Usuarios comunes (co-ocurrencias)
-    comunes = set(usuarios_a.keys()) & set(usuarios_b.keys())
+    # Usuarios que interactuaron con al menos uno de los establecimientos
+    comunes = set(usuarios_a.keys()) | set(usuarios_b.keys())
     if not comunes:
         return 0.0
 
-    dot = sum(usuarios_a[u] * usuarios_b[u] for u in comunes)
-    norm_a = math.sqrt(sum(v ** 2 for v in usuarios_a.values()))
-    norm_b = math.sqrt(sum(v ** 2 for v in usuarios_b.values()))
+    vec_a = np.array([usuarios_a.get(u, 0.0) for u in comunes]).reshape(1, -1)
+    vec_b = np.array([usuarios_b.get(u, 0.0) for u in comunes]).reshape(1, -1)
 
-    if norm_a == 0 or norm_b == 0:
-        return 0.0
-
-    return dot / (norm_a * norm_b)
+    return float(cosine_similarity(vec_a, vec_b)[0, 0])

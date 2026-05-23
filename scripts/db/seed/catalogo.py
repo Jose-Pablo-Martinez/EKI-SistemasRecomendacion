@@ -1,7 +1,5 @@
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from backend.models import Pais, EstadoGeo, Municipio, Colonia, RangoInformador, Categoria, Etiqueta
-# pyrefly: ignore [missing-import]
 from sqlalchemy.dialects.mysql import insert
 
 def seed_geografia(db: Session):

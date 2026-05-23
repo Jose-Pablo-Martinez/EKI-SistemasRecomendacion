@@ -1,11 +1,8 @@
 import uuid
 import random
 from datetime import datetime, timedelta
-# pyrefly: ignore [missing-import]
 from passlib.context import CryptContext
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
-# pyrefly: ignore [missing-import]
 from sqlalchemy.dialects.mysql import insert
 from backend.models import (
     Usuario, Administrador, UsuarioVisitante, UsuarioPropietario,

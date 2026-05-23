@@ -7,11 +7,8 @@ Create Date: 2026-05-20 22:23:07.135553
 """
 from typing import Sequence, Union
 
-# pyrefly: ignore [missing-import]
 from alembic import op
-# pyrefly: ignore [missing-import]
 import sqlalchemy as sa
-# pyrefly: ignore [missing-import]
 from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.

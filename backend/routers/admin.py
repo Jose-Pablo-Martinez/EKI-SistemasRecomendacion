@@ -1,7 +1,5 @@
 import threading
-# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, Depends, HTTPException
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.usuarios import Administrador

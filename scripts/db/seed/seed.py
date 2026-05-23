@@ -1,9 +1,7 @@
 import os
 import sys
 import argparse
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
-# pyrefly: ignore [missing-import]
 from sqlalchemy import text
 
 # Añadir el root del proyecto al sys.path para importar modules absolute

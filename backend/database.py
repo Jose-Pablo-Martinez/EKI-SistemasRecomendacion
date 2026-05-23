@@ -10,11 +10,8 @@ Exporta:
 import os
 import logging
 
-# pyrefly: ignore [missing-import]
 from sqlalchemy import create_engine, text
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
-# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 
 load_dotenv()

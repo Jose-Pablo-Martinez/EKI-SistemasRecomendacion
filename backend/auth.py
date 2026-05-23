@@ -11,11 +11,8 @@ from typing import Optional
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-# pyrefly: ignore [missing-import]
 from fastapi import Depends, HTTPException, status
-# pyrefly: ignore [missing-import]
 from fastapi.security import OAuth2PasswordBearer
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
@@ -67,7 +64,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
+        email: str | None = payload.get("sub")
         if email is None:
             raise credentials_exception
     except JWTError:
