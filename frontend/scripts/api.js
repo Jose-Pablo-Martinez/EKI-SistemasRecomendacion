@@ -24,11 +24,11 @@ async function apiRequest(endpoint, options = {}) {
     headers,
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !endpoint.includes('/login')) {
     // Token expirado o inválido → redirigir a login
     localStorage.removeItem('eki_token');
     window.location.hash = '#/login';
-    throw new Error('Sesión expirada');
+    throw new Error('Tu sesión ha terminado por seguridad, por favor vuelve a ingresar.');
   }
 
   if (!response.ok) {

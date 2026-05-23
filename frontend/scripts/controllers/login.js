@@ -77,8 +77,13 @@ window.controllers.login = async () => {
             }
         } catch (err) {
             const userMsg = window.errorHandler.handle(err, 'Login');
-            errorDiv.textContent = userMsg;
-            errorDiv.classList.remove('hidden');
+            if (err.status === 401) {
+                showError(emailError, userMsg, emailInput);
+                showError(passwordError, '', passwordInput); // Solo borde para password
+            } else {
+                errorDiv.textContent = userMsg;
+                errorDiv.classList.remove('hidden');
+            }
             submitBtn.disabled = false;
             submitBtn.textContent = 'INGRESAR';
         }

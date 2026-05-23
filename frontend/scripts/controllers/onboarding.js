@@ -38,26 +38,53 @@ window.controllers.onboarding = async () => {
     const renderCurrentStep = () => {
         let stepHtml = '';
         if (step === 1) {
+            const gruposPredefinidos = {
+                "Regionales & Tradicionales": ["Yucateca", "Antojitos", "Mexicana"],
+                "Platos Fuertes": ["Mariscos", "Carnes", "Gourmet"],
+                "Rápidas & Casuales": ["Rápida", "Snacks", "Tacos", "Pizzas", "Hamburguesas"],
+                "Postres & Bebidas": ["Postres", "Café", "Bebidas", "Saludable"]
+            };
+
+            const categoriasAgrupadas = {};
+            categoriasData.forEach(c => {
+                let grupoEncontrado = "Otras Opciones";
+                for (const [grupo, lista] of Object.entries(gruposPredefinidos)) {
+                    if (lista.includes(c.nombre)) {
+                        grupoEncontrado = grupo;
+                        break;
+                    }
+                }
+                if (!categoriasAgrupadas[grupoEncontrado]) categoriasAgrupadas[grupoEncontrado] = [];
+                categoriasAgrupadas[grupoEncontrado].push(c);
+            });
+
             stepHtml = `
-                <h2 class="text-2xl xl:text-4xl 2xl:text-5xl font-heading font-bold mb-4 xl:mb-8 text-primary">¿Qué se te antoja?</h2>
-                <p class="mb-6 xl:mb-10 text-text-secondary text-sm xl:text-lg 2xl:text-xl">Selecciona las categorías que más te gusten.</p>
-                <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 xl:gap-6 2xl:gap-8 mb-6">
-                    ${categoriasData.map(c => `
-                        <div class="category-card bg-surface-raised border border-border-default rounded-md p-4 xl:p-6 2xl:p-8 flex flex-col items-center justify-center cursor-pointer hover:border-border-strong hover:-translate-y-1 transition-all ${categoriasSeleccionadas.includes(c.nombre) ? 'border-accent bg-accent-faint scale-[1.02]' : ''}" data-name="${c.nombre}">
-                            <span class="font-bold text-sm xl:text-lg 2xl:text-xl ${categoriasSeleccionadas.includes(c.nombre) ? 'text-accent' : 'text-primary'}">${c.nombre}</span>
+                <h2 class="text-2xl xl:text-4xl 2xl:text-5xl font-heading font-bold mb-4 xl:mb-8 text-primary text-center">¿Qué se te antoja?</h2>
+                <p class="mb-6 xl:mb-10 text-text-secondary text-sm xl:text-lg 2xl:text-xl text-center">Selecciona las categorías que más te gusten.</p>
+                <div class="flex flex-col gap-8 mb-6 w-full max-w-6xl mx-auto text-left">
+                    ${Object.entries(categoriasAgrupadas).map(([nombreGrupo, cats]) => `
+                        <div class="bg-surface-overlay p-4 xl:p-6 rounded-lg border border-border-default">
+                            <h3 class="text-lg xl:text-xl font-bold text-primary mb-4 border-b border-border-strong pb-2">${nombreGrupo}</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-6 2xl:gap-8">
+                                ${cats.map(c => `
+                                    <div class="category-card bg-surface-raised border border-border-default rounded-md p-4 xl:p-6 flex flex-col items-center justify-center cursor-pointer hover:border-border-strong hover:-translate-y-1 transition-all ${categoriasSeleccionadas.includes(c.nombre) ? 'border-accent bg-accent-faint scale-[1.02] shadow-sm' : ''}" data-name="${c.nombre}">
+                                        <span class="font-bold text-sm xl:text-base 2xl:text-lg text-center ${categoriasSeleccionadas.includes(c.nombre) ? 'text-accent' : 'text-primary'}">${c.nombre}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
                         </div>
                     `).join('')}
                 </div>
             `;
         } else if (step === 2) {
             stepHtml = `
-                <h2 class="text-2xl xl:text-4xl 2xl:text-5xl font-heading font-bold mb-4 xl:mb-8 text-primary">¿Cuánto planeas gastar?</h2>
-                <p class="mb-6 xl:mb-10 text-text-secondary text-sm xl:text-lg 2xl:text-xl">Selecciona tus rangos de precio preferidos.</p>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 xl:gap-8 2xl:gap-10 mb-6">
-                    ${["Económico", "Medio", "Alto"].map(p => `
-                        <div class="price-card bg-surface-raised border border-border-default rounded-md p-6 xl:p-10 2xl:p-12 flex flex-col items-center justify-center cursor-pointer hover:border-border-strong hover:-translate-y-1 transition-all ${preciosSeleccionados.includes(p) ? 'border-accent bg-accent-faint scale-[1.02]' : ''}" data-name="${p}">
-                            <span class="font-bold text-lg xl:text-2xl 2xl:text-3xl text-center w-full ${preciosSeleccionados.includes(p) ? 'text-accent' : 'text-primary'}">
-                                ${p === 'Económico' ? '💵<br><span class="text-sm xl:text-lg 2xl:text-xl mt-2 xl:mt-4 block">Económico</span>' : p === 'Medio' ? '💵💵<br><span class="text-sm xl:text-lg 2xl:text-xl mt-2 xl:mt-4 block">Medio</span>' : '💵💵💵<br><span class="text-sm xl:text-lg 2xl:text-xl mt-2 xl:mt-4 block">Alto</span>'}
+                <h2 class="text-2xl xl:text-4xl 2xl:text-5xl font-heading font-bold mb-4 xl:mb-8 text-primary text-center">¿Cuánto es tu presupuesto?</h2>
+                <p class="mb-6 xl:mb-10 text-text-secondary text-sm xl:text-lg 2xl:text-xl text-center">Selecciona tu presupuestos preferidos.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 xl:gap-8 2xl:gap-10 mb-6">
+                    ${["Económico", "Accesible", "Premium"].map(p => `
+                        <div class="price-card bg-surface-raised border border-border-default rounded-md p-6 xl:p-10 flex flex-col items-center justify-center cursor-pointer hover:border-border-strong hover:-translate-y-1 transition-all ${preciosSeleccionados.includes(p) ? 'border-accent bg-accent-faint scale-[1.02] shadow-sm' : ''}" data-name="${p}">
+                            <span class="font-bold text-lg xl:text-xl 2xl:text-2xl text-center w-full ${preciosSeleccionados.includes(p) ? 'text-accent' : 'text-primary'}">
+                                ${p === 'Económico' ? '💵<br><span class="text-sm xl:text-base 2xl:text-lg mt-2 block">Económico</span>' : p === 'Accesible' ? '💵💵<br><span class="text-sm xl:text-base 2xl:text-lg mt-2 block">Accesible</span>' : '💵💵💵<br><span class="text-sm xl:text-base 2xl:text-lg mt-2 block">Premium</span>'}
                             </span>
                         </div>
                     `).join('')}
@@ -65,8 +92,8 @@ window.controllers.onboarding = async () => {
             `;
         } else if (step === 3) {
             stepHtml = `
-                <h2 class="text-2xl xl:text-4xl 2xl:text-5xl font-heading font-bold mb-4 xl:mb-8 text-primary">¡Casi listos!</h2>
-                <p class="mb-6 xl:mb-10 text-text-secondary text-sm xl:text-lg 2xl:text-xl">Para darte las mejores recomendaciones "cerca de ti", necesitamos conocer tu ubicación.</p>
+                <h2 class="text-2xl xl:text-4xl 2xl:text-5xl font-heading font-bold mb-4 xl:mb-8 text-primary text-center">¡Casi listos!</h2>
+                <p class="mb-6 xl:mb-10 text-text-secondary text-sm xl:text-lg 2xl:text-xl text-center">Para darte las mejores recomendaciones "cerca de ti", necesitamos conocer tu ubicación.</p>
                 <div class="flex flex-col gap-4 xl:gap-6 max-w-md xl:max-w-xl mx-auto mb-6">
                     <button id="btn-location" class="bg-secondary text-white font-bold py-3 xl:py-4 px-4 xl:px-6 rounded hover:bg-secondary-subtle active:scale-95 transition-all w-full flex justify-center items-center gap-2 text-sm xl:text-lg 2xl:text-xl">
                         <svg class="w-5 h-5 xl:w-7 xl:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
