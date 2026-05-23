@@ -1,0 +1,292 @@
+/* frontend/css/styles.css - Sistema de Diseño EkiSystem */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Fondos y superficies */
+    --surface: #FDF8F1;
+    --surface-dim: #EFE9DF;
+    --surface-raised: #FFFFFF;
+    --surface-overlay: #F7F1E8;
+
+    /* Primario */
+    --primary: #1E1B18;
+    --primary-subtle: #2D2926;
+    --primary-muted: #453E39;
+    --primary-ghost: #6B625C;
+    --primary-faint: #E6E0D9;
+
+    /* Acento */
+    --accent: #8B3A3A;
+    --accent-hover: #7A3030;
+    --accent-active: #6A2828;
+    --accent-faint: #F5E6E6;
+    --accent-muted: #D4898A;
+
+    /* Secundario */
+    --secondary: #4A6F8A;
+    --secondary-subtle: #7393B3;
+    --secondary-faint: #E8EFF4;
+
+    /* Semánticos */
+    --success: #3A6B4A;
+    --warning: #8A6020;
+    --warning-subtle: #C08A40;
+
+    /* Bordes */
+    --border-subtle: #EFE9DF;
+    --border-default: #DCD4C8;
+    --border-strong: #C9BFB7;
+    --border-focus: #4A6F8A;
+  }
+}
+
+@layer components {
+
+  /* Textura de fondo */
+  .eki-texture-bg {
+    background-image: url('../assets/backgroundEki.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    /* Esencial para que el ::before funcione */
+  }
+
+  .eki-texture-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Utilizamos el color base (surface) casi opaco para difuminar la imagen de fondo */
+    background-color: rgba(253, 248, 241, 0.96);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Animaciones personalizadas */
+  .fade-in {
+    animation: fadeIn 400ms cubic-bezier(0, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  .card-enter {
+    animation: cardEnter 300ms cubic-bezier(0, 0, 0.2, 1) forwards;
+    opacity: 0;
+  }
+
+  @keyframes cardEnter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    background-color: var(--surface-dim);
+    animation: skeletonPulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes skeletonPulse {
+    0% {
+      opacity: 0.4;
+    }
+
+    50% {
+      opacity: 0.8;
+    }
+
+    100% {
+      opacity: 0.4;
+    }
+  }
+
+  /* Barra de progreso onboarding */
+  .progress-track {
+    height: 6px;
+    border-radius: 9999px;
+    background-color: var(--surface-dim);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background-color: var(--secondary);
+    border-radius: 9999px;
+    animation: progressGrow 600ms ease-out forwards;
+    transform-origin: left center;
+  }
+
+  @keyframes progressGrow {
+    from {
+      transform: scaleX(0);
+    }
+
+    to {
+      transform: scaleX(1);
+    }
+  }
+}
+
+/* Tipografía de jerarquía */
+.text-display-xl {
+  font-size: 64px;
+  line-height: 72px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.text-display-lg {
+  font-size: 48px;
+  line-height: 56px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.text-display-md {
+  font-size: 36px;
+  line-height: 44px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.text-headline-lg {
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.text-headline-md {
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 500;
+}
+
+.text-headline-sm {
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 500;
+}
+
+.text-body-lg {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
+}
+
+.text-body-md {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+}
+
+.text-body-sm {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+}
+
+.text-label-xl {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.text-label-lg {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.text-label-md {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.text-label-sm {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.text-numeric-lg {
+  font-size: 32px;
+  line-height: 36px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-numeric-md {
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-numeric-sm {
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Grid de diseño (basado en DESIGN.md) */
+@layer components {
+  .eki-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 16px;
+    /* gutter mobile */
+    padding: 0 16px;
+    /* margin mobile */
+  }
+
+  @media (min-width: 768px) {
+    .eki-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+      /* gutter tablet */
+      padding: 0 32px;
+      /* margin tablet */
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .eki-grid {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 24px;
+      /* gutter desktop */
+      padding: 0 64px;
+      /* margin desktop */
+    }
+  }
+}
