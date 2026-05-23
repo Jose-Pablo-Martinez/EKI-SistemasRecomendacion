@@ -68,7 +68,7 @@ function updateHeader() {
 }
 
 // Inicialización de la aplicación
-window.pages = {}; // Namespace para las páginas
+// Inicialización de la aplicación
 
 window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', async () => {

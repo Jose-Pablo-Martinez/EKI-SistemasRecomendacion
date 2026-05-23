@@ -1,5 +1,7 @@
 // frontend/js/utils.js
 
+window.pages = {}; // Inicializar namespace para páginas
+
 function solicitarUbicacion() {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {

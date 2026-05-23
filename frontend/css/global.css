@@ -47,7 +47,7 @@
 @layer components {
   /* Textura de fondo */
   .eki-texture-bg {
-    background-image: url('../../assets/backgroundEki.svg');
+    background-image: url('../assets/backgroundEki.svg');
     background-repeat: repeat;
     background-size: auto;
     position: relative;
