@@ -6,9 +6,7 @@ actualizar y validar usuarios, separando estas operaciones de los
 controladores (routers).
 """
 import uuid
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
-# pyrefly: ignore [missing-import]
 from sqlalchemy.exc import IntegrityError
 from user_agents import parse
 

@@ -4,7 +4,6 @@ Schemas de respuesta para los catálogos geográficos.
 """
 from __future__ import annotations
 from typing import Optional
-# pyrefly: ignore [missing-import]
 from pydantic import BaseModel, ConfigDict
 
 

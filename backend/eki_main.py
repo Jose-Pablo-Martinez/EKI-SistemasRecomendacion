@@ -11,17 +11,11 @@ Ejecutar en desarrollo:
 import logging
 import os
 
-# pyrefly: ignore [missing-import]
 from fastapi import FastAPI, Request, status
-# pyrefly: ignore [missing-import]
 from fastapi.responses import JSONResponse
-# pyrefly: ignore [missing-import]
 from fastapi.exceptions import RequestValidationError
-# pyrefly: ignore [missing-import]
 from sqlalchemy.exc import IntegrityError
-# pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
-# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 
 load_dotenv()

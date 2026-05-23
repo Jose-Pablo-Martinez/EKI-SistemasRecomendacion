@@ -1,5 +1,4 @@
 import logging
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from backend.models.interacciones import LogPuntos, ContribucionInformacion
 from backend.models.usuarios import UsuarioVisitante

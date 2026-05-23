@@ -27,16 +27,13 @@ Nota arquitectónica (§1.7 — Offline-First):
 import logging
 from typing import TYPE_CHECKING
 
-# pyrefly: ignore [missing-import]
 import numpy as np
-# pyrefly: ignore [missing-import]
 from sqlalchemy import select
 
 from backend.models import Establecimiento, MetricaEstablecimiento
 
 if TYPE_CHECKING:
-    # pyrefly: ignore [missing-import]
-    from sqlalchemy.orm import Session
+        from sqlalchemy.orm import Session
     from backend.models import UsuarioVisitante, ClusterUsuario
 
 logger = logging.getLogger(__name__)

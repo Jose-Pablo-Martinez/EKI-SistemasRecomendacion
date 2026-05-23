@@ -38,7 +38,6 @@ ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 # Cargar .env con ruta explícita para que funcione sin importar el directorio de trabajo
-# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 load_dotenv(ROOT / ".env")
 

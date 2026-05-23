@@ -23,8 +23,7 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    # pyrefly: ignore [missing-import]
-    from sqlalchemy.orm import Session
+        from sqlalchemy.orm import Session
     from backend.models import Establecimiento, MetricaEstablecimiento
 
 logger = logging.getLogger(__name__)

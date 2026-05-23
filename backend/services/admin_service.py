@@ -1,9 +1,7 @@
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from backend.models.establecimientos import Establecimiento
 from backend.models.interacciones import Resena
 from backend.services.gamificacion_service import otorgar_puntos
-# pyrefly: ignore [missing-import]
 from sqlalchemy.sql import func
 
 def aprobar_establecimiento(db: Session, id_establecimiento: int) -> bool:

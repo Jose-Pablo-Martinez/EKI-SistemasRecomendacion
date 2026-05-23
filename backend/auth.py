@@ -11,11 +11,8 @@ from typing import Optional
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-# pyrefly: ignore [missing-import]
 from fastapi import Depends, HTTPException, status
-# pyrefly: ignore [missing-import]
 from fastapi.security import OAuth2PasswordBearer
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 
 from backend.database import get_db

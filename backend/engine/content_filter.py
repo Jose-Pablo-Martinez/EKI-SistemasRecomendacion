@@ -31,12 +31,10 @@ import logging
 import math
 from typing import TYPE_CHECKING
 
-# pyrefly: ignore [missing-import]
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 if TYPE_CHECKING:
-    # pyrefly: ignore [missing-import]
     from sqlalchemy.orm import Session
     from backend.models import Establecimiento, UsuarioVisitante
 
@@ -131,7 +129,7 @@ def build_establecimiento_profile(establecimiento: "Establecimiento") -> dict:
         "vector": establecimiento.vector_caracteristicas or [],
         "es_informal": establecimiento.es_informal,
         "tipo": establecimiento.tipo_establecimiento,
-        "calificacion_promedio": float(establecimiento.calificacion_promedio or 0),
+        "calificacion_promedio": float(establecimiento.calificacion_promedio or 0),  # type: ignore
     }
 
 def calcular_diversity_score(candidato_vec: list[float], lista_vecs: list[list[float]]) -> float:

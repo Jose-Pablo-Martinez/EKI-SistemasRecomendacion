@@ -1,10 +1,7 @@
 import random
 from datetime import datetime, timedelta
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
-# pyrefly: ignore [missing-import]
 from sqlalchemy.sql import func
-# pyrefly: ignore [missing-import]
 from sqlalchemy.dialects.mysql import insert
 from backend.models import (
     Usuario, UsuarioVisitante, Establecimiento, InteraccionUsuario,

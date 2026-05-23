@@ -1,10 +1,7 @@
 import random
 from datetime import datetime
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
-# pyrefly: ignore [missing-import]
 from sqlalchemy.dialects.mysql import insert
-# pyrefly: ignore [missing-import]
 from backend.models import (
     Establecimiento, Restaurante, LocalComercial, PuestoInformal,
     MetricaEstablecimiento, Horario, Platillo, Imagen, Colonia,

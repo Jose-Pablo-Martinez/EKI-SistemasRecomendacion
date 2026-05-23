@@ -37,19 +37,15 @@ import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
-# pyrefly: ignore [missing-import]
 import numpy as np
-# pyrefly: ignore [missing-import]
 from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
-# pyrefly: ignore [missing-import]
 from sqlalchemy import select
 
 from backend.models import InteraccionUsuario, UsuarioVisitante
 
 if TYPE_CHECKING:
-    # pyrefly: ignore [missing-import]
-    from sqlalchemy.orm import Session
+        from sqlalchemy.orm import Session
     from backend.models import Establecimiento, InteraccionUsuario, ClusterUsuario
 
 logger = logging.getLogger(__name__)

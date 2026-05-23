@@ -3,12 +3,9 @@ Dominio: CLUSTERS (ML)
 Centroides K-Means para usuarios y establecimientos.
 Son datos de configuración del modelo ML — no se truncan con --modo limpiar.
 """
-# pyrefly: ignore [missing-import]
 from datetime import datetime
 
-# pyrefly: ignore [missing-import]
 from sqlalchemy import Column, Integer, String, Text, DateTime, JSON
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import relationship
 
 from backend.database import Base

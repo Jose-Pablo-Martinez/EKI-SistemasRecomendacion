@@ -11,9 +11,7 @@ completo es e1b0a75cd65e, que tiene down_revision apuntando a este archivo.
 """
 from typing import Sequence, Union
 
-# pyrefly: ignore [missing-import]
 from alembic import op
-# pyrefly: ignore [missing-import]
 import sqlalchemy as sa
 
 
