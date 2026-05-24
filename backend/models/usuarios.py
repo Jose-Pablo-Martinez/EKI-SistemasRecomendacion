@@ -4,7 +4,7 @@ Jerarquía: Usuario → UsuarioVisitante → UsuarioPropietario
                    → Administrador  (rama paralela)
 Dispositivos, sesiones y ubicaciones de usuario incluidos aquí.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column, Integer, String, Boolean, DateTime, Date, Enum, JSON,
@@ -40,7 +40,7 @@ class Usuario(Base):
         nullable=False,
     )
     activo          = Column(Boolean, default=True, nullable=False)
-    fecha_registro  = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro  = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relaciones
     visitante     = relationship("UsuarioVisitante", back_populates="usuario", uselist=False)
@@ -81,7 +81,7 @@ class DispositivoUsuario(Base):
     )
     sistema_operativo = Column(String(50), nullable=True)
     es_ultimo         = Column(Boolean, default=True, nullable=False)
-    fecha_deteccion   = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_deteccion   = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relaciones
     usuario  = relationship("Usuario", back_populates="dispositivos")
@@ -101,7 +101,7 @@ class SesionUsuario(Base):
 
     id_sesion         = Column(String(36), primary_key=True)   # UUID v4
     id_usuario        = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=False)
-    fecha_inicio      = Column(DateTime, nullable=False, default=datetime.utcnow)
+    fecha_inicio      = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     fecha_fin         = Column(DateTime, nullable=True)
     duracion_segundos = Column(Integer, nullable=True)
     total_vistas      = Column(Integer, default=0)              # Desnormalizado §1.5
@@ -202,7 +202,7 @@ class UbicacionUsuario(Base):
     longitud         = Column(DECIMAL(11, 8), nullable=False)
     precision_metros = Column(Integer, nullable=True)
     id_sesion        = Column(String(36), ForeignKey("sesion_usuario.id_sesion"), nullable=True)
-    fecha_registro   = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro   = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relaciones
     usuario = relationship("Usuario", back_populates="ubicaciones")

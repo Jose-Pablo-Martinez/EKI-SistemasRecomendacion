@@ -5,7 +5,7 @@ Incluye: InteraccionUsuario, RecomendacionGenerada, HistorialVisita,
          ContribucionInformacion, LogPuntos,
          + tablas de archivado (InteraccionUsuarioHistorico, RecomendacionGeneradaHistorico)
 """
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column, Integer, String, Text, Boolean, DateTime, Enum,
@@ -43,7 +43,7 @@ class InteraccionUsuario(Base):
     )
     peso_interaccion = Column(DECIMAL(3, 2), nullable=True)          # Desnormalizado §1.5
     id_sesion        = Column(String(36), ForeignKey("sesion_usuario.id_sesion"), nullable=True)
-    fecha            = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha            = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relaciones
     usuario         = relationship("Usuario", back_populates="interacciones")
@@ -140,7 +140,7 @@ class ContribucionInformacion(Base):
         nullable=False,
     )
     id_admin_revision  = Column(Integer, ForeignKey("administrador.id_usuario"), nullable=True)
-    fecha_contribucion = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_contribucion = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     fecha_revision     = Column(DateTime, nullable=True)
     puntos_otorgados   = Column(Integer, default=0)
 
@@ -172,7 +172,7 @@ class LogPuntos(Base):
     id_contribucion = Column(
         Integer, ForeignKey("contribucion_informacion.id_contribucion"), nullable=True
     )
-    fecha = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relaciones
     usuario_visitante = relationship("UsuarioVisitante", back_populates="log_puntos")
@@ -201,7 +201,7 @@ class Resena(Base):
     )
     calificacion      = Column(TINYINT, nullable=False)    # CHECK(1-5) en tabla y Pydantic
     comentario        = Column(Text, nullable=True)
-    fecha_resena      = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_resena      = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     estado            = Column(
         Enum("pendiente", "aprobado", "rechazado"),
         default="pendiente",
@@ -231,7 +231,7 @@ class FavoritoGuardado(Base):
     id_establecimiento = Column(
         Integer, ForeignKey("establecimiento.id_establecimiento"), primary_key=True
     )
-    fecha_guardado = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_guardado = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     nota_personal  = Column(Text, nullable=True)
 
     # Relaciones
@@ -259,7 +259,7 @@ class HistorialVisita(Base):
         Integer, ForeignKey("establecimiento.id_establecimiento"), nullable=False
     )
     id_sesion          = Column(String(36), ForeignKey("sesion_usuario.id_sesion"), nullable=True)
-    fecha_visita       = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_visita       = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     duracion_segundos  = Column(Integer, nullable=True)
     fue_recomendado    = Column(Boolean, default=False, nullable=False)
     id_recomendacion   = Column(
@@ -286,7 +286,7 @@ class PreferenciaUsuario(Base):
     )
     id_categoria = Column(Integer, ForeignKey("categoria.id_categoria"), primary_key=True)
     peso                = Column(DECIMAL(3, 2), default=0.50)
-    fecha_actualizacion = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_actualizacion = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relaciones
     usuario_visitante = relationship("UsuarioVisitante", back_populates="preferencias")
@@ -312,7 +312,7 @@ class Reporte(Base):
         default="pendiente",
         nullable=False,
     )
-    fecha_reporte       = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_reporte       = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     id_admin_resolucion = Column(Integer, ForeignKey("administrador.id_usuario"), nullable=True)
 
     # Relaciones

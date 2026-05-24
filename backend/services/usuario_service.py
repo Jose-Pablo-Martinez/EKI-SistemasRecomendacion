@@ -13,6 +13,7 @@ from user_agents import parse
 from backend.models.usuarios import (
     Usuario, UsuarioVisitante, DispositivoUsuario, SesionUsuario, UbicacionUsuario
 )
+from backend.models.clusters import ClusterUsuario
 from backend.schemas.usuarios import UsuarioCreate
 from backend.auth import get_password_hash, verify_password
 
@@ -54,7 +55,7 @@ def autenticar_usuario(db: Session, email: str, password: str) -> Usuario | None
     usuario = db.query(Usuario).filter(Usuario.email == email).first()
     if not usuario:
         return None
-    if not verify_password(password, usuario.password_hash):
+    if not verify_password(password, str(usuario.password_hash)):
         return None
     return usuario
 
@@ -98,7 +99,8 @@ def registrar_dispositivo_sesion(db: Session, id_usuario: int, user_agent_string
     
     return id_sesion
 
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Optional
 
 def cerrar_sesion(db: Session, id_sesion: str):
     """
@@ -106,8 +108,8 @@ def cerrar_sesion(db: Session, id_sesion: str):
     """
     sesion = db.query(SesionUsuario).filter(SesionUsuario.id_sesion == id_sesion).first()
     if sesion and sesion.fecha_inicio:
-        duracion = (datetime.utcnow() - sesion.fecha_inicio).total_seconds()
-        sesion.duracion_segundos = int(duracion)
+        duracion = (datetime.now(timezone.utc) - sesion.fecha_inicio).total_seconds()
+        sesion.duracion_segundos = int(duracion)  # type: ignore[assignment]
         db.commit()
 
 def actualizar_perfil(db: Session, id_usuario: int, data: dict):
@@ -127,7 +129,7 @@ def actualizar_perfil(db: Session, id_usuario: int, data: dict):
     db.refresh(usuario)
     return usuario
 
-def registrar_ubicacion(db: Session, id_usuario: int, lat: float, lon: float, precision: int = None, id_sesion: str = None):
+def registrar_ubicacion(db: Session, id_usuario: int, lat: float, lon: float, precision: Optional[int] = None, id_sesion: Optional[str] = None):
     """
     Inserta una nueva ubicación y mantiene un máximo de 3 ubicaciones recientes.
     """
@@ -160,9 +162,26 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
     visitante = db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).first()
     if visitante:
         # Por simplicidad, guardaremos los arrays tal cual como seed del vector K-Means
-        visitante.vector_preferencias = {
+        visitante.vector_preferencias = {  # type: ignore[assignment]
             "categorias_preferidas": categorias,
             "precios_preferidos": precios
         }
-        visitante.perfil_completado = True
+        visitante.perfil_completado = True  # type: ignore[assignment]
+        
+        # Asignación provisional de ID al cluster de usuario
+        try:
+            from backend.engine.cold_start import assign_cluster_provisional
+            clusters = db.query(ClusterUsuario).all()
+            
+            # Simulamos un vector numérico simplificado a partir del JSON
+            # En producción esto sería un embedding semántico
+            vector_simulado = [1.0] * len(categorias) + [0.5] * len(precios)
+            if vector_simulado:
+                id_cluster_prov = assign_cluster_provisional(vector_simulado, clusters)
+                if id_cluster_prov is not None:
+                    visitante.id_cluster = id_cluster_prov # type: ignore
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("No se pudo asignar cluster provisional en onboarding: %s", e)
+            
         db.commit()

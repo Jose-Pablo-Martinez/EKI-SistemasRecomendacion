@@ -28,8 +28,9 @@ load_dotenv(ROOT / ".env")
 from backend.database import Base
 import backend.models  # noqa: F401 — importar el módulo registra todas las clases en Base.metadata
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# Este es un objeto de configuración de Alembic
+# Provee acceso a los valores sin el uso del achivo .ini
+
 config = context.config
 
 # Interpret the config file for Python logging.
@@ -51,10 +52,6 @@ def get_url():
     # Construir URL compatible con PyMySQL y SSL
     return f"mysql+pymysql://{user}:{password}@{host}:{port}/{db}?ssl_ca={ca_path}"
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
 
 
 def run_migrations_offline() -> None:

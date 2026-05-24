@@ -4,6 +4,7 @@ Fecha de modificación: 2026-05-23
 Función: Endpoints de solo lectura para obtener catálogos maestros 
 estáticos de la aplicación (como la lista de categorías y etiquetas).
 """
+from typing import Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from backend.database import get_db
@@ -25,7 +26,7 @@ def get_etiquetas(db: Session = Depends(get_db)):
     return etiquetas
 
 @router.get("/geografia/colonias")
-def get_colonias(id_municipio: int = None, db: Session = Depends(get_db)):
+def get_colonias(id_municipio: Optional[int] = None, db: Session = Depends(get_db)):
     """Retorna las colonias, opcionalmente filtradas por municipio."""
     query = db.query(Colonia)
     if id_municipio:

@@ -35,7 +35,7 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db
     
     # Registrar Sesión y Dispositivo
     user_agent = request.headers.get("User-Agent", "")
-    id_sesion = usuario_service.registrar_dispositivo_sesion(db, usuario.id_usuario, user_agent)
+    id_sesion = usuario_service.registrar_dispositivo_sesion(db, usuario.id_usuario, user_agent)  # type: ignore[arg-type]
     
     # Generar Token JWT
     access_token = create_access_token(data={"sub": usuario.email, "sesion": id_sesion})
@@ -49,7 +49,7 @@ def get_my_profile(current_user: Usuario = Depends(get_current_user)):
 @router.patch("/me", response_model=UsuarioResponse)
 def update_my_profile(data: PerfilUpdate, current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
     """Actualiza el perfil del usuario autenticado."""
-    updated = usuario_service.actualizar_perfil(db, current_user.id_usuario, data.model_dump(exclude_unset=True))
+    updated = usuario_service.actualizar_perfil(db, current_user.id_usuario, data.model_dump(exclude_unset=True))  # type: ignore[arg-type]
     return updated
 
 @router.post("/logout")
@@ -61,11 +61,11 @@ def logout(id_sesion: str, current_user: Usuario = Depends(get_current_user), db
 @router.post("/onboarding")
 def guardar_onboarding(data: OnboardingData, current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
     """Guarda las preferencias iniciales de un usuario."""
-    usuario_service.procesar_onboarding(db, current_user.id_usuario, data.preferencias.categorias, data.preferencias.precios)
+    usuario_service.procesar_onboarding(db, current_user.id_usuario, data.preferencias.categorias, data.preferencias.precios)  # type: ignore[arg-type]
     return {"status": "ok", "message": "Onboarding completado exitosamente."}
 
 @router.post("/ubicacion")
 def actualizar_ubicacion(data: UbicacionData, current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
     """Registra una nueva ubicación del usuario (máx. 3 en BD)."""
-    usuario_service.registrar_ubicacion(db, current_user.id_usuario, data.latitud, data.longitud, data.precision_metros)
+    usuario_service.registrar_ubicacion(db, current_user.id_usuario, data.latitud, data.longitud, data.precision_metros)  # type: ignore[arg-type]
     return {"status": "ok"}

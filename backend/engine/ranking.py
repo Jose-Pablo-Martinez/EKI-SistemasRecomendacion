@@ -5,7 +5,7 @@ Responsabilidad:
     Aplicar el score_boost_combinado a los establecimientos candidatos y
     ordenar los resultados finales del motor de recomendación.
 
-Fórmula de boosting (ver §1.3 de EkiSystem_DB_Design.md):
+Fórmula de boosting (Implementación basada en EkiSystem_DB_Design.md):
 
     score_boost = w_prox * (1 / (distancia_km + 0.1))
                 + w_informal * es_informal
@@ -86,6 +86,18 @@ def compute_score_final(
     """
     Calcula el score final ponderado del motor híbrido.
 
+    Decisión Arquitectónica (Sobre Normalización Min-Max):
+    Por diseño, no se realiza una normalización Min-Max sobre la lista final de scores 
+    para acotarlos estrictamente entre [0, 1]. 
+    
+    Razonamiento:
+    1. El `score_contenido` (Coseno) ya está acotado entre [-1.0, 1.0].
+    2. Los pesos (w1, w2, w3) suman 1.0.
+    3. El objetivo fundamental del motor es el *ordenamiento relativo* (Ranking), no 
+       un valor probabilístico absoluto. Añadir iteraciones O(N) adicionales para 
+       normalizar una lista de scores antes del ordenamiento impactaría el rendimiento
+       sin cambiar las posiciones relativas (el ranking final).
+
     score_final = w1 * score_contenido + w2 * score_colaborativo + w3 * score_boost
 
     Args:
@@ -98,7 +110,7 @@ def compute_score_final(
         w1, w2, w3: Pesos de cada componente (deben sumar 1.0).
 
     Returns:
-        Score final en [0.0, 1.0].
+        Score final.
     """
     # TODO: Implementar cuando se construyan los endpoints de recomendaciones
     return w1 * score_contenido + w2 * score_colaborativo + w3 * score_boost

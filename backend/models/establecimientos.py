@@ -5,7 +5,7 @@ Subtipos: Restaurante, LocalComercial, PuestoInformal
 Tablas de contenido vinculadas: Horario, Platillo, Imagen, MetricaEstablecimiento
 Pivotes: EstablecimientoCategoria, EstablecimientoEtiqueta, PropietarioEstablecimiento
 """
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column, Integer, String, Text, Boolean, DateTime, Enum,
@@ -56,7 +56,7 @@ class Establecimiento(Base):
     id_admin_aprobacion   = Column(
         Integer, ForeignKey("administrador.id_usuario"), nullable=True
     )
-    fecha_registro        = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro        = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     fecha_aprobacion      = Column(DateTime, nullable=True)
     total_resenas         = Column(Integer, default=0)              # Desnormalizado §1.5
     calificacion_promedio = Column(DECIMAL(3, 2), default=0.00)     # Desnormalizado §1.5
@@ -172,7 +172,7 @@ class PropietarioEstablecimiento(Base):
         default="pendiente",
         nullable=False,
     )
-    fecha_solicitud     = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_solicitud     = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     fecha_aprobacion    = Column(DateTime, nullable=True)
     id_admin_aprobacion = Column(Integer, ForeignKey("administrador.id_usuario"), nullable=True)
     documento_prueba    = Column(String(500), nullable=True)
@@ -231,7 +231,7 @@ class Platillo(Base):
         default="pendiente",
         nullable=False,
     )
-    fecha_registro = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relaciones
     establecimiento = relationship("Establecimiento", back_populates="platillos")
@@ -255,7 +255,7 @@ class Imagen(Base):
         nullable=False,
     )
     id_usuario_upload = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=False)
-    fecha_upload      = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_upload      = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     estado            = Column(
         Enum("pendiente", "aprobado", "rechazado"),
         default="pendiente",

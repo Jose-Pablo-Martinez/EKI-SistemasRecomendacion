@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def reconciliar_campos_desnormalizados(db: Session):
     """
-    Ejecuta las queries SQL de §7 del diseño de BD para recalcular 
+    Ejecuta las queries SQL para recalcular 
     todos los campos desnormalizados desde sus fuentes de verdad.
     """
     logger.info("Iniciando reconciliación de campos desnormalizados...")
