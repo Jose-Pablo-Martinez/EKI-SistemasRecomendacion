@@ -20,14 +20,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ─── Configuración de Logging ─────────────────────────────────────────────────
+# Configuración del loggin
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-# ─── Instancia de la Aplicación ───────────────────────────────────────────────
+# Instalación de la aplicación
 app = FastAPI(
     title="EKI — Esquina Jach ki'",
     description=(
@@ -41,7 +41,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# ─── CORS ─────────────────────────────────────────────────────────────────────
+# CORS
 # Orígenes permitidos: GitHub Pages (producción) + Live Server (desarrollo local)
 _raw_origins = os.getenv(
     "CORS_ORIGINS",
@@ -59,7 +59,7 @@ app.add_middleware(
 
 logger.info("CORS configurado para los orígenes: %s", ALLOWED_ORIGINS)
 
-# ─── Manejadores de Excepciones Globales ──────────────────────────────────────
+# Manejadores de Excepciones Globales
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -88,17 +88,18 @@ async def sqlalchemy_integrity_exception_handler(request: Request, exc: Integrit
         content={"detail": "Error de integridad o restricción única en la base de datos."},
     )
 
-# ─── Routers ──────────────────────────────────────────────────────────────────
+# Routers
 # Importar y registrar aquí los routers de cada módulo con APIRouter.
-from backend.routers import usuarios, establecimientos, gamificacion, contenido, admin
+from backend.routers import usuarios, establecimientos, gamificacion, contenido, admin, recomendaciones
 
 app.include_router(usuarios.router)
 app.include_router(establecimientos.router)
 app.include_router(gamificacion.router)
 app.include_router(contenido.router)
 app.include_router(admin.router)
+app.include_router(recomendaciones.router)
 
-# ─── Endpoints de Utilidad ────────────────────────────────────────────────────
+# Endpoints de Utilidad
 
 @app.get("/", tags=["Utilidad"])
 def root() -> dict:
