@@ -112,7 +112,6 @@ def compute_score_final(
     Returns:
         Score final.
     """
-    # TODO: Implementar cuando se construyan los endpoints de recomendaciones
     return w1 * score_contenido + w2 * score_colaborativo + w3 * score_boost
 
 
