@@ -20,6 +20,9 @@ def seed_geografia(db: Session):
         db.execute(estado_stmt)
         db.commit()
     estado = db.query(EstadoGeo).filter_by(nombre="Yucatán").first()
+    if not estado:
+        print("Error: no se encontró EstadoGeo 'Yucatán' para continuar.")
+        return
 
     # Municipios
     if not db.query(Municipio).first():
@@ -32,6 +35,9 @@ def seed_geografia(db: Session):
         db.commit()
 
     merida = db.query(Municipio).filter_by(nombre="Mérida").first()
+    if not merida:
+        print("Error: no se encontró Municipio 'Mérida' para continuar.")
+        return
 
     # Colonias (Mérida)
     if not db.query(Colonia).first():
@@ -93,6 +99,8 @@ def seed_categorias(db: Session):
         hijos_data = []
         for padre_nombre, hijos in jerarquia.items():
             padre = db.query(Categoria).filter_by(nombre=padre_nombre).first()
+            if not padre:
+                continue
             for hijo in hijos:
                 hijos_data.append({"nombre": hijo, "id_categoria_padre": padre.id_categoria})
         

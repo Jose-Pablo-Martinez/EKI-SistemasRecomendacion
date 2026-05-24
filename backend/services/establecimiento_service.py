@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from typing import Optional
 
 from backend.models.establecimientos import Establecimiento, Platillo, Imagen, Horario
 from backend.models.interacciones import InteraccionUsuario, Resena, FavoritoGuardado, Reporte
@@ -43,7 +44,7 @@ def actualizar_establecimiento(db: Session, id_establecimiento: int, id_usuario:
     db.refresh(est)
     return est
 
-def buscar_establecimientos(db: Session, query: str = None, id_categoria: int = None, id_colonia: int = None):
+def buscar_establecimientos(db: Session, query: Optional[str] = None, id_categoria: Optional[int] = None, id_colonia: Optional[int] = None):
     db_query = db.query(Establecimiento).filter(Establecimiento.estado == 'aprobado')
     
     if query:

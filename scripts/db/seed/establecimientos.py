@@ -1,5 +1,5 @@
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.mysql import insert
 from backend.models import (
@@ -11,6 +11,9 @@ from backend.models import (
 def seed_establecimientos(db: Session):
     print("Sembrando establecimientos...")
     admin = db.query(Usuario).filter_by(tipo_usuario="admin").first()
+    if not admin:
+        print("Error: no se encontró usuario admin. Ejecuta seed_usuarios primero.")
+        return
     colonias = db.query(Colonia).all()
     clusters = db.query(ClusterEstablecimiento).all()
     
@@ -47,7 +50,7 @@ def seed_establecimientos(db: Session):
                 es_activo=(estado == "aprobado"),
                 id_usuario_registro=admin.id_usuario,
                 id_admin_aprobacion=admin.id_usuario if estado == "aprobado" else None,
-                fecha_aprobacion=datetime.utcnow() if estado == "aprobado" else None
+                fecha_aprobacion=datetime.now(timezone.utc) if estado == "aprobado" else None
             )
             db.add(e)
             db.commit()
@@ -77,7 +80,7 @@ def seed_establecimientos(db: Session):
                     popularidad_7d=pop_7d,
                     popularidad_30d=pop_7d * random.randint(2, 6),
                     polaridad_promedio=random.uniform(0.3, 0.9),
-                    ultima_actualizacion=datetime.utcnow()
+                    ultima_actualizacion=datetime.now(timezone.utc)
                 )
                 # Usar merge por si ya existía (idempotencia)
                 db.merge(m)
@@ -90,6 +93,9 @@ def seed_establecimientos(db: Session):
 def seed_horarios_platillos_imagenes(db: Session):
     print("Sembrando horarios, platillos e imágenes...")
     admin = db.query(Usuario).filter_by(tipo_usuario="admin").first()
+    if not admin:
+        print("Error: no se encontró usuario admin.")
+        return
     estabs = db.query(Establecimiento).all()
     
     for e in estabs:

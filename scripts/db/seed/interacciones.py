@@ -1,5 +1,5 @@
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import insert
@@ -43,8 +43,10 @@ def seed_interacciones_ideales(db: Session):
     
     for u in usuarios_ideales:
         uv = db.query(UsuarioVisitante).filter_by(id_usuario=u.id_usuario).first()
-        estabs = estabs_por_cluster.get(uv.id_cluster, [])
-        tipos = tipos_por_cluster.get(uv.id_cluster, ["vista_detalle"])
+        if not uv:
+            continue
+        estabs = estabs_por_cluster.get(uv.id_cluster, [])  # type: ignore
+        tipos = tipos_por_cluster.get(uv.id_cluster, ["vista_detalle"])  # type: ignore
         
         if not estabs:
             continue
@@ -58,7 +60,7 @@ def seed_interacciones_ideales(db: Session):
             e = random.choice(estabs)
             t = random.choice(tipos)
             dias_atras = random.randint(60, 90)
-            fecha = datetime.utcnow() - timedelta(days=dias_atras)
+            fecha = datetime.now(timezone.utc) - timedelta(days=dias_atras)
             
             interacciones.append({
                 "id_usuario": u.id_usuario,
@@ -84,6 +86,7 @@ def seed_interacciones_normales_y_resenas(db: Session):
         return
         
     admin = db.query(Administrador).first()
+    id_admin = admin.id_usuario if admin else None  # type: ignore
     
     interacciones = []
     resenas = []
@@ -101,7 +104,7 @@ def seed_interacciones_normales_y_resenas(db: Session):
         for _ in range(num_int):
             e = random.choice(estabs_aprobados)
             t = random.choice(list(PESOS_INTERACCION.keys()))
-            fecha = datetime.utcnow() - timedelta(days=random.randint(1, 45))
+            fecha = datetime.now(timezone.utc) - timedelta(days=random.randint(1, 45))
             
             interacciones.append({
                 "id_usuario": u.id_usuario,
@@ -124,8 +127,8 @@ def seed_interacciones_normales_y_resenas(db: Session):
                     "comentario": f"Comentario de prueba para {e.nombre}",
                     "fecha_resena": fecha,
                     "estado": estado,
-                    "id_admin_revision": admin.id_usuario if estado != "pendiente" else None,
-                    "fecha_revision": datetime.utcnow() if estado != "pendiente" else None,
+                    "id_admin_revision": id_admin if estado != "pendiente" else None,
+                    "fecha_revision": datetime.now(timezone.utc) if estado != "pendiente" else None,
                     "polaridad": random.uniform(0.1, 0.9) if estado == "aprobado" else None,
                     "subjetividad": random.uniform(0.1, 0.9) if estado == "aprobado" else None,
                     "procesado_nlp": (estado == "aprobado")
@@ -179,11 +182,11 @@ def seed_interacciones_normales_y_resenas(db: Session):
         total = len(resenas_aprobadas)
         if total > 0:
             promedio = sum(r.calificacion for r in resenas_aprobadas) / total
-            e.total_resenas = total
-            e.calificacion_promedio = promedio
+            e.total_resenas = total           # type: ignore
+            e.calificacion_promedio = float(promedio)  # type: ignore
         else:
-            e.total_resenas = 0
-            e.calificacion_promedio = 0.0
+            e.total_resenas = 0              # type: ignore
+            e.calificacion_promedio = 0.0   # type: ignore
     db.commit()
 
 def seed_interacciones_completo(db: Session):

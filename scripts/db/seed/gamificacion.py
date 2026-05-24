@@ -1,5 +1,5 @@
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from sqlalchemy.dialects.mysql import insert
@@ -45,14 +45,14 @@ def seed_log_puntos(db: Session):
                     "id_usuario": uv.id_usuario,
                     "puntos": 50,
                     "motivo": "nuevo_lugar",
-                    "fecha": datetime.utcnow() - timedelta(days=random.randint(1, 45))
+                    "fecha": datetime.now(timezone.utc) - timedelta(days=random.randint(1, 45))
                 })
             if random.random() < 0.3:
                 logs_a_insertar.append({
                     "id_usuario": uv.id_usuario,
                     "puntos": 20,
                     "motivo": "contribucion_aprobada",
-                    "fecha": datetime.utcnow() - timedelta(days=random.randint(1, 45))
+                    "fecha": datetime.now(timezone.utc) - timedelta(days=random.randint(1, 45))
                 })
                 
         if logs_a_insertar:

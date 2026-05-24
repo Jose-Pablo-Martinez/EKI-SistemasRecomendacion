@@ -54,7 +54,7 @@ def autenticar_usuario(db: Session, email: str, password: str) -> Usuario | None
     usuario = db.query(Usuario).filter(Usuario.email == email).first()
     if not usuario:
         return None
-    if not verify_password(password, usuario.password_hash):
+    if not verify_password(password, str(usuario.password_hash)):
         return None
     return usuario
 
@@ -98,7 +98,8 @@ def registrar_dispositivo_sesion(db: Session, id_usuario: int, user_agent_string
     
     return id_sesion
 
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Optional
 
 def cerrar_sesion(db: Session, id_sesion: str):
     """
@@ -106,8 +107,8 @@ def cerrar_sesion(db: Session, id_sesion: str):
     """
     sesion = db.query(SesionUsuario).filter(SesionUsuario.id_sesion == id_sesion).first()
     if sesion and sesion.fecha_inicio:
-        duracion = (datetime.utcnow() - sesion.fecha_inicio).total_seconds()
-        sesion.duracion_segundos = int(duracion)
+        duracion = (datetime.now(timezone.utc) - sesion.fecha_inicio).total_seconds()
+        sesion.duracion_segundos = int(duracion)  # type: ignore[assignment]
         db.commit()
 
 def actualizar_perfil(db: Session, id_usuario: int, data: dict):
@@ -127,7 +128,7 @@ def actualizar_perfil(db: Session, id_usuario: int, data: dict):
     db.refresh(usuario)
     return usuario
 
-def registrar_ubicacion(db: Session, id_usuario: int, lat: float, lon: float, precision: int = None, id_sesion: str = None):
+def registrar_ubicacion(db: Session, id_usuario: int, lat: float, lon: float, precision: Optional[int] = None, id_sesion: Optional[str] = None):
     """
     Inserta una nueva ubicación y mantiene un máximo de 3 ubicaciones recientes.
     """
@@ -160,9 +161,9 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
     visitante = db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).first()
     if visitante:
         # Por simplicidad, guardaremos los arrays tal cual como seed del vector K-Means
-        visitante.vector_preferencias = {
+        visitante.vector_preferencias = {  # type: ignore[assignment]
             "categorias_preferidas": categorias,
             "precios_preferidos": precios
         }
-        visitante.perfil_completado = True
+        visitante.perfil_completado = True  # type: ignore[assignment]
         db.commit()

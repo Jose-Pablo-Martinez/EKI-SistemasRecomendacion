@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from backend.models.interacciones import LogPuntos, ContribucionInformacion
 from backend.models.usuarios import UsuarioVisitante
 from backend.schemas.recomendaciones import ContribucionCreate
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ def registrar_contribucion(db: Session, id_usuario: int, datos: ContribucionCrea
     db.refresh(contribucion)
     return contribucion
 
-def otorgar_puntos(db: Session, id_usuario: int, accion: str, descripcion: str = "", id_contribucion: int = None):
+def otorgar_puntos(db: Session, id_usuario: int, accion: str, descripcion: str = "", id_contribucion: Optional[int] = None):
     puntos = PUNTOS_POR_ACCION.get(accion, 0)
     if puntos <= 0:
         return
@@ -59,7 +60,7 @@ def otorgar_puntos(db: Session, id_usuario: int, accion: str, descripcion: str =
     # Actualizar desnormalizado
     visitante = db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).first()
     if visitante:
-        visitante.puntos_experiencia += puntos
+        visitante.puntos_experiencia = visitante.puntos_experiencia + puntos  # type: ignore[assignment]
         
     db.commit()
     logger.info(f"Otorgados {puntos} pts a {id_usuario} por {accion}")

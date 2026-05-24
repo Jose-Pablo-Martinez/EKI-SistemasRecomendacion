@@ -1,6 +1,6 @@
 import uuid
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.mysql import insert
@@ -170,7 +170,7 @@ def seed_usuarios(db: Session):
                 id_usuario=u.id_usuario,
                 razon_social=f"{p['n']} {p['a']} S.A.",
                 verificado=p["v"],
-                fecha_verificacion=datetime.utcnow() if p["v"] else None
+                fecha_verificacion=datetime.now(timezone.utc) if p["v"] else None
             )
             db.add(up)
             db.commit()
@@ -194,7 +194,7 @@ def seed_sesiones_ubicaciones(db: Session):
             
             # Crear 1 sesión histórica por usuario activo
             sesion_id = str(uuid.uuid4())
-            inicio = datetime.utcnow() - timedelta(days=random.randint(1, 80))
+            inicio = datetime.now(timezone.utc) - timedelta(days=random.randint(1, 80))
             fin = inicio + timedelta(minutes=random.randint(5, 120))
             
             # Ignoramos session creation if we don't want duplicates but UUID is random.
