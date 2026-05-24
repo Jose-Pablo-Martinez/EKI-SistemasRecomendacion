@@ -1,11 +1,350 @@
-window.controllers.establecimiento = (id) => {
-    renderPage(`
-        <div class="flex-1 flex flex-col items-start p-8 w-full max-w-4xl mx-auto">
-            <a href="javascript:history.back()" class="text-secondary hover:text-secondary-hover mb-4 flex items-center gap-2 font-semibold">← Volver</a>
-            <h1 class="font-heading text-headline-lg text-primary mb-6">Detalle del Establecimiento ${id ? '#' + id : ''}</h1>
-            <div class="w-full bg-surface-raised p-6 rounded-md shadow-sm border border-border-default text-left">
-                <p class="text-text-secondary mb-4">[Ficha de establecimiento en desarrollo...]</p>
-            </div>
+
+const _DIAS = { lunes:'Lunes', martes:'Martes', miercoles:'Miércoles', jueves:'Jueves', viernes:'Viernes', sabado:'Sábado', domingo:'Domingo' };
+const _DIAS_ORDEN = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+
+// Helpers 
+function _starsE(rating) {
+  return [1,2,3,4,5].map(i => `<span style="color:${i<=Math.round(rating||0)?'#C08A40':'#DCD4C8'};">★</span>`).join('');
+}
+
+function _fecha(str) {
+  if (!str) return '';
+  return new Date(str).toLocaleDateString('es-MX', { year:'numeric', month:'short', day:'numeric' });
+}
+
+function _sentimientoBadge(polaridad) {
+  if (polaridad === null || polaridad === undefined) return '';
+  if (polaridad >  0.1) return `<span class="text-label-sm text-success flex items-center gap-1"><span class="material-symbols-outlined" style="font-size:13px;">sentiment_satisfied</span>Positiva</span>`;
+  if (polaridad < -0.1) return `<span class="text-label-sm text-accent flex items-center gap-1"><span class="material-symbols-outlined" style="font-size:13px;">sentiment_dissatisfied</span>Negativa</span>`;
+  return `<span class="text-label-sm text-text-tertiary flex items-center gap-1"><span class="material-symbols-outlined" style="font-size:13px;">sentiment_neutral</span>Neutral</span>`;
+}
+
+// Subbloques 
+function _horarios(list) {
+  if (!list || !list.length) return `<p class="text-body-sm text-text-tertiary italic">Sin horarios registrados.</p>`;
+  const sorted = [...list].sort((a,b) => _DIAS_ORDEN.indexOf(a.dia_semana) - _DIAS_ORDEN.indexOf(b.dia_semana));
+  return `<div class="divide-y divide-border-subtle border border-border-default rounded-md overflow-hidden">
+    ${sorted.map(h => `
+      <div class="flex justify-between items-center px-4 py-2.5 bg-surface-raised hover:bg-surface-dim transition-colors">
+        <span class="text-body-sm font-medium text-text-secondary">${_DIAS[h.dia_semana]||h.dia_semana}</span>
+        <span class="text-body-sm text-text-tertiary tabular-nums">
+          ${h.hora_apertura?h.hora_apertura.slice(0,5):'—'} – ${h.hora_cierre?h.hora_cierre.slice(0,5):'—'}
+        </span>
+      </div>`).join('')}
+  </div>`;
+}
+
+function _platillos(list) {
+  const items = (list||[]).filter(p => p.estado === 'aprobado');
+  if (!items.length) return `<p class="text-body-sm text-text-tertiary italic">Sin platillos registrados.</p>`;
+  return `<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    ${items.map(p => `
+      <div class="flex items-start gap-3 bg-surface-raised border border-border-default rounded-md p-3 hover:border-border-strong transition-colors">
+        <div class="flex-1 min-w-0">
+          <p class="font-heading text-headline-sm text-primary">${p.nombre}</p>
+          ${p.descripcion ? `<p class="text-body-sm text-text-secondary mt-0.5 line-clamp-2">${p.descripcion}</p>` : ''}
         </div>
-    `);
+        ${p.precio ? `<p class="text-numeric-sm text-success flex-shrink-0">$${parseFloat(p.precio).toFixed(0)}</p>` : ''}
+      </div>`).join('')}
+  </div>`;
+}
+
+function _resena(r, idx) {
+  const inicial = r.nombre_usuario ? r.nombre_usuario[0].toUpperCase() : '?';
+  const cal = r.calificacion || 0;
+  return `
+    <div class="flex gap-3 card-enter" style="animation-delay:${idx*60}ms">
+      <div class="w-9 h-9 rounded-full bg-primary-faint flex items-center justify-center text-primary-ghost font-bold text-sm flex-shrink-0">
+        ${inicial}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap mb-1">
+          <span class="text-body-sm font-semibold text-primary">${r.nombre_usuario||'Usuario'}</span>
+          <span style="color:#C08A40;font-size:0.85rem;">${'★'.repeat(cal)}${'☆'.repeat(5-cal)}</span>
+          ${r.fecha_resena ? `<span class="text-label-md text-text-tertiary">${_fecha(r.fecha_resena)}</span>` : ''}
+          ${r.procesado_nlp ? _sentimientoBadge(r.polaridad) : ''}
+        </div>
+        ${r.comentario ? `<p class="text-body-sm text-text-secondary leading-relaxed">${r.comentario}</p>` : ''}
+      </div>
+    </div>`;
+}
+
+// Estrellas interactivas
+function _starsInteractivos() {
+  return `
+    <div id="star-selector" class="flex gap-1 mb-4" data-value="0">
+      ${[1,2,3,4,5].map(n => `
+        <button type="button" data-star="${n}" onclick="_selectStar(${n})"
+          class="text-3xl leading-none transition-transform hover:scale-110 focus:outline-none"
+          style="color:#DCD4C8;">★</button>`).join('')}
+    </div>
+    <input type="hidden" id="star-value" value="0" />`;
+}
+
+function _selectStar(n) {
+  document.getElementById('star-value').value = n;
+  document.querySelectorAll('#star-selector button').forEach(btn => {
+    btn.style.color = parseInt(btn.dataset.star) <= n ? '#C08A40' : '#DCD4C8';
+  });
+}
+
+// Enviar reseña
+async function _enviarResena(idEstab) {
+  const cal = parseInt(document.getElementById('star-value')?.value || '0');
+  const comentario = document.getElementById('resena-comentario')?.value?.trim();
+  const btn = document.getElementById('btn-enviar-resena');
+  if (!cal) { showToast('Selecciona una calificación (1–5 estrellas)', 'warning'); return; }
+  btn.disabled = true;
+  btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-base" style="font-size:16px;">progress_activity</span> Enviando...`;
+  try {
+    await api.crearResena(idEstab, { id_establecimiento:idEstab, calificacion:cal, comentario:comentario||null });
+    showToast('¡Reseña enviada! Será visible tras moderación.', 'success');
+    _selectStar(0);
+    if (document.getElementById('resena-comentario')) document.getElementById('resena-comentario').value = '';
+  } catch(e) {
+    showToast(e.status===400||e.status===409 ? 'Ya dejaste una reseña para este lugar.' : 'No se pudo enviar la reseña.', 'warning');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Enviar reseña';
+  }
+}
+
+// Acciones de botones
+async function _favEstab(idEstab) {
+  const btn = document.getElementById('btn-fav-estab');
+  const was = btn?.dataset.fav === 'true';
+  try {
+    await api.toggleFavorito(idEstab, was ? 'DELETE' : 'POST');
+    if (btn) {
+      btn.dataset.fav = was ? 'false' : 'true';
+      btn.querySelector('.material-symbols-outlined').textContent = was ? 'favorite' : 'favorite';
+      btn.querySelector('.material-symbols-outlined').style.color = was ? '' : '#8B3A3A';
+      btn.querySelector('._fav-label').textContent = was ? 'Guardar' : 'Guardado';
+    }
+    showToast(was ? 'Eliminado de favoritos' : '¡Guardado en favoritos!', was ? 'info' : 'success');
+  } catch(_) { showToast('No se pudo actualizar el favorito', 'error'); }
+}
+
+function _abrirMaps(idEstab, lat, lon) {
+  api.registrarInteraccion(idEstab, 'abrir_maps').catch(()=>{});
+  window.open(`https://www.google.com/maps?q=${lat},${lon}`, '_blank');
+}
+
+async function _compartir(idEstab, nombre) {
+  api.registrarInteraccion(idEstab, 'compartido').catch(()=>{});
+  const url = window.location.href;
+  if (navigator.share) { try { await navigator.share({ title:nombre, url }); } catch(_) {} }
+  else { navigator.clipboard.writeText(url).then(() => showToast('Enlace copiado', 'success')); }
+}
+
+// Main Controller
+window.controllers.establecimiento = async (id) => {
+  if (!id) { window.location.hash = '#/feed'; return; }
+
+  // Shell skeleton
+  renderPage(`
+    <div class="w-full max-w-5xl mx-auto px-4 md:px-8 py-8">
+      <a href="javascript:history.back()" class="inline-flex items-center gap-1 text-body-sm font-semibold text-text-tertiary hover:text-secondary transition-colors mb-6 group">
+        <span class="material-symbols-outlined group-hover:-translate-x-1 transition-transform" style="font-size:18px;">arrow_back</span>
+        Volver
+      </a>
+      <div class="skeleton h-10 w-2/3 rounded mb-3"></div>
+      <div class="skeleton h-5 w-1/4 rounded mb-8"></div>
+      <div class="skeleton w-full rounded-md mb-8" style="aspect-ratio:21/9;max-height:400px;"></div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="md:col-span-2 space-y-4">
+          <div class="skeleton h-4 rounded w-full"></div>
+          <div class="skeleton h-4 rounded w-5/6"></div>
+          <div class="skeleton h-4 rounded w-4/6"></div>
+        </div>
+        <div class="skeleton h-48 rounded-md"></div>
+      </div>
+    </div>
+  `);
+
+  let estab;
+  try {
+    estab = await api.getEstablecimiento(id);
+  } catch(e) {
+    renderPage(`
+      <div class="flex flex-col items-center justify-center py-32 text-center px-4">
+        <span class="material-symbols-outlined text-5xl text-text-tertiary mb-4">restaurant</span>
+        <h2 class="font-heading text-headline-lg text-primary mb-2">Establecimiento no encontrado</h2>
+        <p class="text-body-md text-text-secondary mb-6">Este lugar no está disponible o aún no ha sido aprobado.</p>
+        <a href="#/buscar" class="bg-accent text-white px-5 py-2.5 rounded font-semibold hover:bg-accent-hover transition-colors">Explorar lugares</a>
+      </div>`);
+    return;
+  }
+
+  api.registrarInteraccion(id, 'vista_detalle').catch(()=>{});
+
+  const img       = `https://picsum.photos/seed/${estab.id_establecimiento||id}/1200/500`;
+  const cal       = estab.calificacion_promedio || 0;
+  const totalR    = estab.total_resenas || 0;
+  const resenas   = (estab.resenas||[]).filter(r => r.estado==='aprobado');
+  const isAuth    = appState.isAuthenticated;
+  const tipoLabel = { puesto_informal:'Puesto Informal', restaurante:'Restaurante', local_comercial:'Local Comercial' }[estab.tipo_establecimiento] || 'Establecimiento';
+
+  renderPage(`
+    <div class="w-full max-w-5xl mx-auto px-4 md:px-8 py-8 fade-in">
+
+      <!-- Back -->
+      <a href="javascript:history.back()" class="inline-flex items-center gap-1 text-body-sm font-semibold text-text-tertiary hover:text-secondary transition-colors mb-6 group">
+        <span class="material-symbols-outlined group-hover:-translate-x-1 transition-transform" style="font-size:18px;">arrow_back</span>
+        Volver
+      </a>
+
+      <!-- Header -->
+      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+        <div>
+          <h1 class="font-heading text-display-md text-primary mb-3 leading-tight">${estab.nombre}</h1>
+          <div class="flex items-center flex-wrap gap-3">
+            <span class="inline-flex items-center gap-1.5 text-label-lg px-3 py-1 rounded-full border
+              ${estab.es_informal
+                ? 'bg-accent-faint text-accent border-accent/30'
+                : 'bg-secondary-faint text-secondary border-secondary/30'}">
+              <span class="material-symbols-outlined" style="font-size:15px;">${estab.es_informal?'storefront':'restaurant'}</span>
+              ${tipoLabel}
+            </span>
+            ${cal > 0 ? `
+              <div class="flex items-center gap-1.5">
+                <span>${_starsE(cal)}</span>
+                <span class="text-numeric-sm text-text-secondary tabular-nums">${cal.toFixed(1)}</span>
+                <span class="text-label-md text-text-tertiary">(${totalR} reseñas)</span>
+              </div>` : ''}
+          </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
+          <button id="btn-fav-estab" onclick="_favEstab(${estab.id_establecimiento})"
+            class="flex items-center gap-1.5 px-3 py-2 rounded border border-border-default
+                   text-body-sm text-text-secondary hover:border-accent hover:text-accent transition-all">
+            <span class="material-symbols-outlined" style="font-size:17px;">favorite</span>
+            <span class="_fav-label">Guardar</span>
+          </button>
+          ${estab.latitud && estab.longitud ? `
+            <button onclick="_abrirMaps(${estab.id_establecimiento},${estab.latitud},${estab.longitud})"
+              class="flex items-center gap-1.5 px-3 py-2 rounded border border-border-default
+                     text-body-sm text-text-secondary hover:border-secondary hover:text-secondary transition-all">
+              <span class="material-symbols-outlined" style="font-size:17px;">map</span>
+              Maps
+            </button>` : ''}
+          ${estab.telefono ? `
+            <a href="tel:${estab.telefono}" onclick="api.registrarInteraccion(${estab.id_establecimiento},'llamada_telefono').catch(()=>{})"
+              class="flex items-center gap-1.5 px-3 py-2 rounded border border-border-default
+                     text-body-sm text-text-secondary hover:border-border-strong transition-all">
+              <span class="material-symbols-outlined" style="font-size:17px;">call</span>
+              ${estab.telefono}
+            </a>` : ''}
+          <button onclick="_compartir(${estab.id_establecimiento},'${(estab.nombre||'').replace(/'/g,"\\'")}'"
+            class="flex items-center gap-1.5 px-3 py-2 rounded border border-border-default
+                   text-body-sm text-text-secondary hover:border-border-strong transition-all">
+            <span class="material-symbols-outlined" style="font-size:17px;">share</span>
+            Compartir
+          </button>
+        </div>
+      </div>
+
+      <!-- Imagen -->
+      <div class="relative rounded-md overflow-hidden mb-8 bg-surface-dim" style="aspect-ratio:21/9;max-height:420px;">
+        <img src="${img}" alt="${estab.nombre}"
+          class="w-full h-full object-cover"
+          onerror="this.src='https://picsum.photos/1200/500?grayscale'" />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent pointer-events-none"></div>
+      </div>
+
+      <!-- Contenido: 2/3 + sidebar -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
+
+        <!-- Principal -->
+        <div class="md:col-span-2 space-y-10">
+
+          ${estab.descripcion ? `
+            <div>
+              <h2 class="font-heading text-headline-md text-primary mb-3">Sobre este lugar</h2>
+              <p class="text-body-md text-text-secondary leading-relaxed">${estab.descripcion}</p>
+            </div>` : ''}
+
+          <div>
+            <h2 class="font-heading text-headline-md text-primary mb-3">Menú</h2>
+            ${_platillos(estab.platillos)}
+          </div>
+
+          <!-- Reseñas -->
+          <div>
+            <div class="flex items-center justify-between mb-5">
+              <h2 class="font-heading text-headline-md text-primary">Reseñas</h2>
+              ${cal > 0 ? `
+                <div class="flex items-center gap-2">
+                  <span class="text-numeric-lg text-primary tabular-nums">${cal.toFixed(1)}</span>
+                  <div>
+                    <div style="color:#C08A40;">${'★'.repeat(Math.round(cal))}${'☆'.repeat(5-Math.round(cal))}</div>
+                    <div class="text-label-md text-text-tertiary">${totalR} reseñas</div>
+                  </div>
+                </div>` : ''}
+            </div>
+
+            ${resenas.length
+              ? `<div class="space-y-5">${resenas.map((r,i) => _resena(r,i)).join('')}</div>`
+              : `<p class="text-body-sm text-text-tertiary italic">Aún no hay reseñas aprobadas.</p>`}
+          </div>
+
+          <!-- Formulario de reseña -->
+          ${isAuth ? `
+            <div class="bg-surface-raised border border-border-default rounded-md p-6">
+              <h3 class="font-heading text-headline-sm text-primary mb-4">Deja tu reseña</h3>
+              <p class="text-label-md text-text-secondary mb-2 uppercase tracking-wide">Tu calificación</p>
+              ${_starsInteractivos()}
+              <textarea id="resena-comentario" placeholder="Comparte tu experiencia (opcional)..." maxlength="1000"
+                class="w-full bg-surface-dim border border-border-default rounded p-3
+                       text-body-sm text-text-primary placeholder:text-text-tertiary
+                       focus:outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus/20
+                       resize-none h-24 mb-4 transition-colors"></textarea>
+              <button id="btn-enviar-resena" onclick="_enviarResena(${estab.id_establecimiento})"
+                class="bg-accent text-white px-6 py-2.5 rounded font-semibold text-label-lg
+                       hover:bg-accent-hover active:scale-95 transition-all shadow-sm
+                       disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
+                Enviar reseña
+              </button>
+            </div>` : `
+            <div class="bg-surface-overlay border border-border-default rounded-md p-5 text-center">
+              <p class="text-body-sm text-text-secondary">
+                <a href="#/login" class="text-secondary font-semibold hover:underline">Inicia sesión</a>
+                para dejar una reseña.
+              </p>
+            </div>`}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+          <div class="bg-surface-raised border border-border-default rounded-md p-5">
+            <h3 class="font-heading text-headline-sm text-primary mb-4">Información</h3>
+            <div class="space-y-3">
+              ${estab.direccion_texto ? `
+                <div class="flex gap-2.5">
+                  <span class="material-symbols-outlined text-text-tertiary flex-shrink-0 mt-0.5" style="font-size:17px;">location_on</span>
+                  <p class="text-body-sm text-text-secondary">${estab.direccion_texto}</p>
+                </div>` : ''}
+              ${estab.telefono ? `
+                <div class="flex gap-2.5">
+                  <span class="material-symbols-outlined text-text-tertiary flex-shrink-0 mt-0.5" style="font-size:17px;">call</span>
+                  <a href="tel:${estab.telefono}" class="text-body-sm text-secondary hover:underline">${estab.telefono}</a>
+                </div>` : ''}
+              ${estab.es_informal !== undefined ? `
+                <div class="flex gap-2.5">
+                  <span class="material-symbols-outlined text-text-tertiary flex-shrink-0 mt-0.5" style="font-size:17px;">storefront</span>
+                  <p class="text-body-sm text-text-secondary">${estab.es_informal ? 'Puesto informal — parte del tejido local de Mérida.' : 'Establecimiento formal.'}</p>
+                </div>` : ''}
+            </div>
+          </div>
+
+          <div>
+            <h3 class="font-heading text-headline-sm text-primary mb-3">Horarios</h3>
+            ${_horarios(estab.horarios)}
+          </div>
+        </div>
+      </div>
+    </div>
+  `);
 };
