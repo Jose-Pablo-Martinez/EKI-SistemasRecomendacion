@@ -1,3 +1,8 @@
+"""
+Routers del Dominio de Recomendaciones.
+Expone los endpoints para que los clientes consuman las recomendaciones
+generadas por el motor offline, con filtros aplicados en tiempo real.
+"""
 from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
