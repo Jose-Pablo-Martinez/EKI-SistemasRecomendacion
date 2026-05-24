@@ -102,6 +102,7 @@ def run_job(job_name: str, db_session_factory: Callable = SessionLocal) -> Dict[
 
     def _execute_in_background() -> None:
         """Wrapper interno ejecutado por el hilo."""
+        db_session = None
         try:
             db_session = db_session_factory()
             logger.info("Iniciando procesamiento del job '%s'.", job_name)
@@ -111,7 +112,8 @@ def run_job(job_name: str, db_session_factory: Callable = SessionLocal) -> Dict[
             logger.error("Fallo crítico durante el job '%s': %s", job_name, error)
         finally:
             job_lock.release()
-            db_session.close()
+            if db_session:
+                db_session.close()
 
     daemon_thread = threading.Thread(target=_execute_in_background, daemon=True)
     daemon_thread.start()

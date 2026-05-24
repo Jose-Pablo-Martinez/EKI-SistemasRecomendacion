@@ -118,19 +118,20 @@ def procesar_clustering_usuarios(db: Session) -> None:
         clusters_db = db.query(ClusterUsuario).order_by(ClusterUsuario.id_cluster).all()
 
     ahora = datetime.now(timezone.utc)
+    k_final = mejor_k
     
     # Actualizamos los centroides y total_usuarios de los primeros 'mejor_k' clusters
     for i in range(mejor_k):
         total_en_cluster = int(np.sum(labels == i))
         cluster_actual = clusters_db[i]
         cluster_actual.centroide = centroides[i]
-        cluster_actual.total_usuarios = total_en_cluster
-        cluster_actual.fecha_actualizacion = ahora
+        cluster_actual.total_usuarios = int(total_en_cluster) # type: ignore
+        cluster_actual.fecha_actualizacion = ahora # type: ignore
         
-    # Ponemos en 0 a los clusters excedentes (si el K óptimo bajó)
-    for i in range(mejor_k, len(clusters_db)):
-        clusters_db[i].total_usuarios = 0
-        clusters_db[i].fecha_actualizacion = ahora
+    # 5. Resetear a cero los clusters que quedaron vacíos en esta corrida
+    for i in range(k_final, len(clusters_db)):
+        clusters_db[i].total_usuarios = 0 # type: ignore
+        clusters_db[i].fecha_actualizacion = ahora # type: ignore
 
     # Mapeo de etiqueta kmeans (0 a mejor_k-1) -> id_cluster en BD
     id_por_etiqueta = {i: clusters_db[i].id_cluster for i in range(mejor_k)}
@@ -168,16 +169,18 @@ def procesar_clustering_establecimientos(db: Session) -> None:
         clusters_db = db.query(ClusterEstablecimiento).order_by(ClusterEstablecimiento.id_cluster).all()
 
     ahora = datetime.now(timezone.utc)
+    k_final = mejor_k
     for i in range(mejor_k):
         total_en_cluster = int(np.sum(labels == i))
         cluster_actual = clusters_db[i]
         cluster_actual.centroide = centroides[i]
-        cluster_actual.total_establecimientos = total_en_cluster
-        cluster_actual.fecha_actualizacion = ahora
+        cluster_actual.total_establecimientos = int(total_en_cluster) # type: ignore
+        cluster_actual.fecha_actualizacion = ahora # type: ignore
         
-    for i in range(mejor_k, len(clusters_db)):
-        clusters_db[i].total_establecimientos = 0
-        clusters_db[i].fecha_actualizacion = ahora
+    # 5. Resetear a cero los clusters sobrantes
+    for i in range(k_final, len(clusters_db)):
+        clusters_db[i].total_establecimientos = 0 # type: ignore
+        clusters_db[i].fecha_actualizacion = ahora # type: ignore
 
     id_por_etiqueta = {i: clusters_db[i].id_cluster for i in range(mejor_k)}
 

@@ -40,26 +40,17 @@ def analizar_sentimiento_texto(comentario_original: str) -> Tuple[float, float]:
     if not comentario_original or not comentario_original.strip():
         return 0.0, 0.0
         
-    blob_original = TextBlob(comentario_original)
-    
     try:
-        # Intenta traducir al inglés (en) asumiendo origen español (es)
-        blob_traducido = blob_original.translate(from_lang='es', to='en')
-        return blob_traducido.sentiment.polarity, blob_traducido.sentiment.subjectivity
+        blob_original = TextBlob(comentario_original)
+        return float(blob_original.sentiment.polarity), float(blob_original.sentiment.subjectivity) # type: ignore
         
-    except NotTranslated:
-        # El texto posiblemente ya estaba en inglés o contenía caracteres que evitaron la traducción
-        return blob_original.sentiment.polarity, blob_original.sentiment.subjectivity
-        
-    except Exception as error_traduccion:
-        # Fallback seguro: Si la API de Google Translate bloquea por límite de peticiones (HTTP 429),
-        # usamos el análisis básico sobre el texto en español como último recurso.
+    except Exception as e:
         logger.warning(
-            "Fallo temporal al traducir '%s': %s. Usando fallback en español.", 
+            "Fallo al analizar '%s': %s", 
             comentario_original[:20], 
-            error_traduccion
+            e
         )
-        return blob_original.sentiment.polarity, blob_original.sentiment.subjectivity
+        return 0.0, 0.0
 
 
 def recalcular_polaridad_establecimientos(db: Session, ids_establecimientos: Set[int]) -> None:
