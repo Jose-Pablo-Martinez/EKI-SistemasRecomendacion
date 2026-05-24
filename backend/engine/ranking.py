@@ -5,7 +5,7 @@ Responsabilidad:
     Aplicar el score_boost_combinado a los establecimientos candidatos y
     ordenar los resultados finales del motor de recomendación.
 
-Fórmula de boosting (ver §1.3 de EkiSystem_DB_Design.md):
+Fórmula de boosting (Implementación basada en EkiSystem_DB_Design.md):
 
     score_boost = w_prox * (1 / (distancia_km + 0.1))
                 + w_informal * es_informal

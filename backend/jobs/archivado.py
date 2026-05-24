@@ -19,11 +19,9 @@ from backend.models.interacciones import InteraccionUsuario, InteraccionUsuarioH
 
 logger = logging.getLogger(__name__)
 
-# ============================================================================
-# Constantes de Archivado
-# ============================================================================
+#Constantes de archivado
 DIAS_RETENCION_INTERACCIONES = 90
-TAMANO_LOTE = 500  # Número de registros a procesar por iteración para evitar Table Locks
+TAMANO_REGISTRO = 500  # Número de registros a procesar por iteración para evitar Table Locks
 
 
 def archivar_lote_interacciones(db: Session, limite_fecha: datetime) -> int:
@@ -42,7 +40,7 @@ def archivar_lote_interacciones(db: Session, limite_fecha: datetime) -> int:
     # 1. Obtener lote de registros antiguos
     interacciones_antiguas = db.query(InteraccionUsuario).filter(
         InteraccionUsuario.fecha < limite_fecha
-    ).limit(TAMANO_LOTE).all()
+    ).limit(TAMANO_REGISTRO).all()
     
     if not interacciones_antiguas:
         return 0

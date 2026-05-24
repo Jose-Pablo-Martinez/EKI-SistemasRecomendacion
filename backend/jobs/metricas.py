@@ -21,9 +21,7 @@ from backend.models.interacciones import InteraccionUsuario
 
 logger = logging.getLogger(__name__)
 
-# ============================================================================
-# Constantes de Ponderación (Algoritmo de Boosting Offline)
-# ============================================================================
+#Constantes de ponderación
 W_INFORMAL = 0.25
 W_ZONA = 0.75
 

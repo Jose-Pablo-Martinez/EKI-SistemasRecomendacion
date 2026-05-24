@@ -17,7 +17,6 @@ from typing import Set, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from textblob import TextBlob
-from textblob.exceptions import NotTranslated
 
 from backend.models.interacciones import Resena
 from backend.models.establecimientos import MetricaEstablecimiento

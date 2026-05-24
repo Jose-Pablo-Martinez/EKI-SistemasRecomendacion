@@ -16,11 +16,10 @@ import argparse
 from typing import Callable, Dict, Optional, Any
 from backend.database import SessionLocal
 
-# ============================================================================
-# Registro de Jobs (Patrón Registry para cumplir con OCP de SOLID)
-# ============================================================================
-# En lugar de hardcodear los diccionarios en múltiples funciones,
-# definimos un registro global que enlaza el nombre del job con su función.
+#Registro de Jobs (Patrón Registry para cumplir con OCP de SOLID)
+
+# En lugar de hardcodear los diccionearios en múltiples funciones, lo que se hizo
+# fue definir un registro global que lanza el nombre del job con su función
 
 _job_registry: Dict[str, Optional[Callable]] = {}
 _job_locks: Dict[str, threading.Lock] = {}
@@ -65,9 +64,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# ============================================================================
-# Funciones Principales
-# ============================================================================
+#Funciones principales
 
 def run_job(job_name: str, db_session_factory: Callable = SessionLocal) -> Dict[str, str]:
     """
@@ -120,9 +117,7 @@ def run_job(job_name: str, db_session_factory: Callable = SessionLocal) -> Dict[
     
     return {"status": "enqueued", "job": job_name}
 
-# ============================================================================
-# Interfaz de Línea de Comandos (CLI)
-# ============================================================================
+#Interaccion con la linea de comandos (CLI)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")

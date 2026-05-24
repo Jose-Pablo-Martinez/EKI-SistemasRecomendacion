@@ -3,8 +3,6 @@ Dominio: CLUSTERS (ML)
 Centroides K-Means para usuarios y establecimientos.
 Son datos de configuración del modelo ML — no se truncan con --modo limpiar.
 """
-from datetime import datetime
-
 from sqlalchemy import Column, Integer, String, Text, DateTime, JSON
 from sqlalchemy.orm import relationship
 

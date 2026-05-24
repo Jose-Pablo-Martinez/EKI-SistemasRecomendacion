@@ -5,7 +5,6 @@ from backend.database import get_db
 from backend.models.usuarios import Administrador
 from backend.auth import get_current_admin
 from backend.services import admin_service
-from backend.jobs.reconciliacion import reconciliar_campos_desnormalizados
 
 router = APIRouter(prefix="/admin", tags=["Administración"])
 
