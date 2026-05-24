@@ -8,11 +8,11 @@ def check_venv():
         
     if not (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)):
         print("\n" + "!"*60)
-        print("⚠️  ERROR: NO ESTÁS EN UN ENTORNO VIRTUAL")
+        print("ERROR: NO ESTÁS EN UN ENTORNO VIRTUAL")
         print("!"*60)
         print("Para proteger tu sistema, este script solo debe ejecutarse")
         print("dentro del entorno virtual del proyecto.")
-        print("\n👉 Actívalo con: .\\venv\\Scripts\\activate")
+        print("\nActívalo con: .\\venv\\Scripts\\activate")
         print("!"*60 + "\n")
         sys.exit(1)
 
@@ -30,7 +30,7 @@ def setup_environment():
     # 2. Verificar certificado SSL de Aiven (ca.pem)
     ca_path = os.path.join("secrets", "ca.pem")
     if not os.path.exists(ca_path):
-        print("\n⚠️  Certificado 'ca.pem' NO encontrado en /secrets.")
+        print("\nCertificado 'ca.pem' NO encontrado en /secrets.")
         print("   Este archivo es obligatorio para conectar a la base de datos Aiven (SSL).")
         print("   👉 Cómo obtenerlo:")
         print("      1. Solicita el archivo al líder del equipo.")
@@ -42,7 +42,7 @@ def setup_environment():
 
     # 3. Configuración interactiva del .env
     if not os.path.exists(".env"):
-        print("\n📝 Vamos a configurar tu archivo .env local.")
+        print("\nVamos a configurar tu archivo .env local.")
         print("   (Presiona Enter para usar los valores por defecto)\n")
         
         db_host = input("🔹 Host de Aiven (ver Aiven Console → Overview → Host): ").strip()
