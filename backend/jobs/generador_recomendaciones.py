@@ -139,6 +139,8 @@ def generar_para_usuario(
             agregar_recomendaciones(estabs_cold, "cold_start", "cold_start", "cold_start")
     else:
         # 2. Estrategias Híbridas (Usuarios experimentados)
+        estabs_content = []
+        estabs_collab = []
         
         # Filtrado por Contenido
         if get_content_based_recommendations and establecimientos_base:
@@ -149,6 +151,37 @@ def generar_para_usuario(
         if get_collaborative_recommendations and establecimientos_base and usuario.id_cluster is not None:
             estabs_collab = get_collaborative_recommendations(db, int(usuario.id_usuario), int(usuario.id_cluster), establecimientos_base, limit=MAX_RECOMENDACIONES_POR_CATEGORIA) # type: ignore
             agregar_recomendaciones(estabs_collab, "colaborativo_cluster", "colaborativo", "cluster")
+
+        # Filtrado Híbrido / Mejores Selecciones (Top Picks)
+        if get_content_based_recommendations and get_collaborative_recommendations and establecimientos_base and usuario.id_cluster is not None:
+            from backend.engine.ranking import compute_score_final
+            candidatos_dict = {}
+            
+            # Recolectamos candidatos y sus scores individuales
+            if estabs_content:
+                for estab, score in estabs_content:
+                    candidatos_dict[estab.id_establecimiento] = {"estab": estab, "sc_cont": score, "sc_col": 0.0}
+            if estabs_collab:
+                for estab, score in estabs_collab:
+                    if estab.id_establecimiento not in candidatos_dict:
+                        candidatos_dict[estab.id_establecimiento] = {"estab": estab, "sc_cont": 0.0, "sc_col": score}
+                    else:
+                        candidatos_dict[estab.id_establecimiento]["sc_col"] = score
+                        
+            top_picks = []
+            for d in candidatos_dict.values():
+                estab = d["estab"]
+                # Extraemos score_boost de la métrica (si existe)
+                score_boost = 0.0
+                if hasattr(estab, 'metrica') and estab.metrica and estab.metrica.score_boost_combinado:
+                    score_boost = float(estab.metrica.score_boost_combinado)
+                    
+                score_final = compute_score_final(d["sc_cont"], d["sc_col"], score_boost)
+                top_picks.append((estab, score_final))
+                
+            # Ordenar por el super-score de mayor a menor
+            top_picks.sort(key=lambda x: x[1], reverse=True)
+            agregar_recomendaciones(top_picks, "top_picks_hibrido", "mejores_selecciones", "hibrido")
 
     # 3. Estrategia Global / Fallback (Aplica para todos)
     # Recomendaciones populares por ranking base
