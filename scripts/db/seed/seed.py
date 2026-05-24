@@ -27,9 +27,10 @@ def run_catalogo(db: Session):
         print(f"Error en el seed de catálogo: {e}")
         db.rollback()
 
-def run_desarrollo(db: Session):
-    if DB_NAME == "ekidb":
+def run_desarrollo(db: Session, force: bool = False):
+    if DB_NAME == "ekidb" and not force:
         print("ERROR: No se puede ejecutar el modo desarrollo en la base de datos de producción (ekidb).")
+        print("Si estás seguro de que quieres inyectar datos de prueba en producción, usa la bandera --force.")
         sys.exit(1)
         
     print("=== Iniciando Seed de Desarrollo Completo ===")
@@ -131,7 +132,7 @@ def main():
         if args.modo == "catalogo":
             run_catalogo(db)
         elif args.modo == "desarrollo":
-            run_desarrollo(db)
+            run_desarrollo(db, force=args.force)
         elif args.modo == "demo":
             run_demo(db)
         elif args.modo == "limpiar":
