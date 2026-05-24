@@ -12,7 +12,7 @@ enfocarse exclusivamente en la orquestación masiva y persistencia (bulk inserts
 
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from sqlalchemy.orm import Session
 
@@ -100,21 +100,35 @@ def generar_para_usuario(
     nuevas_recomendaciones = []
     ahora = datetime.now(timezone.utc)
     
-    def agregar_recomendaciones(estabs: Optional[List[Establecimiento]], categoria: str, razon: str, estrategia: str):
+    def agregar_recomendaciones(estabs: Optional[List[Any]], categoria: str, razon: str, estrategia: str) -> None:
         """Función helper para evitar duplicación de código al instanciar el modelo."""
         if not estabs:
             return
-        for pos, estab in enumerate(estabs[:MAX_RECOMENDACIONES_POR_CATEGORIA]):
+        for pos, item in enumerate(estabs[:MAX_RECOMENDACIONES_POR_CATEGORIA]):
+            # Las funciones de colaborativo y contenido devuelven tuplas (Establecimiento, score)
+            if isinstance(item, tuple):
+                estab = item[0]
+                score_usado = item[1]
+            else:
+                estab = item
+                score_usado = 0.0
+                
             rec = RecomendacionGenerada(
                 id_usuario=usuario.id_usuario,
-                id_establecimiento=estab.id_establecimiento,
+                id_establecimiento=int(estab.id_establecimiento), # type: ignore
                 categoria_recomendacion=categoria,
                 posicion=pos + 1,
-                radio_usado_km=usuario.radio_busqueda_km,
+                radio_usado_km=int(usuario.radio_busqueda_km), # type: ignore
                 razon_principal=razon,
                 estrategia_usada=estrategia,
                 fecha_generacion=ahora
             )
+            # Asignamos el score a la columna correcta según la estrategia
+            if estrategia == "contenido":
+                rec.score_contenido_usado = score_usado # type: ignore
+            elif estrategia == "cluster":
+                rec.score_colaborativo_usado = score_usado # type: ignore
+                
             nuevas_recomendaciones.append(rec)
 
     # 1. Estrategia Cold Start (Usuarios nuevos)
@@ -127,13 +141,13 @@ def generar_para_usuario(
         # 2. Estrategias Híbridas (Usuarios experimentados)
         
         # Filtrado por Contenido
-        if get_content_based_recommendations:
-            estabs_content = get_content_based_recommendations(db, usuario, limit=MAX_RECOMENDACIONES_POR_CATEGORIA)
+        if get_content_based_recommendations and establecimientos_base:
+            estabs_content = get_content_based_recommendations(db, usuario, establecimientos_base, limit=MAX_RECOMENDACIONES_POR_CATEGORIA)
             agregar_recomendaciones(estabs_content, "preferencia_contenido", "preferencia_categoria", "contenido")
             
         # Filtrado Colaborativo (Basado en Cluster)
-        if get_collaborative_recommendations:
-            estabs_collab = get_collaborative_recommendations(db, usuario, limit=MAX_RECOMENDACIONES_POR_CATEGORIA)
+        if get_collaborative_recommendations and establecimientos_base and usuario.id_cluster is not None:
+            estabs_collab = get_collaborative_recommendations(db, int(usuario.id_usuario), int(usuario.id_cluster), establecimientos_base, limit=MAX_RECOMENDACIONES_POR_CATEGORIA) # type: ignore
             agregar_recomendaciones(estabs_collab, "colaborativo_cluster", "colaborativo", "cluster")
 
     # 3. Estrategia Global / Fallback (Aplica para todos)

@@ -99,8 +99,8 @@ def recalcular_polaridad_establecimientos(db: Session, ids_establecimientos: Set
     
     for metrica in metricas:
         # Si un local se quedó sin reseñas aprobadas, su promedio vuelve a 0.0
-        nuevo_promedio = mapa_promedios.get(metrica.id_establecimiento, 0.0)
-        metrica.polaridad_promedio = nuevo_promedio
+        nuevo_promedio = mapa_promedios.get(metrica.id_establecimiento, 0.0) # type: ignore
+        metrica.polaridad_promedio = nuevo_promedio # type: ignore
         
     logger.info("Recalculada la polaridad promedio para %d establecimientos.", len(ids_establecimientos))
 
@@ -127,16 +127,16 @@ def procesar_nlp_resenas(db: Session) -> None:
     
     for resena in resenas_pendientes:
         if resena.comentario:
-            polaridad, subjetividad = analizar_sentimiento_texto(resena.comentario)
-            resena.polaridad = polaridad
-            resena.subjetividad = subjetividad
+            polaridad, subjetividad = analizar_sentimiento_texto(str(resena.comentario))
+            resena.polaridad = polaridad # type: ignore
+            resena.subjetividad = subjetividad # type: ignore
         else:
             # Si dejaron una calificación (estrellas) pero ningún comentario escrito
-            resena.polaridad = 0.0
-            resena.subjetividad = 0.0
+            resena.polaridad = 0.0 # type: ignore
+            resena.subjetividad = 0.0 # type: ignore
             
-        resena.procesado_nlp = True
-        establecimientos_afectados.add(resena.id_establecimiento)
+        resena.procesado_nlp = True # type: ignore
+        establecimientos_afectados.add(int(resena.id_establecimiento)) # type: ignore
         total_procesadas += 1
         
     # Recalcular el promedio SOLO para aquellos locales que tuvieron reseñas nuevas

@@ -33,8 +33,8 @@ def register_job(name: str, func: Optional[Callable]) -> None:
 # Importación dinámica y registro. Si el job aún no se ha creado,
 # se registra como None y se manejará el error al intentar llamarlo.
 try:
-    from backend.jobs.clustering import ejecutar_clustering_usuarios
-    register_job("clustering", ejecutar_clustering_usuarios)
+    from backend.jobs.clustering import ejecutar_clustering
+    register_job("clustering", ejecutar_clustering)
 except ImportError:
     register_job("clustering", None)
 
@@ -138,6 +138,7 @@ if __name__ == "__main__":
         if not cli_lock.acquire(blocking=False):
             logger.warning("El job '%s' está siendo ejecutado actualmente por otro proceso.", target_job)
         else:
+            db_session = None
             try:
                 db_session = SessionLocal()
                 job_function = _job_registry[target_job]
@@ -150,4 +151,5 @@ if __name__ == "__main__":
                     logger.error("El código del job '%s' aún no está disponible.", target_job)
             finally:
                 cli_lock.release()
-                db_session.close()
+                if db_session:
+                    db_session.close()

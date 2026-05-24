@@ -86,8 +86,8 @@ def procesar_metricas(db: Session) -> None:
             metrica = MetricaEstablecimiento(id_establecimiento=estab.id_establecimiento)
             db.add(metrica)
             
-        conteo_7d = dic_pop_7d.get(estab.id_establecimiento, 0)
-        conteo_30d = dic_pop_30d.get(estab.id_establecimiento, 0)
+        conteo_7d = dic_pop_7d.get(int(estab.id_establecimiento), 0) # type: ignore
+        conteo_30d = dic_pop_30d.get(int(estab.id_establecimiento), 0) # type: ignore
         
         metrica.popularidad_7d = conteo_7d
         metrica.popularidad_30d = conteo_30d
@@ -99,12 +99,12 @@ def procesar_metricas(db: Session) -> None:
         # ya que la cercanía hiper-local depende del usuario (Haversine Online)
         boost_zona_val = conteo_30d / max_interacciones_30d
         
-        metrica.boost_informal = float(boost_informal_val)
-        metrica.boost_proximidad_zona = float(boost_zona_val)
+        metrica.boost_informal = boost_informal_val # type: ignore
+        metrica.boost_proximidad_zona = boost_zona_val # type: ignore
         
         # 4. Combinar scores para el engine
         score_combinado = (W_INFORMAL * boost_informal_val) + (W_ZONA * boost_zona_val)
-        metrica.score_boost_combinado = float(score_combinado)
+        metrica.score_boost_combinado = score_combinado # type: ignore
         
         metrica.ultima_actualizacion = ahora
         
