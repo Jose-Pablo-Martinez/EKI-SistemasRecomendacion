@@ -46,9 +46,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# ============================================================================
 # Constantes de Retención y Generación
-# ============================================================================
 DIAS_EXPIRACION_NO_CLICK = 7
 DIAS_EXPIRACION_CLICK = 30
 MAX_RECOMENDACIONES_POR_CATEGORIA = 10

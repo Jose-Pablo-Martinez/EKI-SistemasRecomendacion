@@ -41,7 +41,7 @@ Este documento detalla la implementación, decisiones técnicas y la evolución 
 3. **Ranking y Boosting (Haversine Vectorizado):** 
    - Se construyó una variante del cálculo de distancia geográfica Haversine usando matrices de `numpy`.
    - **Razón:** Permitir a los *Jobs Offline* calcular las distancias de miles de usuarios contra cientos de locales en milisegundos para sus métricas de cercanía local.
-4. **Combinación Híbrida y Diversidad:** Se implementó normalización Min-Max para igualar el rango (0 a 1) entre los scores colaborativos, de contenido y los "boosts" (cercanía e informalidad) sumados mediante pesos constantes ponderados, y el cálculo de "Diversity Score" basado en el inverso a la similitud coseno (Para Evitar burbujas de filtro).
+4. **Combinación Híbrida y Diversidad:** Se optó por un diseño sin normalización estricta Min-Max (ahorrando tiempo computacional `O(N)`), ya que el Coseno devuelve valores pre-acotados `[-1, 1]`, y al emplear pesos ponderados que suman `1.0` sobre variables controladas, el ordenamiento relativo se preserva perfectamente. Adicionalmente, se implementó el "Diversity Score" basado en el inverso a la similitud coseno (para evitar burbujas de filtro).
 
 ---
 
@@ -63,7 +63,7 @@ Se diseñó un sistema propio en `backend/jobs/runner.py` utilizando `threading.
 3. **Métricas Masivas (`metricas.py`):** 
    - Generación de sumatorias en SQL a través de la función `GROUP BY` sobre la tabla `interaccion_usuario`, contando popularidad en ventanas de 7 y 30 días, resultando en un proceso con menor estrés de memoria RAM.
 4. **Generador de Recomendaciones (`generador_recomendaciones.py`):** 
-   - Fusiona todos los motores implementados en la **Fase 2**. Barre a todos los usuarios activos y escribe de golpe (`bulk_save_objects`) en la tabla de caché `recomendacion_generada`. Este job alimenta la Explicabilidad o Caja Blanca del motor indicando por qué se seleccionó cada lugar.
+   - Fusiona todos los motores implementados en la **Fase 2**. Barre a todos los usuarios activos y escribe de golpe (`bulk_save_objects`) en la tabla de caché `recomendacion_generada`. El motor pre-calcula 6 bloques principales de sugerencias por usuario: Cold Start, Filtrado por Contenido, Colaborativo por Clúster, Popularidad de Zona, Tendencia Informal y Descubrimiento (locales nuevos). Este job alimenta la Explicabilidad (Caja Blanca) del motor indicando la razón por la cual se seleccionó cada lugar.
 5. **Archivado (`archivado.py`):** 
    - Gestión del ciclo de vida de los datos, expulsando interacciones pasadas los 90 días a tablas históricas para mantener rápidas las consultas en vivo de los otros Jobs.
 
