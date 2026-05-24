@@ -26,6 +26,11 @@ El sistema no confía en una sola técnica; es "híbrido" porque mezcla múltipl
 - **¿Qué hace?** Calcula la distancia geográfica exacta (en kilómetros, en línea recta y considerando la curvatura de la Tierra) entre las coordenadas GPS del usuario y el establecimiento.
 - **Ubicación en el código:** `backend/engine/ranking.py`
 
+### D) Similitud Léxica (Corrección Ortográfica con Levenshtein)
+- **¿Qué hace?** Mide cuántas letras o caracteres de diferencia hay entre dos palabras (cuántas inserciones, eliminaciones o sustituciones se necesitan para que sean iguales).
+- **¿Para qué se usa?** Se implementó para el buscador de la aplicación. Si el usuario escribe mal el nombre de un restaurante (ej. "Tcko" en lugar de "Taco"), la base de datos SQL no encontrará nada. El motor léxico intercepta esto, compara "Tcko" contra el diccionario de establecimientos, y si la similitud matemática supera el umbral (70%), el backend sugiere la corrección al frontend automáticamente.
+- **Ubicación en el código:** `backend/engine/lexical_filter.py` (Lógica matemática pura) y `backend/services/buscador_service.py` (Orquestación).
+
 ---
 
 ## 2. Dónde y Cómo se Generan las Recomendaciones

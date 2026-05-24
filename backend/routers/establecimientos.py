@@ -9,16 +9,16 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.usuarios import UsuarioVisitante
 from backend.auth import get_current_user
-from backend.services import establecimiento_service
-from backend.schemas.establecimientos import EstablecimientoCreate, EstablecimientoUpdate, EstablecimientoResponse, HorarioCreate, PlatilloCreate, ImagenCreate
+from backend.services import establecimiento_service, buscador_service
+from backend.schemas.establecimientos import EstablecimientoCreate, EstablecimientoUpdate, EstablecimientoResponse, BusquedaResponse, HorarioCreate, PlatilloCreate, ImagenCreate
 from backend.schemas.recomendaciones import InteraccionUsuarioCreate, ResenaCreate, FavoritoCreate, ReporteCreate
 
 router = APIRouter(prefix="/establecimientos", tags=["Establecimientos"])
 
-@router.get("/buscar")
+@router.get("/buscar", response_model=BusquedaResponse)
 def buscar_establecimientos(q: Optional[str] = None, colonia: Optional[int] = None, db: Session = Depends(get_db)):
-    """Búsqueda de establecimientos por query de texto o colonia."""
-    return establecimiento_service.buscar_establecimientos(db, query=q, id_colonia=colonia)
+    """Búsqueda de establecimientos por query de texto o colonia con tolerancia a errores (Levenshtein)."""
+    return buscador_service.buscar_con_correccion(db, query=q, id_colonia=colonia)
 
 @router.get("/{id_establecimiento}", response_model=EstablecimientoResponse)
 def get_establecimiento(id_establecimiento: int, db: Session = Depends(get_db)):
