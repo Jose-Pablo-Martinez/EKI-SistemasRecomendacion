@@ -3,11 +3,10 @@ Job Offline: Pipeline de Procesamiento de Lenguaje Natural (NLP)
 
 Responsabilidad:
 Extraer la polaridad y subjetividad de las reseñas aprobadas que aún no han sido procesadas.
-Dado que la herramienta subyacente (TextBlob) tiene mayor precisión analizando textos
-en inglés, el pipeline primero traduce el comentario de forma transitoria, realiza
+Aprovecha TextBlob para analizar el texto nativamente en español, luego realiza
 el análisis matemático y persiste únicamente los scores numéricos en la base de datos.
 
-Cumple con SRP aislando la integración de la API externa (traducción y NLP) de 
+Cumple con SRP aislando la integración de la librería NLP externa de 
 las reglas de agregación y guardado en base de datos.
 """
 

@@ -83,7 +83,9 @@ def limpiar_recomendaciones_antiguas(db: Session) -> None:
 def generar_para_usuario(
     db: Session, 
     usuario: UsuarioVisitante, 
-    establecimientos_base: List[Establecimiento]
+    establecimientos_base: List[Establecimiento],
+    estabs_informal: Optional[List[Establecimiento]] = None,
+    estabs_descubrimiento: Optional[List[Establecimiento]] = None
 ) -> List[RecomendacionGenerada]:
     """
     Orquesta los algoritmos de la Fase 2 para construir las recomendaciones
@@ -154,6 +156,14 @@ def generar_para_usuario(
     # Recomendaciones populares por ranking base
     if establecimientos_base:
         agregar_recomendaciones(establecimientos_base, "popularidad_zona", "popular_zona", "popularidad")
+        
+    # Tendencia Informal
+    if estabs_informal:
+        agregar_recomendaciones(estabs_informal, "tendencia_informal", "popular_informal", "popularidad")
+        
+    # Descubrimiento
+    if estabs_descubrimiento:
+        agregar_recomendaciones(estabs_descubrimiento, "descubrimiento", "nuevo_lugar", "novedad")
             
     return nuevas_recomendaciones
 
@@ -181,11 +191,26 @@ def procesar_generacion(db: Session) -> None:
     if get_top_establecimientos:
         top_establecimientos = get_top_establecimientos(db, limit=MAX_RECOMENDACIONES_POR_CATEGORIA)
         
+    from backend.models.establecimientos import MetricaEstablecimiento
+    
+    estabs_informal = db.query(Establecimiento).join(MetricaEstablecimiento).filter(
+        Establecimiento.es_activo == True,
+        Establecimiento.estado == "aprobado",
+        Establecimiento.es_informal == True
+    ).order_by(MetricaEstablecimiento.popularidad_7d.desc().nulls_last()).limit(MAX_RECOMENDACIONES_POR_CATEGORIA).all()
+    
+    estabs_descubrimiento = db.query(Establecimiento).filter(
+        Establecimiento.es_activo == True,
+        Establecimiento.estado == "aprobado"
+    ).order_by(Establecimiento.fecha_registro.desc()).limit(MAX_RECOMENDACIONES_POR_CATEGORIA).all()
+        
     total_generadas = 0
     
     # 4. Generación por usuario e Inserción Masiva
     for usuario in usuarios_activos:
-        recomendaciones_usuario = generar_para_usuario(db, usuario, top_establecimientos)
+        recomendaciones_usuario = generar_para_usuario(
+            db, usuario, top_establecimientos, estabs_informal, estabs_descubrimiento
+        )
         
         if recomendaciones_usuario:
             # bulk_save_objects es altamente optimizado para insertar miles de filas sin hidratar IDs

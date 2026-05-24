@@ -67,3 +67,15 @@ def otorgar_puntos(db: Session, id_usuario: int, accion: str, descripcion: str =
 
 def obtener_historial_puntos(db: Session, id_usuario: int):
     return db.query(LogPuntos).filter(LogPuntos.id_usuario == id_usuario).order_by(LogPuntos.fecha.desc()).all()
+
+def obtener_rango_actual(db: Session, id_usuario: int) -> dict:
+    visitante = db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).first()
+    if not visitante:
+        return {"puntos_experiencia": 0, "rango_actual": None}
+    
+    # En un sistema completo, consultaríamos la tabla RangoGamificacion
+    # para determinar puntos faltantes para el próximo nivel
+    return {
+        "puntos_experiencia": visitante.puntos_experiencia,
+        "rango_actual": visitante.id_rango
+    }

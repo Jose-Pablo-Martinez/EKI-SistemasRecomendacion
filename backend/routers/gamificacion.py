@@ -12,10 +12,8 @@ router = APIRouter(prefix="/gamificacion", tags=["Gamificación"])
 @router.get("/mis-puntos")
 def mis_puntos(current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
     """Retorna los puntos de experiencia del visitante."""
-    return {
-        "puntos_experiencia": current_user.puntos_experiencia,
-        "rango_actual": current_user.id_rango
-    }
+    # Obtener_rango_actual implementado
+    return gamificacion_service.obtener_rango_actual(db, current_user.id_usuario)  # type: ignore[arg-type]
 
 @router.get("/historial", response_model=List[LogPuntosResponse])
 def historial_puntos(current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):

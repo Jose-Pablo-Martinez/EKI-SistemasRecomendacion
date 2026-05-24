@@ -13,6 +13,7 @@ from user_agents import parse
 from backend.models.usuarios import (
     Usuario, UsuarioVisitante, DispositivoUsuario, SesionUsuario, UbicacionUsuario
 )
+from backend.models.clusters import ClusterUsuario
 from backend.schemas.usuarios import UsuarioCreate
 from backend.auth import get_password_hash, verify_password
 
@@ -166,4 +167,21 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
             "precios_preferidos": precios
         }
         visitante.perfil_completado = True  # type: ignore[assignment]
+        
+        # Asignación provisional de ID al cluster de usuario
+        try:
+            from backend.engine.cold_start import assign_cluster_provisional
+            clusters = db.query(ClusterUsuario).all()
+            
+            # Simulamos un vector numérico simplificado a partir del JSON
+            # En producción esto sería un embedding semántico
+            vector_simulado = [1.0] * len(categorias) + [0.5] * len(precios)
+            if vector_simulado:
+                id_cluster_prov = assign_cluster_provisional(vector_simulado, clusters)
+                if id_cluster_prov is not None:
+                    visitante.id_cluster = id_cluster_prov # type: ignore
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("No se pudo asignar cluster provisional en onboarding: %s", e)
+            
         db.commit()
