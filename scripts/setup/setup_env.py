@@ -75,6 +75,12 @@ def setup_environment():
                         dev_urls = "http://localhost:5500,http://127.0.0.1:5500,http://localhost:8000"
                         prod_url = "https://jose-pablo-martinez.github.io/EKI-SistemasRecomendacion"
                         new_lines.append(f"CORS_ORIGINS={dev_urls},{prod_url}\n")
+                    elif line.startswith("JWT_SECRET_KEY="):
+                        new_lines.append(f"JWT_SECRET_KEY=dinosaurio123\n")
+                    elif line.startswith("JWT_ALGORITHM="):
+                        new_lines.append(f"JWT_ALGORITHM=HS256\n")
+                    elif line.startswith("JWT_EXPIRE_MINUTES="):
+                        new_lines.append(f"JWT_EXPIRE_MINUTES=60\n")
                     else:
                         new_lines.append(line)
                 
