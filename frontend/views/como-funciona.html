@@ -12,18 +12,18 @@
       <!-- Header -->
       <div class="mb-10">
         <div class="flex items-center gap-3 mb-3">
-          <span class="material-symbols-outlined text-accent" aria-hidden="true" style="font-size:32px;">psychology</span>
-          <h1 class="font-heading text-display-md text-primary">¿Cómo funcionan las recomendaciones?</h1>
+            <span class="material-symbols-outlined text-accent" aria-hidden="true" style="font-size:32px;">psychology</span>
+          <h1 class="font-heading text-display-md text-primary">¿Cómo funcionan nuestras recomendaciones?</h1>
         </div>
         <p class="text-body-lg text-text-secondary leading-relaxed">
-          EkiSystem no usa un algoritmo de caja negra. Aquí te explicamos exactamente
+          En EKI creemos en la transparencia. No usamos magia oscura ni secretos; aquí te explicamos con palabras sencillas
           <strong class="text-primary">por qué</strong> te recomendamos cada lugar.
         </p>
       </div>
 
       <!-- Diagrama visual del flujo -->
       <div class="bg-surface-raised border border-border-default rounded-md p-6 mb-10">
-        <h2 class="font-heading text-headline-sm text-primary mb-5">El modelo en un vistazo</h2>
+        <h2 class="font-heading text-headline-sm text-primary mb-5">Nuestra receta en un vistazo</h2>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
 
           <!-- Paso 1 -->
@@ -31,8 +31,8 @@
             <div class="w-14 h-14 rounded-full bg-secondary-faint flex items-center justify-center">
               <span class="material-symbols-outlined text-secondary" aria-hidden="true" style="font-size:28px;">manage_accounts</span>
             </div>
-            <p class="font-heading text-headline-sm text-primary">Tus gustos</p>
-            <p class="text-body-sm text-text-secondary">Tu vector de preferencias, creado en el onboarding y actualizado con cada interacción.</p>
+            <p class="font-heading text-headline-sm text-primary">Tus antojos</p>
+            <p class="text-body-sm text-text-secondary">Lo que nos dijiste que te gusta y los lugares que vas descubriendo.</p>
           </div>
 
           <!-- Flecha -->
@@ -45,8 +45,8 @@
             <div class="w-14 h-14 rounded-full bg-accent-faint flex items-center justify-center">
               <span class="material-symbols-outlined text-accent" aria-hidden="true" style="font-size:28px;">group</span>
             </div>
-            <p class="font-heading text-headline-sm text-primary">Tu comunidad</p>
-            <p class="text-body-sm text-text-secondary">Usuarios con gustos parecidos a los tuyos (mismo cluster), agrupados automáticamente.</p>
+            <p class="font-heading text-headline-sm text-primary">Personas como tú</p>
+            <p class="text-body-sm text-text-secondary">Exploradores que comparten tu mismo paladar y estilo.</p>
           </div>
 
         </div>
@@ -56,9 +56,9 @@
           <div class="w-14 h-14 rounded-full bg-primary flex items-center justify-center mx-auto mb-2">
             <span class="material-symbols-outlined text-white" aria-hidden="true" style="font-size:28px;">recommend</span>
           </div>
-          <p class="font-heading text-headline-sm text-primary mb-1">Score final</p>
+          <p class="font-heading text-headline-sm text-primary mb-1">Porcentaje de Match</p>
           <p class="text-body-sm text-text-secondary">
-            <strong>40% tus gustos</strong> + <strong>35% tu comunidad</strong> + <strong>25% boost contextual</strong>
+            <strong>40% tus gustos</strong> + <strong>35% personas afines</strong> + <strong>25% detalles del momento</strong>
           </p>
         </div>
       </div>
@@ -72,22 +72,19 @@
             <span class="material-symbols-outlined text-secondary" aria-hidden="true" style="font-size:20px;">favorite</span>
           </div>
           <div>
-            <h2 class="font-heading text-headline-sm text-primary mb-2">Basado en tus gustos (40%)</h2>
+            <h2 class="font-heading text-headline-sm text-primary mb-2">El perfil de tu paladar (40%)</h2>
             <p class="text-body-sm text-text-secondary leading-relaxed">
-              Cuando hiciste el onboarding, nos dijiste qué tipo de comida te gusta, a qué distancia
-              quieres buscar y otras preferencias. Convertimos esas respuestas en un
-              <em>vector de preferencias</em> — una lista de números que representa tu perfil.
+              Cuando te registraste, nos contaste si prefieres comer en restaurantes formales, puestos en la calle, o si amas lo picante.
+              Con eso, armamos un <em>"Perfil de Antojos"</em> único para ti.
             </p>
             <p class="text-body-sm text-text-secondary leading-relaxed mt-2">
-              Cada establecimiento también tiene su vector de características. Comparamos qué tan
-              similares son usando <strong>similitud coseno</strong>: mientras más cercanos, mejor score.
-              Este componente pesa <strong>40%</strong> del score final.
+              Luego, miramos las características de cada lugar y evaluamos qué tanto se parecen a tu perfil ideal.
+              Mientras más cosas tengan en común, mayor será tu porcentaje de Match. Esta es la base de todo y pesa el <strong>40%</strong>.
             </p>
             <div class="bg-secondary-faint border border-secondary/20 rounded p-3 mt-3">
-              <p class="text-label-md text-secondary font-semibold">¿Qué lo mejora?</p>
+              <p class="text-label-md text-secondary font-semibold">¿Cómo lo hacemos aún mejor?</p>
               <p class="text-body-sm text-text-secondary mt-1">
-                Tus reseñas, las veces que abres Maps o llamas a un lugar actualizan tu vector
-                automáticamente.
+                El sistema nunca deja de aprender. Si dejas reseñas, llamas a un lugar o pides cómo llegar, tu perfil de antojos se actualiza automáticamente.
               </p>
             </div>
           </div>
@@ -101,15 +98,14 @@
             <span class="material-symbols-outlined text-accent" aria-hidden="true" style="font-size:20px;">group</span>
           </div>
           <div>
-            <h2 class="font-heading text-headline-sm text-primary mb-2">Tu comunidad (35%)</h2>
+            <h2 class="font-heading text-headline-sm text-primary mb-2">El poder de la comunidad (35%)</h2>
             <p class="text-body-sm text-text-secondary leading-relaxed">
-              Usamos <strong>K-Means</strong> para agrupar a todos los usuarios según sus perfiles de
-              preferencias. Tú quedas en el cluster que más se parece a ti.
+              Imagínate que encontramos a un grupo de personas en la ciudad a las que les gusta exactamente la misma comida que a ti.
+              Los agrupamos en "tribus gastronómicas".
             </p>
             <p class="text-body-sm text-text-secondary leading-relaxed mt-2">
-              Luego miramos qué lugares visitan (o califican bien) las personas de tu mismo grupo y
-              te los recomendamos. Esto se llama <em>filtrado colaborativo ítem-a-ítem</em> y pesa
-              <strong>35%</strong> del score final. Se activa cuando tienes al menos 5 interacciones.
+              Si alguien de tu misma tribu descubre un puesto de tacos increíble y le da 5 estrellas, EKI te avisará recomendándote ese mismo lugar. 
+              Es como tener cientos de amigos con tu mismo gusto pasándote tips. Esto pesa el <strong>35%</strong> de nuestro cálculo.
             </p>
           </div>
         </div>
@@ -122,22 +118,22 @@
             <span class="material-symbols-outlined" aria-hidden="true" style="font-size:20px;color:var(--success);">auto_awesome</span>
           </div>
           <div>
-            <h2 class="font-heading text-headline-sm text-primary mb-2">Boost contextual (25%)</h2>
+            <h2 class="font-heading text-headline-sm text-primary mb-2">Puntos extra por la ocasión (25%)</h2>
             <p class="text-body-sm text-text-secondary leading-relaxed">
-              Ajustamos el score final con factores del contexto:
+              No solo se trata de sabores, sino del momento y el lugar. Le damos un "empujoncito" al porcentaje final si el lugar cumple ciertas condiciones:
             </p>
-            <ul class="mt-2 space-y-2" role="list">
+            <ul class="mt-3 space-y-3" role="list">
               <li class="flex gap-2 text-body-sm text-text-secondary">
                 <span class="material-symbols-outlined text-text-tertiary flex-shrink-0" aria-hidden="true" style="font-size:16px;margin-top:2px;">near_me</span>
-                <span><strong class="text-primary">Proximidad</strong> — los lugares más cercanos a tu ubicación reciben un boost.</span>
+                <span><strong class="text-primary">Te queda cerca:</strong> Los lugares a los que puedes llegar rápido suman puntos.</span>
               </li>
               <li class="flex gap-2 text-body-sm text-text-secondary">
                 <span class="material-symbols-outlined text-accent flex-shrink-0" aria-hidden="true" style="font-size:16px;margin-top:2px;">storefront</span>
-                <span><strong class="text-primary">Puesto informal</strong> — los negocios informales reciben +0.25 fijo. Es nuestra misión hacerlos visibles.</span>
+                <span><strong class="text-primary">Apoya lo local:</strong> Los puestos y negocios informales reciben un premio fijo. Nuestra misión es hacer brillar a la comida callejera.</span>
               </li>
               <li class="flex gap-2 text-body-sm text-text-secondary">
                 <span class="material-symbols-outlined text-text-tertiary flex-shrink-0" aria-hidden="true" style="font-size:16px;margin-top:2px;">trending_up</span>
-                <span><strong class="text-primary">Popularidad reciente</strong> — lugares con muchas visitas en los últimos 7 días suben en el ranking.</span>
+                <span><strong class="text-primary">Están de moda:</strong> Los lugares de los que todo el mundo está hablando esta semana suben en tu ranking.</span>
               </li>
             </ul>
           </div>
@@ -151,11 +147,11 @@
             <span class="material-symbols-outlined text-text-tertiary" aria-hidden="true" style="font-size:20px;">explore</span>
           </div>
           <div>
-            <h2 class="font-heading text-headline-sm text-primary mb-2">Para empezar (cold start)</h2>
+            <h2 class="font-heading text-headline-sm text-primary mb-2">Tus primeros pasos</h2>
             <p class="text-body-sm text-text-secondary leading-relaxed">
-              Si eres nuevo o no tienes suficientes interacciones todavía, te asignamos
-              provisionalmente al cluster más parecido a tu perfil del onboarding y te mostramos
-              los lugares más populares de ese grupo. Así nunca ves una pantalla vacía.
+              Si acabas de crear tu cuenta y aún no hemos tenido tiempo de conocerte bien, te acomodamos provisionalmente
+              con la tribu que más se acerque a tus gustos iniciales y te mostramos lo que a ellos les encanta.
+              ¡Así nunca te quedas sin opciones ricas!
             </p>
           </div>
         </div>
@@ -165,21 +161,21 @@
         <!-- 5. Caja blanca -->
         <div class="flex gap-5">
           <div class="w-10 h-10 rounded-full bg-secondary-faint flex items-center justify-center flex-shrink-0 mt-1">
-            <span class="material-symbols-outlined text-secondary" aria-hidden="true" style="font-size:20px;">shield</span>
+            <span class="material-symbols-outlined text-secondary" aria-hidden="true" style="font-size:20px;">visibility</span>
           </div>
           <div>
-            <h2 class="font-heading text-headline-sm text-primary mb-2">Transparencia total</h2>
+            <h2 class="font-heading text-headline-sm text-primary mb-2">Cero secretos</h2>
             <p class="text-body-sm text-text-secondary leading-relaxed">
-              Cada tarjeta que ves en el feed muestra el desglose real del score:
-              cuánto aportó el análisis de tus gustos, cuánto tu comunidad y cuánto el boost.
-              No hay magia negra — solo matemáticas que puedes entender.
+              Cada recomendación en tu pantalla tiene un pequeño bloque que dice exactamente de dónde salió su calificación.
+              Podrás ver cuánto pesó tu gusto personal y cuánto pesó la comunidad. 
+              Sabrás por qué estás viendo lo que estás viendo.
             </p>
             <div class="bg-secondary-faint border border-secondary/20 rounded p-3 mt-3 flex items-start gap-2">
               <span class="material-symbols-outlined text-secondary" aria-hidden="true" style="font-size:16px;margin-top:2px;">shield</span>
               <div>
-                <p class="text-body-sm font-semibold text-secondary">Ejemplo real de un score</p>
+                <p class="text-body-sm font-semibold text-secondary">Ejemplo real en tu pantalla</p>
                 <p class="text-label-md text-text-tertiary mt-1">
-                  Contenido <strong>88%</strong> · Comunidad <strong>76%</strong> · Score final <strong>87%</strong>
+                  Tu Gusto <strong>88%</strong> · Tu Tribu <strong>76%</strong> · Match final <strong>87%</strong>
                 </p>
               </div>
             </div>

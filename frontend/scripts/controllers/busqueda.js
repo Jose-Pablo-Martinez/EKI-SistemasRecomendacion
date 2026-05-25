@@ -102,6 +102,17 @@ window.controllers.busqueda = async () => {
 
   const input = document.getElementById('busq-input');
   const clearBtn = document.getElementById('busq-clear');
+  
+  // Mostrar banner promocional si no tiene sesión iniciada
+  const guestBanner = document.getElementById('guest-banner');
+  if (guestBanner) {
+    if (!appState.isAuthenticated) {
+      guestBanner.classList.remove('hidden');
+    } else {
+      guestBanner.classList.add('hidden');
+    }
+  }
+
   if (!input) return;
 
   // Restaurar valor previo si lo había

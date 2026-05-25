@@ -31,6 +31,26 @@
   <div class="flex gap-2 flex-wrap mb-8" id="chips-container">
   </div>
 
+  <!-- Banner para usuarios no registrados -->
+  <div id="guest-banner" class="hidden relative mb-6 bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20 rounded-lg p-5 pr-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 fade-in shadow-sm">
+    <button onclick="document.getElementById('guest-banner').classList.add('hidden')" 
+            class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center text-text-tertiary hover:text-primary transition-colors rounded-full hover:bg-white/60 focus:outline-none focus:ring-2 focus:ring-accent/50" 
+            aria-label="Cerrar banner" title="Cerrar">
+      <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+    </button>
+    
+    <div class="flex-1">
+      <h3 class="font-heading text-headline-sm text-primary mb-1">¿Quieres recomendaciones personalizadas?</h3>
+      <p class="text-body-sm text-text-secondary leading-relaxed">Inicia sesión para guardar favoritos, descubrir tu porcentaje de Match y ganar recompensas.</p>
+    </div>
+    
+    <div class="flex-shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
+      <a href="#/registro" class="block text-center sm:inline-block bg-accent text-white px-6 py-2.5 rounded-md font-semibold text-label-md hover:bg-accent-hover transition-colors shadow-sm">
+        Crear cuenta gratis
+      </a>
+    </div>
+  </div>
+
   <!-- Resultados -->
   <div id="busq-resultados" role="list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
     <div class="flex flex-col items-center justify-center py-16 text-center col-span-full">
