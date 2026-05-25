@@ -2,7 +2,7 @@
 const _DIAS = { lunes:'Lunes', martes:'Martes', miercoles:'Miércoles', jueves:'Jueves', viernes:'Viernes', sabado:'Sábado', domingo:'Domingo' };
 const _DIAS_ORDEN = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
 
-// Helpers 
+// Utilidades
 function _starsE(rating) {
   return [1,2,3,4,5].map(i => `<span style="color:${i<=Math.round(rating||0)?'var(--warning-subtle)':'var(--border-default)'};">★</span>`).join('');
 }
@@ -162,7 +162,7 @@ async function _compartir(idEstab, nombre) {
   else { navigator.clipboard.writeText(url).then(() => showToast('Enlace copiado', 'success')); }
 }
 
-// Main Controller
+// Controlador Principal
 window.controllers.establecimiento = async (id) => {
   if (!id) { window.location.hash = '#/feed'; return; }
 

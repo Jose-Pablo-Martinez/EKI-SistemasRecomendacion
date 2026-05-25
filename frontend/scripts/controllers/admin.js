@@ -45,7 +45,7 @@ function _setAdminTab(id) {
   _ADMIN_TABS.forEach(t => {
     const btn = document.getElementById(`atab-${t.id}`);
     if (!btn) return;
-    // reset
+    // Reiniciar estilos
     btn.classList.remove('border-b-2','border-accent','text-primary','font-semibold','text-text-tertiary');
     if (t.id === id) {
       btn.classList.add('border-b-2','border-accent','text-primary','font-semibold');
@@ -102,7 +102,7 @@ async function _renderAdminTab(id) {
   }
 }
 
-// Card: establecimiento pendiente
+// Tarjeta: establecimiento pendiente
 function _cardEstab(e, idx) {
   const id = e.id_establecimiento;
   const tipoLabel = {
@@ -162,7 +162,7 @@ function _cardEstab(e, idx) {
     </div>`;
 }
 
-// Card: reseña pendiente 
+// Tarjeta: reseña pendiente
 function _cardResena(r, idx) {
   const id  = r.id_resena;
   const cal = r.calificacion || 0;
@@ -258,7 +258,7 @@ async function _moderar(tipo, id, accion, cardId) {
   }
 }
 
-// Tab Jobs
+// Pestaña Trabajos (Jobs)
 function _renderJobs(box) {
   box.innerHTML = `
     <div class="space-y-4">
@@ -337,12 +337,12 @@ async function _dispararJob(jobId, label) {
   }
 }
 
-// Main Controller
+// Controlador Principal
 window.controllers.admin = async () => {
   const loaded = await renderView('admin.html');
   if (!loaded) return;
 
-  // Guard
+  // Protección de acceso
   if (!appState.isAdmin) {
     document.getElementById('admin-restricted')?.classList.remove('hidden');
     document.getElementById('admin-restricted')?.classList.add('flex');

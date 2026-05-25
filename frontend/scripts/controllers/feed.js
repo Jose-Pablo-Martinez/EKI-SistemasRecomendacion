@@ -1,5 +1,5 @@
 
-// Mock data (Alineado con generador_recomendaciones.py)
+// Datos de prueba (Mock data) alineado con generador_recomendaciones.py
 const _MOCK_RECS = [
   { id_recomendacion:1, id_establecimiento:101, nombre_establecimiento:"Los Tacos de la Abuela Chole", categoria_recomendacion:"top_picks_hibrido", es_informal:true,  calificacion_promedio:4.9, total_resenas:147,  distancia_km:0.9, tipo_establecimiento:"puesto_informal", razon_principal:"El match perfecto para ti", detalle_razon:"Mezcla tus gustos, tu tribu y distancia cercana", score_total:0.98, score_contenido_usado:0.95, score_colaborativo_usado:0.94, score_boost_aplicado:0.99, estrategia_usada:"hibrido" },
   { id_recomendacion:2, id_establecimiento:102, nombre_establecimiento:"Cochinita Pibil Don Rubén",   categoria_recomendacion:"preferencia_contenido",  es_informal:false, calificacion_promedio:4.6, total_resenas:112, distancia_km:2.1, tipo_establecimiento:"local_comercial",  razon_principal:"Perfecto para tus gustos yucatecos", detalle_razon:"Alta similitud con tus preferencias de cocina regional",          score_total:0.87, score_contenido_usado:0.93, score_colaborativo_usado:0.78, score_boost_aplicado:0.80, estrategia_usada:"content_filter" },
@@ -21,7 +21,7 @@ const _SECCIONES = {
   cold_start:           { titulo:"Populares de la semana",    icono:"explore",       textura:false },
 };
 
-// Helpers
+// Utilidades
 function _stars(rating) {
   const r = rating || 0;
   return [1,2,3,4,5].map(i =>
@@ -155,7 +155,7 @@ async function _favFeed(idEstab, btn) {
   } catch(_) { showToast('No se pudo actualizar el favorito', 'error'); }
 }
 
-// Retry inteligente para Render spin-down (cold start ~20-30s)
+// Reintento inteligente para inicio en frío del servidor en Render (spin-down ~20-30s)
 async function _fetchRecomendacionesConRetry(maxIntentos = 4, delaySeg = 5) {
   for (let intento = 1; intento <= maxIntentos; intento++) {
     try {
@@ -184,7 +184,7 @@ function _mostrarEstadoDespertando(intento, delaySeg) {
     </div>`;
 }
 
-// Controller
+// Controlador Principal
 window.controllers.feed = async () => {
   if (!appState.location) {
     solicitarUbicacion()

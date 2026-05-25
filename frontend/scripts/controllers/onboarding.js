@@ -13,7 +13,7 @@ window.controllers.onboarding = async () => {
     const loaded = await renderView('onboarding.html');
     if (!loaded) return;
 
-    // Cache DOM Elements
+    // Elementos DOM
     const stepContainer = document.getElementById('step-container');
     const progressBar = document.getElementById('progress-bar');
     const stepIndicator = document.getElementById('step-indicator');
@@ -25,7 +25,7 @@ window.controllers.onboarding = async () => {
             categoriasData = await api.getCategorias() || [];
         } catch (err) {
             console.error("Error cargando categorías:", err);
-            // Mocks
+            // Datos de prueba (mocks)
             categoriasData = [
                 { id_categoria: 1, nombre: "Yucateca" },
                 { id_categoria: 2, nombre: "Antojitos" },
@@ -141,7 +141,7 @@ window.controllers.onboarding = async () => {
         if (step === 3) nextBtn.textContent = 'FINALIZAR';
         else nextBtn.textContent = 'SIGUIENTE';
 
-        // Rebind events for dynamic content
+        // Re-vincular eventos para contenido dinámico
         bindDynamicEvents();
     };
 
@@ -205,7 +205,7 @@ window.controllers.onboarding = async () => {
         }
     };
 
-    // Bind static events once
+    // Vincular eventos estáticos una vez
     prevBtn.addEventListener('click', () => {
         if (step > 1) { step--; renderCurrentStep(); }
     });

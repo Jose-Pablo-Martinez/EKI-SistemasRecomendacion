@@ -3,7 +3,7 @@
  * EkiSystem — Fase 4 Frontend
  */
 
-// Skeleton 
+// Esqueleto
 function _skelFavs(n) {
   return Array.from({length:n||4}, () => `
     <div class="bg-surface-raised border border-border-default rounded-md p-4 flex gap-4">
@@ -148,7 +148,7 @@ function _estadoVacio() {
     </div>`;
 }
 
-// Controller
+// Controlador Principal
 window.controllers.favoritos = async () => {
   const loaded = await renderView('favoritos.html');
   if (!loaded) return;

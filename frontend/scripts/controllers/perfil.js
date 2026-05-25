@@ -25,7 +25,7 @@ function _getPct(pts) {
   return Math.min(100, Math.round(((pts - r.min) / (r.max - r.min + 1)) * 100));
 }
 
-// Helpers 
+// Utilidades
 function _iniciales(nombre, apellido) {
   return ((nombre||'')[0] + (apellido||'')[0]).toUpperCase() || 'U';
 }
@@ -55,9 +55,9 @@ function _odometro(el, destino, ms) {
   requestAnimationFrame(tick);
 }
 
-// Skeleton will be loaded from view.
+// El esqueleto será cargado desde la vista.
 
-// Modal helpers
+// Utilidades de modal
 function _abrirModal(id)  { const m = document.getElementById(id); m?.classList.remove('hidden'); m?.classList.add('flex'); }
 function _cerrarModal(id) { const m = document.getElementById(id); m?.classList.add('hidden');    m?.classList.remove('flex'); }
 
@@ -111,7 +111,7 @@ async function _enviarLugar() {
     });
     showToast('¡Lugar enviado! Será revisado por el equipo.', 'success');
     _cerrarAgregarLugar();
-    // Reset form
+    // Limpiar formulario
     ['lugar-nombre','lugar-desc','lugar-dir'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
@@ -160,11 +160,11 @@ window.controllers.perfil = async () => {
     { label:'Miembro desde',   val: _fechaCorta(usuario.fecha_registro), icon:'calendar_month', numerico:false },
   ];
 
-  // Hide skeleton, show content
+  // Ocultar esqueleto, mostrar contenido
   document.getElementById('perfil-skeleton')?.classList.add('hidden');
   document.getElementById('perfil-content')?.classList.remove('hidden');
 
-  // Inject user info
+  // Inyectar información del usuario
   const avatarEl = document.getElementById('perfil-avatar');
   if (avatarEl) {
     avatarEl.textContent = iniciales;
@@ -174,7 +174,7 @@ window.controllers.perfil = async () => {
   document.getElementById('perfil-email').textContent = usuario.email || '';
   document.getElementById('perfil-tipo-label').textContent = tipoLabel;
 
-  // Actions
+  // Acciones
   const btnEditar = document.getElementById('btn-editar-perfil');
   if (btnEditar) {
     btnEditar.onclick = () => _abrirEdicion(usuario.nombre, usuario.apellido);
@@ -187,7 +187,7 @@ window.controllers.perfil = async () => {
     }
   }
 
-  // Rank Card
+  // Tarjeta de Rango
   document.getElementById('rango-icon').textContent = rango.icon;
   document.getElementById('rango-icon').style.color = rango.color;
   document.getElementById('rango-nombre').textContent = rango.nombre;
@@ -216,7 +216,7 @@ window.controllers.perfil = async () => {
       </div>`;
   }
 
-  // Stats
+  // Estadísticas
   const statsContainer = document.getElementById('stats-container');
   if (statsContainer) {
     statsContainer.innerHTML = stats.map(s => `
@@ -229,7 +229,7 @@ window.controllers.perfil = async () => {
       </div>`).join('');
   }
 
-  // History
+  // Historial
   const historialContainer = document.getElementById('historial-container');
   if (historialContainer) {
     historialContainer.innerHTML = histItems.length ? `

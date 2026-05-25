@@ -10,7 +10,7 @@ let _filtroActivo = '';
 let _searchTimeout = null;
 let _ultimaBusqueda = '';
 
-// Helpers 
+// Utilidades
 function _starsB(rating) {
   return [1,2,3,4,5].map(i =>
     `<span style="color:${i<=Math.round(rating||0)?'var(--warning-subtle)':'var(--border-default)'};">★</span>`
@@ -135,7 +135,7 @@ async function _ejecutarBusqueda(query) {
   }
 }
 
-// Main Controller
+// Controlador Principal
 window.controllers.busqueda = async () => {
 
   const loaded = await renderView('busqueda.html');

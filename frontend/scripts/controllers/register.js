@@ -22,7 +22,7 @@ window.controllers.register = async () => {
     const passError = document.getElementById('password-error');
     const confirmError = document.getElementById('password_confirm-error');
 
-    // Toggles Password Visibility
+    // Alternar visibilidad de contraseña
     const setupToggle = (btnId, inputElement, iconId) => {
         const btn = document.getElementById(btnId);
         const icon = document.getElementById(iconId);
@@ -125,7 +125,7 @@ window.controllers.register = async () => {
         try {
             await api.registro({ nombre, apellido, email, password, tipo_usuario: 'visitante' });
             
-            // Auto login
+            // Autenticación automática
             const loginData = await api.login(email, password);
             saveToken(loginData.access_token);
             await initState();
