@@ -69,7 +69,7 @@ def get_top_establecimientos(
             Establecimiento.es_activo == True,
             Establecimiento.estado == "aprobado"
         )
-        .order_by(MetricaEstablecimiento.score_boost_combinado.desc().nulls_last())
+        .order_by(MetricaEstablecimiento.score_boost_combinado.desc())
         .limit(limit)
     )
     return list(db.scalars(stmt).all())
