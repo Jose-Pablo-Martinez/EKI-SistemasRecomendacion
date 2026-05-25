@@ -4,10 +4,8 @@
  * Solo accesible para tipo_usuario === 'admin'
  */
 
-// Tabs 
 const _ADMIN_TABS = [
   { id:'establecimientos', label:'Establecimientos', icon:'storefront'  },
-  { id:'resenas',          label:'Reseñas',          icon:'rate_review'  },
   { id:'jobs',             label:'Jobs offline',      icon:'settings'     },
 ];
 let _adminTab = 'establecimientos';

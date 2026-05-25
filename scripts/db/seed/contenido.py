@@ -4,7 +4,7 @@ Genera asociaciones entre establecimientos y categorías/etiquetas, preferencias
 y vínculos de propietarios con sus establecimientos.
 """
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.mysql import insert
 from backend.models import (
@@ -101,9 +101,9 @@ def seed_vinculos_propietario(db: Session):
                 data_vinculos.append({
                     "id_propietario": prop.id_usuario,
                     "id_establecimiento": e.id_establecimiento,
-                    "estado": "aprobado" if prop.verificado else "pendiente",
-                    "fecha_aprobacion": datetime.utcnow() if prop.verificado else None,
-                    "id_admin_aprobacion": admin.id_usuario if prop.verificado else None
+                    "estado": "aprobado" if prop.verificado else "pendiente",  # type: ignore
+                    "fecha_aprobacion": datetime.now(timezone.utc) if prop.verificado else None,  # type: ignore
+                    "id_admin_aprobacion": admin.id_usuario if (prop.verificado and admin) else None  # type: ignore
                 })
                 
     if data_vinculos:

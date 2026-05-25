@@ -59,6 +59,11 @@ class Usuario(Base):
     historial_visitas = relationship("HistorialVisita", back_populates="usuario")
 
     @property
+    def total_resenas(self) -> int:
+        return sum(1 for r in self.resenas if r.estado == 'aprobado')
+
+
+    @property
     def perfil_completado(self) -> bool:
         """Helper para exponer el estado del onboarding directamente desde la entidad raíz."""
         if self.visitante:

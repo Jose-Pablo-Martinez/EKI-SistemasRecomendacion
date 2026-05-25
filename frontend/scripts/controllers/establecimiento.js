@@ -110,7 +110,7 @@ function _handleStarKeydown(e, n) {
   }
 }
 
-// Enviar reseña
+// Enviar o actualizar reseña
 async function _enviarResena(idEstab) {
   const cal = parseInt(document.getElementById('star-value')?.value || '0');
   const comentario = document.getElementById('resena-comentario')?.value?.trim();
@@ -120,14 +120,12 @@ async function _enviarResena(idEstab) {
   btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-base" style="font-size:16px;">progress_activity</span> Enviando...`;
   try {
     await api.crearResena(idEstab, { id_establecimiento:idEstab, calificacion:cal, comentario:comentario||null });
-    showToast('¡Reseña enviada! Será visible tras moderación.', 'success');
-    _selectStar(0);
-    if (document.getElementById('resena-comentario')) document.getElementById('resena-comentario').value = '';
+    showToast('¡Reseña guardada!', 'success');
+    setTimeout(() => location.reload(), 1500); // Reload to show updated reviews
   } catch(e) {
-    showToast(e.status===400||e.status===409 ? 'Ya dejaste una reseña para este lugar.' : 'No se pudo enviar la reseña.', 'warning');
-  } finally {
+    showToast('No se pudo enviar la reseña.', 'warning');
     btn.disabled = false;
-    btn.innerHTML = 'Enviar reseña';
+    btn.innerHTML = window._miResenaExistente ? 'Actualizar reseña' : 'Enviar reseña';
   }
 }
 
@@ -300,23 +298,32 @@ window.controllers.establecimiento = async (id) => {
           </div>
 
           <!-- Formulario de reseña -->
-          ${isAuth ? `
+          ${isAuth ? (() => {
+            const miResena = resenas.find(r => r.id_usuario === appState.user?.id_usuario);
+            window._miResenaExistente = !!miResena;
+            const botonTexto = miResena ? 'Actualizar reseña' : 'Enviar reseña';
+            const calif = miResena ? miResena.calificacion : 0;
+            const coment = miResena ? (miResena.comentario || '') : '';
+            // Llamar select star asincronamente después de renderizar
+            setTimeout(() => { if(calif) _selectStar(calif); }, 100);
+            return `
             <div class="bg-surface-raised border border-border-default rounded-md p-6">
-              <h3 class="font-heading text-headline-sm text-primary mb-4">Deja tu reseña</h3>
+              <h3 class="font-heading text-headline-sm text-primary mb-4">${miResena ? 'Edita tu reseña' : 'Deja tu reseña'}</h3>
               <p class="text-label-md text-text-secondary mb-2 uppercase tracking-wide">Tu calificación</p>
               ${_starsInteractivos()}
               <textarea id="resena-comentario" placeholder="Comparte tu experiencia (opcional)..." maxlength="1000"
                 class="w-full bg-surface-dim border border-border-default rounded p-3
                        text-body-sm text-text-primary placeholder:text-text-tertiary
                        focus:outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus/20
-                       resize-none h-24 mb-4 transition-colors"></textarea>
+                       resize-none h-24 mb-4 transition-colors">${coment}</textarea>
               <button id="btn-enviar-resena" onclick="_enviarResena(${estab.id_establecimiento})"
                 class="bg-accent text-white px-6 py-2.5 rounded font-semibold text-label-lg
                        hover:bg-accent-hover active:scale-95 transition-all shadow-sm
                        disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
-                Enviar reseña
+                ${botonTexto}
               </button>
-            </div>` : `
+            </div>`;
+          })() : `
             <div class="bg-surface-overlay border border-border-default rounded-md p-5 text-center">
               <p class="text-body-sm text-text-secondary">
                 <a href="#/login" class="text-secondary font-semibold hover:underline">Inicia sesión</a>

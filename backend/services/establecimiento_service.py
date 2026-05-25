@@ -1,3 +1,5 @@
+from datetime import timezone
+from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import Optional
@@ -36,7 +38,7 @@ def actualizar_establecimiento(db: Session, id_establecimiento: int, id_usuario:
         return None
     
     # Validación de auditoría: Solo el usuario que lo registró puede editar (simplificado para MVP)
-    if est.id_usuario_registro != id_usuario:
+    if est.id_usuario_registro != id_usuario:  # type: ignore
         return None
         
     data_dict = datos.model_dump(exclude_unset=True)
@@ -104,17 +106,36 @@ def registrar_interaccion(db: Session, id_usuario: int, datos: InteraccionUsuari
     return interaccion
 
 def crear_resena(db: Session, id_usuario: int, datos: ResenaCreate):
-    resena = Resena(
-        id_usuario=id_usuario,
-        id_establecimiento=datos.id_establecimiento,
-        calificacion=datos.calificacion,
-        comentario=datos.comentario,
-        estado='pendiente'
-    )
-    db.add(resena)
-    db.commit()
-    db.refresh(resena)
-    return resena
+    resena = db.query(Resena).filter_by(
+        id_usuario=id_usuario, 
+        id_establecimiento=datos.id_establecimiento
+    ).first()
+    
+    if resena:
+        resena.calificacion = datos.calificacion  # type: ignore
+        resena.comentario = datos.comentario  # type: ignore
+        resena.fecha_resena = datetime.now(timezone.utc)  # type: ignore
+        resena.estado = 'aprobado'  # type: ignore
+        db.commit()
+        db.refresh(resena)
+        return resena
+    else:
+        nueva_resena = Resena(
+            id_usuario=id_usuario,
+            id_establecimiento=datos.id_establecimiento,
+            calificacion=datos.calificacion,
+            comentario=datos.comentario,
+            estado='aprobado'
+        )
+        db.add(nueva_resena)
+        db.commit()
+        db.refresh(nueva_resena)
+        
+        # Otorgar puntos solo cuando es una nueva reseña
+        from backend.services.gamificacion_service import otorgar_puntos
+        otorgar_puntos(db, id_usuario, "crear_resena")
+        
+        return nueva_resena
 
 def toggle_favorito(db: Session, id_usuario: int, datos: FavoritoCreate):
     fav = db.query(FavoritoGuardado).filter_by(id_usuario=id_usuario, id_establecimiento=datos.id_establecimiento).first()

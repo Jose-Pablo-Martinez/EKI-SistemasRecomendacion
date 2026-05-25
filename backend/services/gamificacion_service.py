@@ -57,11 +57,27 @@ def otorgar_puntos(db: Session, id_usuario: int, accion: str, descripcion: str =
     )
     db.add(log)
     
-    # Actualizar desnormalizado
+    # Actualizar desnormalizado y rangos
     visitante = db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).first()
     if visitante:
         visitante.puntos_experiencia = visitante.puntos_experiencia + puntos  # type: ignore[assignment]
         
+        # Verificar subida de rango
+        from backend.models.catalogo import RangoInformador
+        nuevo_rango = db.query(RangoInformador).filter(
+            RangoInformador.puntos_minimos <= visitante.puntos_experiencia
+        ).order_by(RangoInformador.puntos_minimos.desc()).first()
+        
+        if nuevo_rango and (visitante.id_rango != nuevo_rango.id_rango):
+            visitante.id_rango = nuevo_rango.id_rango  # type: ignore[assignment]
+            # Opcional: registrar motivo 'subida_rango' en log_puntos para el historial
+            log_subida = LogPuntos(
+                id_usuario=id_usuario,
+                puntos=0,
+                motivo="subida_rango"
+            )
+            db.add(log_subida)
+            
     db.commit()
     logger.info(f"Otorgados {puntos} pts a {id_usuario} por {accion}")
 
