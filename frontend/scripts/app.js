@@ -80,11 +80,13 @@ function updateHeader() {
       ${appState.isAdmin ? '<a href="#/admin" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Admin</a>' : ''}
     `;
     userActions.innerHTML = `
-      <a href="#/favoritos" class="text-text-tertiary hover:text-accent transition-colors" title="Favoritos">❤️</a>
+      <a href="#/favoritos" class="text-text-tertiary hover:text-accent transition-colors flex items-center justify-center" title="Favoritos">
+        <span class="material-symbols-outlined" style="font-size: 20px;">favorite</span>
+      </a>
       <a href="#/perfil" class="w-8 h-8 rounded-full bg-primary-faint flex items-center justify-center text-text-secondary font-bold hover:ring-2 ring-accent transition-all" title="Perfil">
         ${appState.user?.nombre ? appState.user.nombre[0].toUpperCase() : 'U'}
       </a>
-      <button onclick="logout()" class="text-sm text-text-tertiary hover:text-accent">Salir</button>
+      <button onclick="confirmarLogout()" class="text-sm text-text-tertiary hover:text-accent">Cerrar sesión</button>
     `;
   } else {
     navMenu.innerHTML = `

@@ -27,7 +27,7 @@ const _SECCIONES = {
   preferencia_contenido: { titulo:"Basado en tus gustos",     icono:"favorite",     textura:false },
   colaborativo_cluster:  { titulo:"Usuarios como tú visitan", icono:"group",        textura:false },
   tendencia_informal:    { titulo:"Joyas Ocultas",            icono:"auto_awesome", textura:true  },
-  cold_start:            { titulo:"Para empezar",             icono:"explore",      textura:false },
+  cold_start:            { titulo:"Sugerencias según tus gustos", icono:"explore",      textura:false },
 };
 
 // Utilidades para el Feed se han movido a scripts/components/
@@ -84,11 +84,15 @@ async function _irEstab(idEstab, idRec) {
 
 // Render del feed a partir de datos 
 function _renderFeedData(recs) {
-  const grupos = {};
-  recs.forEach(r => {
-    if (!grupos[r.categoria_recomendacion]) grupos[r.categoria_recomendacion] = [];
-    grupos[r.categoria_recomendacion].push(r);
-  });
+  let grupos = {};
+  if (Array.isArray(recs)) {
+    recs.forEach(r => {
+      if (!grupos[r.categoria_recomendacion]) grupos[r.categoria_recomendacion] = [];
+      grupos[r.categoria_recomendacion].push(r);
+    });
+  } else {
+    grupos = recs;
+  }
 
   const orden = Object.keys(_SECCIONES);
   const extra  = Object.keys(grupos).filter(k => !_SECCIONES[k]);
@@ -99,7 +103,7 @@ function _renderFeedData(recs) {
 }
 
 // Estado vacío 
-function _estadoVacio() {
+function _feedEstadoVacio() {
   return `
     <div class="flex flex-col items-center justify-center py-24 text-center">
       <span class="material-symbols-outlined text-5xl text-text-tertiary mb-4" aria-hidden="true">restaurant</span>
@@ -201,7 +205,7 @@ async function _cargarConRetry(intento) {
     const recs = await api.getRecomendaciones();
     _cancelarRetry();
     const el = document.getElementById('feed-content');
-    if (el) el.innerHTML = recs?.length ? _renderFeedData(recs) : _estadoVacio();
+    if (el) el.innerHTML = (recs && Object.keys(recs).length) ? _renderFeedData(recs) : _feedEstadoVacio();
   } catch(err) {
     // Si el error parece ser de red/servidor (no 4xx del negocio), reintentar
     const esRed = !err.status || err.status === 0 || err.status >= 500;
@@ -247,7 +251,7 @@ window.controllers.feed = async () => {
   try {
     const recs = await api.getRecomendaciones();
     const el   = document.getElementById('feed-content');
-    if (el) el.innerHTML = recs?.length ? _renderFeedData(recs) : _estadoVacio();
+    if (el) el.innerHTML = (recs && Object.keys(recs).length) ? _renderFeedData(recs) : _feedEstadoVacio();
   } catch(err) {
     // Mostrar mock inmediatamente para que no haya pantalla en blanco
     const el = document.getElementById('feed-content');

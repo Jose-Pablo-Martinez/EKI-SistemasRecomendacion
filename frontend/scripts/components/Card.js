@@ -18,13 +18,21 @@ window.Card = {
    */
   // Tarjeta grande para el Feed
   renderFeed: (rec, delay = 0, onFavClick) => {
+    // Soporte para estructura plana (mock) y anidada (API)
+    const estab = rec.establecimiento || rec;
+    const nombre = estab.nombre || rec.nombre_establecimiento || 'Desconocido';
+    const es_informal = estab.es_informal;
+    const tipo = estab.tipo_establecimiento || 'restaurante';
+    const cal_prom = parseFloat(estab.calificacion_promedio) || 0;
+    const resenas = estab.total_resenas || 0;
+
     const score  = Math.round((rec.score_total||0) * 100);
     const distVal = parseFloat(rec.distancia_km);
     const dist   = !isNaN(distVal) ? `${distVal.toFixed(1)} km` : null;
     const img    = `https://picsum.photos/seed/${rec.id_establecimiento}/600/360`;
     const c      = Math.round((rec.score_contenido_usado||0) * 100);
     const col    = Math.round((rec.score_colaborativo_usado||0) * 100);
-    const calStr = (parseFloat(rec.calificacion_promedio)||0).toFixed(1);
+    const calStr = cal_prom.toFixed(1);
     
     // onClick para el fav
     const favClick = onFavClick 
@@ -58,7 +66,7 @@ window.Card = {
                aria-label="${score}% de compatibilidad">
             ${score}% match
           </div>
-          ${rec.es_informal ? `
+          ${es_informal ? `
             <div class="absolute top-3 left-3 bg-accent text-white text-label-sm px-2 py-0.5 rounded flex items-center gap-1">
               <span class="material-symbols-outlined" aria-hidden="true" style="font-size:12px;line-height:1;">storefront</span>
               Informal
@@ -69,13 +77,13 @@ window.Card = {
         <div class="p-4">
           <div class="flex items-start justify-between gap-2 mb-2">
             <h3 class="font-heading text-headline-sm text-primary leading-snug flex-1">
-              ${rec.nombre_establecimiento}
+              ${nombre}
             </h3>
             <button
               onclick="${favClick}"
               class="text-text-tertiary hover:text-accent transition-colors flex-shrink-0 mt-0.5
                      w-10 h-10 flex items-center justify-center rounded"
-              aria-label="Guardar ${rec.nombre_establecimiento} en favoritos"
+              aria-label="Guardar ${nombre} en favoritos"
               aria-pressed="false">
               <span class="material-symbols-outlined" aria-hidden="true" style="font-size:20px;">favorite</span>
             </button>
@@ -84,17 +92,17 @@ window.Card = {
           <!-- Meta -->
           <div class="flex items-center flex-wrap gap-x-3 gap-y-1 mb-3">
             <div class="flex items-center gap-1 text-sm"
-                 aria-label="${calStr} de 5 estrellas, ${rec.total_resenas||0} reseñas">
-              ${window.Stars.render(rec.calificacion_promedio)}
+                 aria-label="${calStr} de 5 estrellas, ${resenas} reseñas">
+              ${window.Stars.render(cal_prom)}
               <span class="text-numeric-sm text-text-secondary ml-1">${calStr}</span>
-              <span class="text-label-md text-text-tertiary">(${rec.total_resenas||0})</span>
+              <span class="text-label-md text-text-tertiary">(${resenas})</span>
             </div>
             ${dist ? `
               <span class="flex items-center gap-1 text-body-sm text-text-tertiary">
                 <span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px;line-height:1;">near_me</span>
                 ${dist}
               </span>` : ''}
-            ${rec.es_informal ? window.Badges.informal() : window.Badges.tipo(rec.tipo_establecimiento)}
+            ${es_informal ? window.Badges.informal() : window.Badges.tipo(tipo)}
           </div>
 
           <!-- Caja blanca -->
@@ -104,14 +112,14 @@ window.Card = {
                     aria-hidden="true"
                     style="font-size:15px;margin-top:2px;">shield</span>
               <div class="min-w-0">
-                <p class="text-body-sm font-semibold text-secondary leading-snug">${rec.razon_principal}</p>
-                <p class="text-label-md text-text-tertiary mt-0.5 leading-relaxed">${rec.detalle_razon}</p>
+                <p class="text-body-sm font-semibold text-secondary leading-snug">${rec.razon_principal === 'cold_start' ? 'Sugerencia inicial' : (rec.razon_principal || 'Sugerencia Inicial')}</p>
+                <p class="text-label-md text-text-tertiary mt-0.5 leading-relaxed">${rec.detalle_razon || 'Seleccionado para empezar'}</p>
                 <div class="flex gap-4 mt-2">
                   <span class="text-label-md text-text-tertiary">
-                    Contenido <strong class="text-secondary tabular-nums">${c}%</strong>
+                    <strong class="text-secondary font-semibold">${c}%</strong> contenido
                   </span>
                   <span class="text-label-md text-text-tertiary">
-                    Comunidad <strong class="text-secondary tabular-nums">${col}%</strong>
+                    <strong class="text-secondary font-semibold">${col}%</strong> colaborativo
                   </span>
                 </div>
               </div>

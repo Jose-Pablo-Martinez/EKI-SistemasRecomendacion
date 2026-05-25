@@ -103,8 +103,8 @@ window.controllers.onboarding = async () => {
             };
 
             stepHtml = `
-                <h2 class="text-2xl xl:text-4xl 2xl:text-5xl font-heading font-bold mb-4 xl:mb-8 text-primary text-center">¿Cuánto es tu presupuesto?</h2>
-                <p class="mb-6 xl:mb-10 text-text-secondary text-sm xl:text-lg 2xl:text-xl text-center">Selecciona tu presupuestos preferidos.</p>
+                <h2 class="text-2xl xl:text-4xl 2xl:text-5xl font-heading font-bold mb-4 xl:mb-8 text-primary text-center">¿Cuál es tu presupuesto?</h2>
+                <p class="mb-6 xl:mb-10 text-text-secondary text-sm xl:text-lg 2xl:text-xl text-center">Selecciona tus presupuestos preferidos (puedes elegir más de uno).</p>
                 <div class="flex flex-wrap justify-center gap-4 xl:gap-8 2xl:gap-10 mb-6 w-full">
                     ${["Popular", "Casual", "Premium"].map(p => `
                         <div class="price-card w-full sm:w-64 xl:w-80 bg-surface-raised border border-border-default rounded-md p-6 xl:p-10 flex flex-col items-center justify-center cursor-pointer hover:border-border-strong hover:-translate-y-1 transition-all ${preciosSeleccionados.includes(p) ? 'border-accent bg-accent-faint scale-[1.02] shadow-sm' : ''}" data-name="${p}">

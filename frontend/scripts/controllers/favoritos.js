@@ -71,7 +71,7 @@ function _actualizarBadge(delta) {
 }
 
 // Estado vacío
-function _estadoVacio() {
+function _favEstadoVacio() {
   return `
     <div class="flex flex-col items-center justify-center py-20 text-center">
       <span class="material-symbols-outlined text-5xl text-text-tertiary mb-4">heart_broken</span>
@@ -98,8 +98,9 @@ window.controllers.favoritos = async () => {
   try {
     let favoritos = [];
     try {
-      favoritos = await apiRequest('/usuarios/me/favoritos');
-    } catch(_) {
+      favoritos = await api.getFavoritos();
+    } catch (e) {
+      if(e.status !== 404) throw e;
       favoritos = [];
     }
 
@@ -107,11 +108,12 @@ window.controllers.favoritos = async () => {
     const badge  = document.getElementById('favs-badge');
     if (!lista) return;
 
-    if (!favoritos || !favoritos.length) {
-      lista.innerHTML = _estadoVacio();
+    if (!favoritos.length) {
+      lista.innerHTML = _favEstadoVacio();
+      if (badge) badge.style.display = 'none';
       return;
     }
-
+    
     if (badge) badge.textContent = favoritos.length;
     lista.innerHTML = favoritos.map((f, i) => _cardFav(f, i)).join('');
 

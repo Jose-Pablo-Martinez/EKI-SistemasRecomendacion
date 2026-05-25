@@ -68,7 +68,7 @@ window.controllers.login = async () => {
         if (hasError) return;
 
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin">progress_activity</span> Cargando...</div>';
+        submitBtn.innerHTML = '<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin">progress_activity</span> Iniciando sesión...</div>';
 
         try {
             const data = await api.login(email, password);

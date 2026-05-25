@@ -10,6 +10,8 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.schemas.establecimientos import EstablecimientoResponse
+
 
 # ─── Reseñas ──────────────────────────────────────────────────────────────────
 
@@ -145,6 +147,9 @@ class RecomendacionResponse(BaseModel):
     fue_clickeada: bool
     es_descubrimiento: bool
     diversity_score: Optional[Decimal] = None
+    
+    # Objeto anidado del establecimiento
+    establecimiento: Optional["EstablecimientoResponse"] = None
 
 
 # ─── Gamificación ─────────────────────────────────────────────────────────────

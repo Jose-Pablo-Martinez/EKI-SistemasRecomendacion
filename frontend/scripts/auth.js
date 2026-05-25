@@ -38,6 +38,12 @@ function logout() {
     window.location.hash = '#/';
 }
 
+function confirmarLogout() {
+    if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+        logout();
+    }
+}
+
 function requireAuth() {
     if (!isAuthenticated()) {
         window.location.hash = '#/login';

@@ -52,8 +52,11 @@ def aprobar_resena(db: Session, id_resena: int) -> bool:
     db.commit()
     return True
 
-def obtener_pendientes(db: Session):
+def obtener_establecimientos_pendientes(db: Session):
     return db.query(Establecimiento).filter(Establecimiento.estado == "pendiente").all()
+
+def obtener_resenas_pendientes(db: Session):
+    return db.query(Resena).filter(Resena.estado == "pendiente").all()
 
 def disparar_job(tipo_job: str):
     from backend.jobs.runner import run_job

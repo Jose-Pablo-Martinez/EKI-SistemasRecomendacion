@@ -91,9 +91,12 @@ const api = {
   registrarInteraccion: (id, tipo) => apiRequest(`/establecimientos/${id}/interaccion`, {
     method: 'POST', body: JSON.stringify({ id_establecimiento: id, tipo_interaccion: tipo })
   }),
-  toggleFavorito: (id, method) => apiRequest(`/establecimientos/${id}/favorito`, { method }),
+  toggleFavorito: (id, data) => apiRequest(`/establecimientos/${id}/favorito`, { 
+    method: 'POST', body: JSON.stringify(data || { id_establecimiento: id })
+  }),
   
   // Perfil
+  getFavoritos: () => apiRequest('/usuarios/me/favoritos'),
   getPerfil: () => apiRequest('/usuarios/me'),
   actualizarPerfil: (data) => apiRequest('/usuarios/me', {
     method: 'PATCH', body: JSON.stringify(data)
@@ -108,8 +111,8 @@ const api = {
   }),
   
   // Gamificación
-  getHistorialPuntos: () => apiRequest('/usuarios/puntos'),
-  getRango: () => apiRequest('/usuarios/rango'),
+  getHistorialPuntos: () => apiRequest('/gamificacion/historial'),
+  getRango: () => apiRequest('/gamificacion/mis-puntos'),
   
   // Contenido
   getCategorias: () => apiRequest('/contenido/categorias'),
