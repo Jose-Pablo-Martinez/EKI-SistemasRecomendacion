@@ -292,9 +292,12 @@ window.controllers.establecimiento = async (id) => {
                 </div>` : ''}
             </div>
 
-            ${resenas.length
-              ? `<div class="space-y-5">${resenas.map((r,i) => _resena(r,i)).join('')}</div>`
-              : `<p class="text-body-sm text-text-tertiary italic">Aún no hay reseñas aprobadas.</p>`}
+            ${(() => {
+              const otrasResenas = resenas.filter(r => r.id_usuario !== appState.user?.id_usuario);
+              return otrasResenas.length
+                ? `<div class="space-y-5">${otrasResenas.map((r,i) => _resena(r,i)).join('')}</div>`
+                : `<p class="text-body-sm text-text-tertiary italic">Aún no hay reseñas aprobadas.</p>`;
+            })()}
           </div>
 
           <!-- Formulario de reseña -->

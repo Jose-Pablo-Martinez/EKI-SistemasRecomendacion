@@ -50,9 +50,15 @@ def actualizar_establecimiento(db: Session, id_establecimiento: int, id_usuario:
     db.commit()
     db.refresh(est)
     return est
+from sqlalchemy.orm import selectinload
 
 def buscar_establecimientos(db: Session, query: Optional[str] = None, id_categoria: Optional[int] = None, id_colonia: Optional[int] = None, tipo_establecimiento: Optional[str] = None):
-    db_query = db.query(Establecimiento).filter(Establecimiento.estado == 'aprobado')
+    db_query = db.query(Establecimiento).options(
+        selectinload(Establecimiento.resenas).selectinload(Resena.usuario),
+        selectinload(Establecimiento.platillos),
+        selectinload(Establecimiento.horarios),
+        selectinload(Establecimiento.imagenes)
+    ).filter(Establecimiento.estado == 'aprobado')
     
     if query:
         db_query = db_query.filter(or_(

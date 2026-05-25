@@ -5,7 +5,7 @@ Schemas de creación y respuesta para establecimientos y su contenido asociado
 Categoría, Etiqueta).
 """
 from __future__ import annotations
-from datetime import datetime
+from datetime import datetime, time
 from decimal import Decimal
 from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
@@ -34,6 +34,18 @@ class EstablecimientoUpdate(BaseModel):
     id_colonia: Optional[int] = None
 
 
+class ResenaSimple(BaseModel):
+    """Esquema simple para reseñas anidadas y evitar importación circular."""
+    model_config = ConfigDict(from_attributes=True)
+    id_resena: int
+    id_usuario: int
+    id_establecimiento: int
+    calificacion: int
+    comentario: Optional[str] = None
+    fecha_resena: datetime
+    estado: str
+    nombre_usuario: Optional[str] = None
+
 class EstablecimientoResponse(BaseModel):
     """Datos públicos de un establecimiento aprobado."""
     model_config = ConfigDict(from_attributes=True)
@@ -52,6 +64,12 @@ class EstablecimientoResponse(BaseModel):
     total_resenas: int
     calificacion_promedio: Decimal
     fecha_registro: datetime
+    
+    # Relaciones cargadas dinámicamente para el frontend
+    resenas: list[ResenaSimple] = []
+    platillos: list["PlatilloResponse"] = []
+    horarios: list["HorarioResponse"] = []
+    imagenes: list["ImagenResponse"] = []
 
 
 class RestauranteCreate(BaseModel):
@@ -219,8 +237,8 @@ class HorarioResponse(BaseModel):
     id_horario: int
     id_establecimiento: int
     dia_semana: int
-    hora_apertura: Optional[str] = None
-    hora_cierre: Optional[str] = None
+    hora_apertura: Optional[time] = None
+    hora_cierre: Optional[time] = None
     cerrado: bool
 
 
