@@ -1,3 +1,8 @@
+"""
+Sembrador de usuarios.
+Crea perfiles para administradores, usuarios ideales (anclas de los clusters),
+usuarios visitantes comunes y propietarios, inicializando sus sesiones y ubicaciones.
+"""
 import uuid
 import random
 from datetime import datetime, timedelta, timezone

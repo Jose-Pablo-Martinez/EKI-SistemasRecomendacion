@@ -1,3 +1,8 @@
+"""
+Sembrador de interacciones y reseñas.
+Simula el comportamiento histórico de los usuarios al interactuar con establecimientos (vistas,
+favoritos, reseñas), dejando los datos preparados para los motores NLP y de métricas.
+"""
 import random
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
@@ -94,8 +99,8 @@ def seed_interacciones_normales_y_resenas(db: Session):
     reportes = []
     
     for u in usuarios:
-        # 3 a 5 interacciones por usuario
-        num_int = random.randint(3, 5)
+        # 5 a 10 interacciones por usuario para mayor volumen
+        num_int = random.randint(5, 10)
         uv = db.query(UsuarioVisitante).filter_by(id_usuario=u.id_usuario).first()
         # Sesión del usuario
         sesion = db.query(SesionUsuario).filter_by(id_usuario=u.id_usuario).first()
@@ -104,7 +109,13 @@ def seed_interacciones_normales_y_resenas(db: Session):
         for _ in range(num_int):
             e = random.choice(estabs_aprobados)
             t = random.choice(list(PESOS_INTERACCION.keys()))
-            fecha = datetime.now(timezone.utc) - timedelta(days=random.randint(1, 45))
+            
+            # 40% de probabilidad de ser reciente (últimos 7 días) para nutrir métricas de tendencias
+            if random.random() < 0.40:
+                dias_atras = random.randint(0, 7)
+            else:
+                dias_atras = random.randint(8, 45)
+            fecha = datetime.now(timezone.utc) - timedelta(days=dias_atras)
             
             interacciones.append({
                 "id_usuario": u.id_usuario,
@@ -120,18 +131,22 @@ def seed_interacciones_normales_y_resenas(db: Session):
                 # Distribución: 80% aprobado, 15% pdte, 5% rechazada
                 rand = random.random()
                 estado = "aprobado" if rand < 0.8 else ("pendiente" if rand < 0.95 else "rechazado")
+                # 30% de las aprobadas no se procesan para permitir testing del pipeline NLP
+                es_aprobado = (estado == "aprobado")
+                procesado = es_aprobado and (random.random() > 0.3)
+                
                 resenas.append({
                     "id_usuario": u.id_usuario,
                     "id_establecimiento": e.id_establecimiento,
                     "calificacion": random.randint(3, 5),
-                    "comentario": f"Comentario de prueba para {e.nombre}",
+                    "comentario": f"Excelente lugar, recomiendo {e.nombre} ampliamente.",
                     "fecha_resena": fecha,
                     "estado": estado,
                     "id_admin_revision": id_admin if estado != "pendiente" else None,
                     "fecha_revision": datetime.now(timezone.utc) if estado != "pendiente" else None,
-                    "polaridad": random.uniform(0.1, 0.9) if estado == "aprobado" else None,
-                    "subjetividad": random.uniform(0.1, 0.9) if estado == "aprobado" else None,
-                    "procesado_nlp": (estado == "aprobado")
+                    "polaridad": random.uniform(0.1, 0.9) if procesado else None,
+                    "subjetividad": random.uniform(0.1, 0.9) if procesado else None,
+                    "procesado_nlp": procesado
                 })
                 
             if t == "guardado_favorito":

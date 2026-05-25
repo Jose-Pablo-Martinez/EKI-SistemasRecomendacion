@@ -1,3 +1,9 @@
+"""
+Orquestador principal para la inyección de datos semilla en la base de datos EkiSystem.
+Maneja distintos modos de ejecución (catálogo, desarrollo, demo, limpiar) delegando
+la responsabilidad a los submódulos específicos de cada dominio, respetando el Principio
+de Responsabilidad Única (SRP).
+"""
 import os
 import sys
 import argparse
@@ -17,6 +23,7 @@ from scripts.db.seed.contenido import seed_contenido_completo
 from scripts.db.seed.interacciones import seed_interacciones_completo
 from scripts.db.seed.gamificacion import seed_gamificacion_completo
 from scripts.db.seed.recomendaciones import seed_recomendaciones_completo
+from scripts.db.seed.vectores import seed_vectores
 
 def run_catalogo(db: Session):
     print("=== Iniciando Seed de Catálogo ===")
@@ -43,6 +50,7 @@ def run_desarrollo(db: Session, force: bool = False):
         seed_interacciones_completo(db)
         seed_gamificacion_completo(db)
         seed_recomendaciones_completo(db)
+        seed_vectores(db)
         print("=== Seed de Desarrollo completado con éxito ===")
     except Exception as e:
         print(f"Error en el seed de desarrollo: {e}")
@@ -61,6 +69,7 @@ def run_demo(db: Session):
         seed_interacciones_completo(db)
         seed_gamificacion_completo(db)
         seed_recomendaciones_completo(db)
+        seed_vectores(db)
         print("=== Seed de DEMO completado con éxito ===")
     except Exception as e:
         print(f"Error en el seed de demo: {e}")

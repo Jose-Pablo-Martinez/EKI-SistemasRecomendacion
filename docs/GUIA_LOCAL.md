@@ -102,10 +102,10 @@ Después de aplicar las migraciones, las tablas existen pero **no tienen datos**
 Para poder desarrollar y probar el sistema (entrenar K-Means, etc.), inyectaremos un volumen alto de datos de prueba sintéticos:
 
 ```powershell
-python scripts/db/seed/seed.py --modo desarrollo
+python scripts/db/seed/seed_orquestador.py --modo desarrollo
 ```
 
-> **Tip de Mantenimiento:** Si durante el desarrollo necesitas reiniciar tu entorno y borrar los datos de prueba para empezar de cero, usa `python scripts/db/seed/seed.py --modo limpiar`.
+> **Tip de Mantenimiento:** Si durante el desarrollo necesitas reiniciar tu entorno y borrar los datos de prueba para empezar de cero, usa `python scripts/db/seed/seed_orquestador.py --modo limpiar`.
 
 Ver [docs/OPERATIONS.md](docs/OPERATIONS.md) §4 para el detalle de todos los comandos y modos del seed.
 

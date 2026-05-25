@@ -1,3 +1,8 @@
+"""
+Sembrador de contribuciones de contenido.
+Genera asociaciones entre establecimientos y categorías/etiquetas, preferencias de usuario
+y vínculos de propietarios con sus establecimientos.
+"""
 import random
 from datetime import datetime
 from sqlalchemy.orm import Session

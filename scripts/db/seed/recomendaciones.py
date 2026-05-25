@@ -1,3 +1,8 @@
+"""
+Sembrador de recomendaciones generadas.
+Simula el historial de visitas y las recomendaciones previas hechas por el sistema a los usuarios,
+lo que es útil para visualizar feeds iniciales antes de ejecutar el motor ML real.
+"""
 import random
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session

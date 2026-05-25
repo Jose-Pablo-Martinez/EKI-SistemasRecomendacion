@@ -197,6 +197,13 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
             from backend.engine.cold_start import get_cold_start_recommendations
             from backend.models.interacciones import RecomendacionGenerada
             
+            # Limpiar recomendaciones cold_start previas para evitar duplicados si se re-evalúa el perfil
+            db.query(RecomendacionGenerada).filter(
+                RecomendacionGenerada.id_usuario == id_usuario,
+                RecomendacionGenerada.categoria_recomendacion == "cold_start"
+            ).delete()
+            db.commit()
+            
             estabs_cold_start = get_cold_start_recommendations(db, visitante, limit=10)
             for i, estab in enumerate(estabs_cold_start):
                 nueva_rec = RecomendacionGenerada(

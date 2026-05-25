@@ -1,3 +1,8 @@
+"""
+Sembrador de gamificación.
+Asigna puntos de experiencia y registros (logs) por las contribuciones previas de los usuarios,
+actualizando sus niveles y recompensas simuladas.
+"""
 import random
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
