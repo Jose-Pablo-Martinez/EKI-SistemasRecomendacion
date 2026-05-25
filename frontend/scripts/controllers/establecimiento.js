@@ -2,10 +2,7 @@
 const _DIAS = { lunes:'Lunes', martes:'Martes', miercoles:'Miércoles', jueves:'Jueves', viernes:'Viernes', sabado:'Sábado', domingo:'Domingo' };
 const _DIAS_ORDEN = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
 
-// Utilidades
-function _starsE(rating) {
-  return [1,2,3,4,5].map(i => `<span style="color:${i<=Math.round(rating||0)?'var(--warning-subtle)':'var(--border-default)'};">★</span>`).join('');
-}
+// Las utilidades visuales (starsE) se movieron a scripts/components/
 
 function _fecha(str) {
   if (!str) return '';
@@ -135,20 +132,7 @@ async function _enviarResena(idEstab) {
 }
 
 // Acciones de botones
-async function _favEstab(idEstab) {
-  const btn = document.getElementById('btn-fav-estab');
-  const was = btn?.dataset.fav === 'true';
-  try {
-    await api.toggleFavorito(idEstab, was ? 'DELETE' : 'POST');
-    if (btn) {
-      btn.dataset.fav = was ? 'false' : 'true';
-      btn.querySelector('.material-symbols-outlined').textContent = was ? 'favorite' : 'favorite';
-      btn.querySelector('.material-symbols-outlined').style.color = was ? '' : 'var(--accent)';
-      btn.querySelector('._fav-label').textContent = was ? 'Guardar' : 'Guardado';
-    }
-    showToast(was ? 'Eliminado de favoritos' : '¡Guardado en favoritos!', was ? 'info' : 'success');
-  } catch(_) { showToast('No se pudo actualizar el favorito', 'error'); }
-}
+// _favEstab ha sido reemplazado por window.Favorite.toggle
 
 function _abrirMaps(idEstab, lat, lon) {
   api.registrarInteraccion(idEstab, 'abrir_maps').catch(()=>{});
@@ -216,7 +200,7 @@ window.controllers.establecimiento = async (id) => {
             </span>
             ${cal > 0 ? `
               <div class="flex items-center gap-1.5">
-                <span>${_starsE(cal)}</span>
+                <span>${window.Stars.render(cal)}</span>
                 <span class="text-numeric-sm text-text-secondary tabular-nums">${cal.toFixed(1)}</span>
                 <span class="text-label-md text-text-tertiary">(${totalR} reseñas)</span>
               </div>` : ''}
@@ -225,8 +209,9 @@ window.controllers.establecimiento = async (id) => {
 
         <!-- Botones de acción -->
         <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
-          <button id="btn-fav-estab" onclick="_favEstab(${estab.id_establecimiento})"
+          <button id="btn-fav-estab" onclick="window.Favorite.toggle(${estab.id_establecimiento}, this)"
             aria-label="Guardar en favoritos"
+            aria-pressed="false"
             class="flex items-center gap-1.5 px-3 py-2 rounded border border-border-default
                    text-body-sm text-text-secondary hover:border-accent hover:text-accent transition-all">
             <span class="material-symbols-outlined" style="font-size:17px;">favorite</span>

@@ -30,139 +30,12 @@ const _SECCIONES = {
   cold_start:            { titulo:"Para empezar",             icono:"explore",      textura:false },
 };
 
-// Utilidades
-function _stars(rating) {
-  const r = Math.round(rating || 0);
-  return [1,2,3,4,5]
-    .map(i => `<span aria-hidden="true" style="color:${i<=r?'var(--warning-subtle)':'var(--border-default)'};">★</span>`)
-    .join('');
-}
-
-function _informalBadge() {
-  return `<span class="inline-flex items-center gap-1 text-label-sm px-2 py-0.5 rounded bg-accent-faint text-accent border border-accent/30">
-    <span class="material-symbols-outlined" aria-hidden="true" style="font-size:11px;line-height:1;">storefront</span>
-    Puesto informal
-  </span>`;
-}
-
-function _tipoBadge(tipo) {
-  if (tipo === 'restaurante')     return `<span class="text-label-sm px-2 py-0.5 rounded bg-secondary-faint text-secondary border border-secondary/30">Restaurante</span>`;
-  if (tipo === 'local_comercial') return `<span class="text-label-sm px-2 py-0.5 rounded bg-surface-dim text-text-tertiary border border-border-default">Local</span>`;
-  return '';
-}
-
-// Skeleton 
-// Mismo HTML para carrusel y grid — el CSS define el ancho según contexto
-function _skeletons(n) {
-  return Array.from({length: n||3}, () => `
-    <div class="bg-surface-raised border border-border-default rounded-md overflow-hidden" aria-hidden="true">
-      <div class="skeleton w-full" style="aspect-ratio:16/9;"></div>
-      <div class="p-4 space-y-3">
-        <div class="skeleton h-5 rounded w-3/4"></div>
-        <div class="skeleton h-4 rounded w-1/3"></div>
-        <div class="skeleton h-14 rounded w-full"></div>
-      </div>
-    </div>`).join('');
-}
-
-// Tarjeta de recomendación
-function _tarjeta(rec, delay) {
-  const score  = Math.round((rec.score_total||0) * 100);
-  const dist   = rec.distancia_km ? `${rec.distancia_km.toFixed(1)} km` : null;
-  const img    = `https://picsum.photos/seed/${rec.id_establecimiento}/600/360`;
-  const c      = Math.round((rec.score_contenido_usado||0) * 100);
-  const col    = Math.round((rec.score_colaborativo_usado||0) * 100);
-  const calStr = (rec.calificacion_promedio||0).toFixed(1);
-
-  return `
-    <article
-      role="listitem"
-      class="bg-surface-raised border border-border-default rounded-md overflow-hidden
-             hover:border-border-strong hover:shadow-md transition-all duration-200
-             cursor-pointer group card-enter"
-      style="animation-delay:${delay}ms"
-      onclick="_irEstab(${rec.id_establecimiento}, ${rec.id_recomendacion})">
-
-      <!-- Imagen -->
-      <div class="relative overflow-hidden bg-surface-dim" style="aspect-ratio:16/9;">
-        <img src="${img}"
-             alt=""
-             aria-hidden="true"
-             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-             loading="lazy"
-             onerror="this.src='https://picsum.photos/600/360?grayscale'" />
-        <div class="absolute top-3 right-3 bg-primary/70 backdrop-blur-sm text-white
-                    text-label-md px-2 py-0.5 rounded font-bold tabular-nums"
-             aria-label="${score}% de compatibilidad">
-          ${score}% match
-        </div>
-        ${rec.es_informal ? `
-          <div class="absolute top-3 left-3 bg-accent text-white text-label-sm px-2 py-0.5 rounded flex items-center gap-1">
-            <span class="material-symbols-outlined" aria-hidden="true" style="font-size:12px;line-height:1;">storefront</span>
-            Informal
-          </div>` : ''}
-      </div>
-
-      <!-- Cuerpo -->
-      <div class="p-4">
-        <div class="flex items-start justify-between gap-2 mb-2">
-          <h3 class="font-heading text-headline-sm text-primary leading-snug flex-1">
-            ${rec.nombre_establecimiento}
-          </h3>
-          <button
-            onclick="event.stopPropagation(); _favFeed(${rec.id_establecimiento}, this)"
-            class="text-text-tertiary hover:text-accent transition-colors flex-shrink-0 mt-0.5
-                   w-10 h-10 flex items-center justify-center rounded"
-            aria-label="Guardar ${rec.nombre_establecimiento} en favoritos"
-            aria-pressed="false">
-            <span class="material-symbols-outlined" aria-hidden="true" style="font-size:20px;">favorite</span>
-          </button>
-        </div>
-
-        <!-- Meta -->
-        <div class="flex items-center flex-wrap gap-x-3 gap-y-1 mb-3">
-          <div class="flex items-center gap-1 text-sm"
-               aria-label="${calStr} de 5 estrellas, ${rec.total_resenas||0} reseñas">
-            ${_stars(rec.calificacion_promedio)}
-            <span class="text-numeric-sm text-text-secondary ml-1">${calStr}</span>
-            <span class="text-label-md text-text-tertiary">(${rec.total_resenas||0})</span>
-          </div>
-          ${dist ? `
-            <span class="flex items-center gap-1 text-body-sm text-text-tertiary">
-              <span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px;line-height:1;">near_me</span>
-              ${dist}
-            </span>` : ''}
-          ${rec.es_informal ? _informalBadge() : _tipoBadge(rec.tipo_establecimiento)}
-        </div>
-
-        <!-- Caja blanca -->
-        <div class="bg-secondary-faint border border-secondary/20 rounded p-3">
-          <div class="flex items-start gap-2">
-            <span class="material-symbols-outlined text-secondary flex-shrink-0"
-                  aria-hidden="true"
-                  style="font-size:15px;margin-top:2px;">shield</span>
-            <div class="min-w-0">
-              <p class="text-body-sm font-semibold text-secondary leading-snug">${rec.razon_principal}</p>
-              <p class="text-label-md text-text-tertiary mt-0.5 leading-relaxed">${rec.detalle_razon}</p>
-              <div class="flex gap-4 mt-2">
-                <span class="text-label-md text-text-tertiary">
-                  Contenido <strong class="text-secondary tabular-nums">${c}%</strong>
-                </span>
-                <span class="text-label-md text-text-tertiary">
-                  Comunidad <strong class="text-secondary tabular-nums">${col}%</strong>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </article>`;
-}
+// Utilidades para el Feed se han movido a scripts/components/
 
 // Sección con carrusel en móvil
 function _seccionFeed(cat, items) {
   const cfg   = _SECCIONES[cat] || { titulo: cat, icono:'restaurant', textura:false };
-  const cards = items.map((r, i) => _tarjeta(r, i * 70)).join('');
+  const cards = items.map((r, i) => window.Card.renderFeed(r, i * 70, 'window.Favorite.toggle')).join('');
 
   const inner = `
     <div class="flex items-center justify-between mb-5">
@@ -204,22 +77,7 @@ async function _irEstab(idEstab, idRec) {
   window.location.hash = `#/establecimiento/${idEstab}`;
 }
 
-async function _favFeed(idEstab, btn) {
-  const was = btn.getAttribute('aria-pressed') === 'true';
-  try {
-    await api.toggleFavorito(idEstab, was ? 'DELETE' : 'POST');
-    btn.setAttribute('aria-pressed', String(!was));
-    btn.setAttribute('aria-label',
-      was
-        ? `Guardar en favoritos`
-        : `Quitar de favoritos`
-    );
-    btn.querySelector('.material-symbols-outlined').style.color = was ? '' : 'var(--accent)';
-    showToast(was ? 'Eliminado de favoritos' : '¡Guardado en favoritos!', was ? 'info' : 'success');
-  } catch(_) {
-    showToast('No se pudo actualizar el favorito', 'error');
-  }
-}
+// _favFeed eliminado porque ahora usamos window.Favorite.toggle
 
 
 // Render del feed a partir de datos 
@@ -264,17 +122,17 @@ function _shellSkel() {
         <div class="skeleton h-7 w-44 rounded"></div>
       </div>
       <!-- móvil -->
-      <div class="eki-carousel md:hidden">${_skeletons(3)}</div>
+      <div class="eki-carousel md:hidden">${window.Skeletons.renderFeed(3)}</div>
       <!-- desktop -->
-      <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-5">${_skeletons(3)}</div>
+      <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-5">${window.Skeletons.renderFeed(3)}</div>
     </section>
     <section class="mb-14" aria-hidden="true">
       <div class="flex items-center gap-3 mb-5">
         <div class="skeleton w-6 h-6 rounded"></div>
         <div class="skeleton h-7 w-56 rounded"></div>
       </div>
-      <div class="eki-carousel md:hidden">${_skeletons(3)}</div>
-      <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-5">${_skeletons(3)}</div>
+      <div class="eki-carousel md:hidden">${window.Skeletons.renderFeed(3)}</div>
+      <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-5">${window.Skeletons.renderFeed(3)}</div>
     </section>`;
 }
 

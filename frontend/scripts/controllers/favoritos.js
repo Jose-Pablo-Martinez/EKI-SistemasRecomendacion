@@ -3,93 +3,32 @@
  * EkiSystem — Fase 4 Frontend
  */
 
-// Esqueleto
-function _skelFavs(n) {
-  return Array.from({length:n||4}, () => `
-    <div class="bg-surface-raised border border-border-default rounded-md p-4 flex gap-4">
-      <div class="skeleton w-16 h-16 rounded flex-shrink-0"></div>
-      <div class="flex-1 space-y-2 py-1">
-        <div class="skeleton h-4 rounded w-3/4"></div>
-        <div class="skeleton h-3 rounded w-1/3"></div>
-        <div class="skeleton h-3 rounded w-1/2"></div>
-      </div>
-    </div>`).join('');
-}
+// Esqueleto para favoritos se usa desde scripts/components/Skeletons.js
 
-// Tarjeta de favorito 
+// Tarjeta de favorito
 function _cardFav(fav, idx) {
-  // La respuesta puede venir como { establecimiento: {...}, fecha_guardado: ... }
-  // o directamente como el objeto del establecimiento
-  const e   = fav.establecimiento || fav;
-  const id  = e.id_establecimiento || fav.id_establecimiento;
-  const cal = e.calificacion_promedio || 0;
-  const img = `https://picsum.photos/seed/${id}/128/128`;
-
-  const tipoLabel = {
-    puesto_informal: 'Puesto informal',
-    restaurante:     'Restaurante',
-    local_comercial: 'Local',
-  }[e.tipo_establecimiento] || '';
-
+  const e = fav.establecimiento || fav;
+  const id = e.id_establecimiento || fav.id_establecimiento;
   const fechaGuardada = fav.fecha_guardado
     ? new Date(fav.fecha_guardado).toLocaleDateString('es-MX', { day:'numeric', month:'short', year:'numeric' })
     : null;
 
-  const starsHtml = [1,2,3,4,5]
-    .map(i => `<span style="color:${i<=Math.round(cal)?'var(--warning-subtle)':'var(--border-default)'};">★</span>`)
-    .join('');
-
-  return `
-    <div id="fav-${id}" role="listitem"
-         class="bg-surface-raised border border-border-default rounded-md p-4 flex gap-4
-                hover:border-border-strong transition-all duration-150 group card-enter"
-         style="animation-delay:${idx*50}ms">
-
-      <!-- Miniatura -->
-      <div class="w-16 h-16 rounded bg-surface-dim flex-shrink-0 overflow-hidden cursor-pointer"
-           onclick="window.location.hash='#/establecimiento/${id}'"
-           aria-label="Ver ${e.nombre}">
-        <img src="${img}" alt="${e.nombre || ''}"
-          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          loading="lazy"
-          onerror="this.src='https://picsum.photos/128/128?grayscale'" />
-      </div>
-
-      <!-- Info -->
-      <div class="flex-1 min-w-0 cursor-pointer"
-           onclick="window.location.hash='#/establecimiento/${id}'">
-        <div class="flex items-start gap-2 mb-0.5">
-          <h3 class="font-heading text-headline-sm text-primary truncate flex-1">${e.nombre || 'Establecimiento'}</h3>
-          ${e.es_informal
-            ? `<span class="text-label-sm px-1.5 py-0.5 rounded bg-accent-faint text-accent border border-accent/30 flex-shrink-0 whitespace-nowrap">Informal</span>`
-            : ''}
+  const extraHtml = fechaGuardada ? `<p class="text-label-md text-text-tertiary mt-2">Guardado el ${fechaGuardada}</p>` : '';
+  
+  // Envolvemos el renderCompact de la tarjeta con el botón de quitar favorito.
+  const innerCard = window.Card.renderCompact(e, idx, true, extraHtml);
+  
+  // Reemplazamos la etiqueta de cierre </article> para inyectar nuestro botón custom.
+  return innerCard.replace('</article>', `
+        <!-- Acciones -->
+        <div class="flex flex-col items-end justify-between ml-2 flex-shrink-0">
+          <button type="button" aria-label="Quitar de favoritos"
+            onclick="event.stopPropagation(); _quitarFav(${id})"
+            class="text-text-tertiary hover:text-accent p-2 -mr-2 rounded-full hover:bg-accent-faint transition-colors focus-visible">
+            <span class="material-symbols-outlined" style="font-size:20px;">heart_broken</span>
+          </button>
         </div>
-        <p class="text-body-sm text-text-secondary">${tipoLabel}</p>
-        <div class="flex items-center flex-wrap gap-x-3 gap-y-0.5 mt-1">
-          ${cal > 0 ? `
-            <div class="flex items-center gap-1 text-sm">
-              ${starsHtml}
-              <span class="text-numeric-sm text-text-secondary tabular-nums ml-1">${cal.toFixed(1)}</span>
-              ${e.total_resenas ? `<span class="text-label-md text-text-tertiary">(${e.total_resenas})</span>` : ''}
-            </div>` : ''}
-          ${fechaGuardada
-            ? `<span class="text-label-md text-text-tertiary flex items-center gap-1">
-                 <span class="material-symbols-outlined" style="font-size:12px;line-height:1;">bookmark</span>
-                 ${fechaGuardada}
-               </span>`
-            : ''}
-        </div>
-      </div>
-
-      <!-- Quitar -->
-      <button
-        onclick="_quitarFav(${id})"
-        aria-label="Quitar ${e.nombre || 'este lugar'} de favoritos"
-        title="Quitar de favoritos"
-        class="flex-shrink-0 text-text-tertiary hover:text-accent transition-colors self-start mt-0.5">
-        <span class="material-symbols-outlined" style="font-size:20px;">heart_minus</span>
-      </button>
-    </div>`;
+      </article>`);
 }
 
 // Quitar favorito 
@@ -154,7 +93,7 @@ window.controllers.favoritos = async () => {
   if (!loaded) return;
 
   const lista = document.getElementById('favs-lista');
-  if (lista) lista.innerHTML = _skelFavs(4);
+  if (lista)  lista.innerHTML = window.Skeletons.renderCompact(4);
 
   try {
     let favoritos = [];
