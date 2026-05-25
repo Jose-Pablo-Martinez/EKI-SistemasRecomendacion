@@ -5,20 +5,17 @@ Responsabilidad:
     Proveer recomendaciones para usuarios nuevos sin historial de interacciones,
     y gestionar la visibilidad inicial de establecimientos recién registrados.
 
-Estrategia de cold start (ver §1.2 Fase 2 de EkiSystem_DB_Design.md):
+Estrategia de cold start (Implementada con modificaciones de EkiSystem_DB_Design.md:)
 
     1. Clustering offline previo: los centroides de cluster_usuario ya existen.
     2. Al registrarse, el usuario completa el onboarding → se construye
        vector_preferencias desde sus preferencias declaradas.
     3. Se calcula la distancia euclidiana entre vector_preferencias y cada
        centroide de cluster_usuario para asignar el cluster provisional.
-    4. Las recomendaciones iniciales son:
-       - Popularidad dentro del cluster (metrica_establecimiento.popularidad_7d)
-       - Filtrado por contenido desde preferencias declaradas (sin colaborativo)
-    5. El componente colaborativo se activa cuando perfil_completado=TRUE
+    4. El componente colaborativo se activa cuando perfil_completado=TRUE
        y el usuario acumula suficientes interacciones (N configurable).
 
-Nota arquitectónica (§1.7 — Offline-First):
+Nota arquitectónica (Estrategia Offline-First):
     La asignación de cluster (paso 3) se puede hacer ONLINE al registrarse
     porque solo requiere calcular distancias a los centroides ya pre-computados.
     El K-Means completo (reentrenamiento) es OFFLINE.
@@ -35,10 +32,9 @@ from backend.models import Establecimiento, MetricaEstablecimiento
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
     from backend.models import UsuarioVisitante, ClusterUsuario
-
 logger = logging.getLogger(__name__)
 
-# ─── Constantes de Cold Start ─────────────────────────────────────────────────
+# Constantes para el Cold Start
 COLD_START_LIMIT: int = 10              # Resultados para usuarios nuevos
 MIN_INTERACCIONES_COLABORATIVO: int = 5 # Umbral para activar componente colaborativo
 
@@ -73,12 +69,12 @@ def get_cold_start_recommendations(
     )
     stmt = (
         select(Establecimiento)
-        .join(MetricaEstablecimiento, Establecimiento.id_establecimiento == MetricaEstablecimiento.id_establecimiento)
+        .outerjoin(MetricaEstablecimiento, Establecimiento.id_establecimiento == MetricaEstablecimiento.id_establecimiento)
         .where(
             Establecimiento.es_activo == True,
             Establecimiento.estado == "aprobado"
         )
-        .order_by(MetricaEstablecimiento.popularidad_7d.desc().nulls_last())
+        .order_by(MetricaEstablecimiento.popularidad_7d.desc())
         .limit(limit)
     )
     return list(db.scalars(stmt).all())

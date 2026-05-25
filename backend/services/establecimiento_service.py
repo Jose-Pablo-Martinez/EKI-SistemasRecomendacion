@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from typing import Optional
 
-from backend.models.establecimientos import Establecimiento, Platillo, Imagen, Horario
+from backend.models.establecimientos import Establecimiento, Platillo, Imagen, Horario, EstablecimientoCategoria
 from backend.models.interacciones import InteraccionUsuario, Resena, FavoritoGuardado, Reporte
 from backend.engine.collab_filter import compute_peso_interaccion
 from backend.schemas.establecimientos import EstablecimientoCreate, EstablecimientoUpdate, HorarioCreate, PlatilloCreate, ImagenCreate
@@ -33,7 +34,10 @@ def actualizar_establecimiento(db: Session, id_establecimiento: int, id_usuario:
     if not est:
         return None
     
-    # En un sistema real se validaría que el usuario es propietario o admin.
+    # Validación de auditoría: Solo el usuario que lo registró puede editar (simplificado para MVP)
+    if est.id_usuario_registro != id_usuario:
+        return None
+        
     data_dict = datos.model_dump(exclude_unset=True)
     for key, value in data_dict.items():
         if hasattr(est, key):
@@ -43,7 +47,7 @@ def actualizar_establecimiento(db: Session, id_establecimiento: int, id_usuario:
     db.refresh(est)
     return est
 
-def buscar_establecimientos(db: Session, query: str = None, id_categoria: int = None, id_colonia: int = None):
+def buscar_establecimientos(db: Session, query: Optional[str] = None, id_categoria: Optional[int] = None, id_colonia: Optional[int] = None, tipo_establecimiento: Optional[str] = None):
     db_query = db.query(Establecimiento).filter(Establecimiento.estado == 'aprobado')
     
     if query:
@@ -52,9 +56,15 @@ def buscar_establecimientos(db: Session, query: str = None, id_categoria: int = 
             Establecimiento.descripcion.ilike(f"%{query}%")
         ))
         
-    # Asumiendo relaciones configuradas si no están, se puede obviar id_categoria por simplicidad, pero lo implementaremos si es posible.
+    # Auditoría Fase 1: Implementación del filtro por categoría faltante
+    if id_categoria:
+        db_query = db_query.filter(Establecimiento.categorias.any(EstablecimientoCategoria.id_categoria == id_categoria))
+        
     if id_colonia:
         db_query = db_query.filter(Establecimiento.id_colonia == id_colonia)
+        
+    if tipo_establecimiento == 'puesto_informal':
+        db_query = db_query.filter(Establecimiento.tipo_establecimiento == 'puesto_informal')
         
     return db_query.all()
 

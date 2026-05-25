@@ -5,14 +5,14 @@ Responsabilidad:
     Calcular scores colaborativos item-to-item dentro del cluster del usuario
     para generar recomendaciones de la categoría 'colaborativo_cluster'.
 
-Método (ver §1.2 Fase 3 de EkiSystem_DB_Design.md):
+Método (implementación basada en Fase 3 de EkiSystem_DB_Design.md):
 
     Enfoque: Item-Based Collaborative Filtering dentro del cluster.
 
     score_colaborativo = frecuencia_aparicion_en_listas_de_usuarios_similares
                          (acotado al id_cluster del usuario)
 
-    Ventajas de Item-Based vs User-Based (ver §1.2):
+    Ventajas de Item-Based vs User-Based:
     - Los establecimientos cambian menos que los usuarios → similitudes más estables.
     - Escala mejor con grandes volúmenes de usuarios.
     - El clustering reduce el espacio de búsqueda: solo se compara dentro del cluster.
@@ -27,7 +27,7 @@ Método (ver §1.2 Fase 3 de EkiSystem_DB_Design.md):
         resena_dejada     = 1.0
         ruta_calculada    = 0.9
 
-Nota arquitectónica (§1.7 — Offline-First):
+Nota arquitectónica (Estrategia Offline-First):
     El score_colaborativo_base en metrica_establecimiento se calcula OFFLINE.
     El job offline construye la matriz de interacciones ponderada SOLO sobre
     los últimos 90 días (ver §6.2) y dentro del cluster del usuario.

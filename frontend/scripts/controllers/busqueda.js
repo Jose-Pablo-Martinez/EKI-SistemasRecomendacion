@@ -1,13 +1,174 @@
-window.controllers.busqueda = () => {
-    renderPage(`
-        <div class="flex-1 flex flex-col items-center p-8 w-full max-w-5xl mx-auto">
-            <h1 class="font-heading text-headline-lg text-primary mb-6">Buscar</h1>
-            <div class="w-full max-w-2xl bg-surface-raised p-4 rounded-md shadow-sm border border-border-default mb-8">
-                <input type="text" placeholder="¿Qué se te antoja hoy?" class="w-full bg-surface-sunken border border-border-default text-text-primary rounded-md px-4 py-3 focus:outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus/30" />
-            </div>
-            <div class="w-full text-left">
-                <p class="text-text-secondary mb-4">[Resultados de búsqueda en desarrollo...]</p>
-            </div>
+
+const _FILTROS = [
+  { valor:'',               label:'Todos',      icono:'apps'       },
+  { valor:'puesto_informal',label:'Informales', icono:'storefront' },
+  { valor:'restaurante',    label:'Restaurantes',icono:'restaurant' },
+  { valor:'local_comercial',label:'Locales',    icono:'shop'       },
+];
+
+let _filtroActivo = '';
+let _searchTimeout = null;
+let _ultimaBusqueda = '';
+
+// Utilidades para la búsqueda se han unificado en scripts/components/
+
+// Renderizar resultados
+function _renderResultadosHTML(items, query) {
+  if (!items || !items.length) {
+    return `
+      <div class="flex flex-col items-center justify-center py-16 text-center col-span-full fade-in">
+        <span class="material-symbols-outlined text-4xl text-text-tertiary mb-3">search_off</span>
+        <p class="font-heading text-headline-sm text-primary mb-1">Sin resultados para "${query}"</p>
+        <p class="text-body-sm text-text-secondary">Prueba con otro término o cambia los filtros.</p>
+      </div>`;
+  }
+  return items.map((e, i) => window.Card.renderCompact(e, i, false)).join('');
+}
+
+// Ejecutar búsqueda
+async function _ejecutarBusqueda(query) {
+  const el = document.getElementById('busq-resultados');
+  if (!el) return;
+
+  _ultimaBusqueda = query;
+  el.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 col-span-full" role="list">${window.Skeletons.renderCompact(4)}</div>`;
+
+  try {
+    const params = { tipo: _filtroActivo };
+    const response = await api.buscar(query, params);
+    if (_ultimaBusqueda !== query) return; // busqueda obsoleta
+    
+    let items = response.resultados || [];
+    const sugerencia = response.sugerencia_correccion;
+    const isInitialState = (!query || query.length < 2);
+    
+    if (isInitialState) {
+      // Tomamos de 15 resultados aleatorios si la búsqueda está vacía
+      items = items.sort(() => 0.5 - Math.random()).slice(0, 15);
+    }
+    
+    let html = '';
+    
+    if (isInitialState) {
+      html += `
+        <div class="flex flex-col items-center justify-center py-8 px-4 text-center col-span-full mb-6 bg-surface-raised border border-border-default rounded-md shadow-sm fade-in">
+          <span class="material-symbols-outlined text-5xl text-text-tertiary mb-3">restaurant_menu</span>
+          <p class="font-heading text-headline-sm text-primary mb-2">¿Qué se te antoja hoy?</p>
+          <p class="text-body-sm text-text-secondary">Escribe al menos 2 letras para buscar opciones específicas, o explora estas sugerencias iniciales.</p>
+        </div>`;
+    }
+    
+    // Renderizado del banner de Corrección Ortográfica (Levenshtein)
+    if (sugerencia && !isInitialState) {
+      html += `
+        <div class="col-span-full bg-accent-faint border border-accent/30 text-accent rounded-md p-4 mb-2 flex items-center gap-3 fade-in cursor-pointer hover:bg-accent/10 transition-colors shadow-sm" 
+             onclick="document.getElementById('busq-input').value='${sugerencia}'; _clearTimeout=_searchTimeout; _ultimaBusqueda='${sugerencia}'; _ejecutarBusqueda('${sugerencia}')">
+          <span class="material-symbols-outlined" style="font-size:24px;">spellcheck</span>
+          <p class="font-medium text-body-md">No encontramos "${query}". ¿Quizás quisiste decir <strong class="underline">${sugerencia}</strong>?</p>
         </div>
-    `);
+      `;
+    }
+    
+    html += _renderResultadosHTML(items, query);
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-12 text-center col-span-full">
+        <span class="material-symbols-outlined text-4xl text-text-tertiary mb-3">wifi_off</span>
+        <p class="text-body-sm text-text-secondary mb-4">No se pudo conectar al servidor.</p>
+        <button onclick="_ejecutarBusqueda('${query}')"
+          class="bg-accent text-white px-4 py-2 rounded font-semibold text-label-lg hover:bg-accent-hover transition-colors">
+          Reintentar
+        </button>
+      </div>`;
+  }
+}
+
+// Controlador Principal
+window.controllers.busqueda = async () => {
+
+  const loaded = await renderView('busqueda.html');
+  if (!loaded) return;
+
+  const chipsContainer = document.getElementById('chips-container');
+  if (chipsContainer) {
+    chipsContainer.innerHTML = _FILTROS.map(f => `
+      <button
+        data-tipo="${f.valor}"
+        onclick="_setFiltro('${f.valor}')"
+        class="chip-filtro flex items-center gap-1.5 px-4 py-2 rounded-full border text-label-lg transition-all
+              ${_filtroActivo === f.valor
+                ? 'bg-primary text-white border-primary'
+                : 'bg-surface-raised border-border-default text-text-secondary hover:border-border-strong hover:text-primary'}">
+        <span class="material-symbols-outlined" style="font-size:15px;line-height:1;">${f.icono}</span>
+        ${f.label}
+      </button>`).join('');
+  }
+
+  const input = document.getElementById('busq-input');
+  const clearBtn = document.getElementById('busq-clear');
+  
+  // Mostrar banner promocional si no tiene sesión iniciada
+  const guestBanner = document.getElementById('guest-banner');
+  if (guestBanner) {
+    if (!appState.isAuthenticated) {
+      guestBanner.classList.remove('hidden');
+    } else {
+      guestBanner.classList.add('hidden');
+    }
+  }
+
+  if (!input) return;
+
+  // Restaurar valor previo si lo había y ejecutar búsqueda inicial
+  if (_ultimaBusqueda) {
+    input.value = _ultimaBusqueda;
+    clearBtn?.classList.remove('hidden');
+  }
+  _ejecutarBusqueda(_ultimaBusqueda || '');
+
+  input.addEventListener('input', e => {
+    const q = e.target.value.trim();
+    clearBtn?.classList.toggle('hidden', !q);
+    clearTimeout(_searchTimeout);
+    _searchTimeout = setTimeout(() => _ejecutarBusqueda(q), 300);
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') _clearBusqueda();
+  });
+
+  input.focus();
 };
+
+// Cambiar filtro 
+function _setFiltro(valor) {
+  _filtroActivo = valor;
+
+  // Actualizar chips visualmente
+  document.querySelectorAll('.chip-filtro').forEach(btn => {
+    const activo = btn.dataset.tipo === valor;
+    btn.className = btn.className
+      .replace(/bg-primary text-white border-primary|bg-surface-raised border-border-default text-text-secondary hover:border-border-strong hover:text-primary/g, '')
+      .trim();
+    if (activo) {
+      btn.classList.add('bg-primary','text-white','border-primary');
+    } else {
+      btn.classList.add('bg-surface-raised','border-border-default','text-text-secondary','hover:border-border-strong','hover:text-primary');
+    }
+  });
+
+  // Relanzar búsqueda con el nuevo filtro
+  const q = document.getElementById('busq-input')?.value?.trim() || '';
+  _ejecutarBusqueda(q);
+}
+
+// Limpiar búsqueda
+function _clearBusqueda() {
+  const input = document.getElementById('busq-input');
+  const clearBtn = document.getElementById('busq-clear');
+  if (input) { input.value = ''; input.focus(); }
+  clearBtn?.classList.add('hidden');
+  _ultimaBusqueda = '';
+  _ejecutarBusqueda('');
+}

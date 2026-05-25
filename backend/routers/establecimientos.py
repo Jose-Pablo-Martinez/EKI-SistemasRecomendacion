@@ -3,21 +3,22 @@ Módulo: routers/establecimientos.py
 Fecha de modificación: 2026-05-23
 Función: Endpoints para la visualización, búsqueda y gestión de establecimientos gastronómicos, y la interacción con ellos (reseñas, favoritos, likes).
 """
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.usuarios import UsuarioVisitante
 from backend.auth import get_current_user
-from backend.services import establecimiento_service
-from backend.schemas.establecimientos import EstablecimientoCreate, EstablecimientoUpdate, EstablecimientoResponse, HorarioCreate, PlatilloCreate, ImagenCreate
+from backend.services import establecimiento_service, buscador_service
+from backend.schemas.establecimientos import EstablecimientoCreate, EstablecimientoUpdate, EstablecimientoResponse, BusquedaResponse, HorarioCreate, PlatilloCreate, ImagenCreate
 from backend.schemas.recomendaciones import InteraccionUsuarioCreate, ResenaCreate, FavoritoCreate, ReporteCreate
 
 router = APIRouter(prefix="/establecimientos", tags=["Establecimientos"])
 
-@router.get("/buscar")
-def buscar_establecimientos(q: str = None, colonia: int = None, db: Session = Depends(get_db)):
-    """Búsqueda de establecimientos por query de texto o colonia."""
-    return establecimiento_service.buscar_establecimientos(db, query=q, id_colonia=colonia)
+@router.get("/buscar", response_model=BusquedaResponse)
+def buscar_establecimientos(q: Optional[str] = None, tipo: Optional[str] = None, colonia: Optional[int] = None, db: Session = Depends(get_db)):
+    """Búsqueda de establecimientos por query de texto o colonia con tolerancia a errores (Levenshtein)."""
+    return buscador_service.buscar_con_correccion(db, query=q, tipo_establecimiento=tipo, id_colonia=colonia)
 
 @router.get("/{id_establecimiento}", response_model=EstablecimientoResponse)
 def get_establecimiento(id_establecimiento: int, db: Session = Depends(get_db)):
@@ -30,12 +31,12 @@ def get_establecimiento(id_establecimiento: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=EstablecimientoResponse, status_code=status.HTTP_201_CREATED)
 def create_establecimiento(datos: EstablecimientoCreate, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
     """Propone un nuevo establecimiento. Queda en estado pendiente."""
-    return establecimiento_service.crear_establecimiento(db, current_user.id_usuario, datos)
+    return establecimiento_service.crear_establecimiento(db, int(current_user.id_usuario), datos) # type: ignore
 
 @router.patch("/{id_establecimiento}", response_model=EstablecimientoResponse)
 def update_establecimiento(id_establecimiento: int, datos: EstablecimientoUpdate, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
     """Actualiza datos de un establecimiento."""
-    est = establecimiento_service.actualizar_establecimiento(db, id_establecimiento, current_user.id_usuario, datos)
+    est = establecimiento_service.actualizar_establecimiento(db, id_establecimiento, int(current_user.id_usuario), datos) # type: ignore
     if not est:
         raise HTTPException(status_code=404, detail="Establecimiento no encontrado")
     return est
@@ -64,7 +65,7 @@ def registrar_interaccion(id_establecimiento: int, datos: InteraccionUsuarioCrea
     """Registra una interaccion con su peso correspondiente."""
     if datos.id_establecimiento != id_establecimiento:
         raise HTTPException(status_code=400, detail="ID url no coincide con el body")
-    establecimiento_service.registrar_interaccion(db, current_user.id_usuario, datos)
+    establecimiento_service.registrar_interaccion(db, int(current_user.id_usuario), datos) # type: ignore
     return {"status": "ok"}
 
 @router.post("/{id_establecimiento}/resena")
@@ -72,7 +73,7 @@ def crear_resena(id_establecimiento: int, datos: ResenaCreate, current_user: Usu
     """Agrega una nueva reseña al establecimiento."""
     if datos.id_establecimiento != id_establecimiento:
         raise HTTPException(status_code=400, detail="ID url no coincide con el body")
-    establecimiento_service.crear_resena(db, current_user.id_usuario, datos)
+    establecimiento_service.crear_resena(db, int(current_user.id_usuario), datos) # type: ignore
     return {"status": "ok", "message": "Reseña en revisión"}
 
 @router.post("/{id_establecimiento}/favorito")
@@ -80,12 +81,12 @@ def toggle_favorito(id_establecimiento: int, datos: FavoritoCreate, current_user
     """Agrega o quita de favoritos."""
     if datos.id_establecimiento != id_establecimiento:
         raise HTTPException(status_code=400, detail="ID url no coincide con el body")
-    return establecimiento_service.toggle_favorito(db, current_user.id_usuario, datos)
+    return establecimiento_service.toggle_favorito(db, int(current_user.id_usuario), datos) # type: ignore
 
 @router.post("/{id_establecimiento}/reporte")
 def crear_reporte(id_establecimiento: int, datos: ReporteCreate, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
     """Reporta un lugar."""
     if datos.id_establecimiento != id_establecimiento:
         raise HTTPException(status_code=400, detail="ID url no coincide con el body")
-    establecimiento_service.crear_reporte(db, current_user.id_usuario, datos)
+    establecimiento_service.crear_reporte(db, int(current_user.id_usuario), datos) # type: ignore
     return {"status": "ok", "message": "Reporte recibido"}

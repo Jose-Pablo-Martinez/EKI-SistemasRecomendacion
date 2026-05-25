@@ -5,14 +5,18 @@ from backend.database import get_db
 from backend.models.usuarios import Administrador
 from backend.auth import get_current_admin
 from backend.services import admin_service
-from backend.jobs.reconciliacion import reconciliar_campos_desnormalizados
 
 router = APIRouter(prefix="/admin", tags=["Administración"])
 
-@router.get("/pendientes")
-def listar_pendientes(current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
+@router.get("/establecimientos/pendientes")
+def listar_establecimientos_pendientes(current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
     """Lista todos los establecimientos pendientes de aprobación."""
-    return admin_service.obtener_pendientes(db)
+    return admin_service.obtener_establecimientos_pendientes(db)
+
+@router.get("/resenas/pendientes")
+def listar_resenas_pendientes(current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
+    """Lista todas las reseñas pendientes de aprobación."""
+    return admin_service.obtener_resenas_pendientes(db)
 
 @router.post("/establecimientos/{id_establecimiento}/aprobar")
 def aprobar_establecimiento(id_establecimiento: int, current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):

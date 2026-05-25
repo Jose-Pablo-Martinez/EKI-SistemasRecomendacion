@@ -1,10 +1,269 @@
-window.controllers.perfil = () => {
-    renderPage(`
-        <div class="flex-1 flex flex-col items-start p-8 w-full max-w-4xl mx-auto">
-            <h1 class="font-heading text-headline-lg text-primary mb-6">Mi Perfil</h1>
-            <div class="w-full bg-surface-raised p-6 rounded-md shadow-sm border border-border-default text-left">
-                <p class="text-text-secondary mb-4">[Perfil de usuario y gamificación en desarrollo...]</p>
-            </div>
+/**
+ * perfil.js — Perfil de usuario, gamificación y flujo de agregar lugar
+ * EkiSystem — Fase 4 Frontend
+ */
+
+// Configuración de rangos 
+const _RANGOS = [
+  { nombre:'Explorador',     min:0,    max:99,         icon:'explore',             color:'var(--primary-ghost)' },
+  { nombre:'Catador',        min:100,  max:299,        icon:'restaurant',          color:'var(--secondary)' },
+  { nombre:'Conocedor',      min:300,  max:699,        icon:'star',                color:'var(--warning)' },
+  { nombre:'Gourmet',        min:700,  max:1499,       icon:'workspace_premium',   color:'var(--success)' },
+  { nombre:'Embajador EKI',  min:1500, max:Infinity,   icon:'verified',            color:'var(--accent)' },
+];
+
+function _getRango(pts) {
+  return _RANGOS.find(r => pts >= r.min && pts <= r.max) || _RANGOS[0];
+}
+function _getRangoSig(pts) {
+  const i = _RANGOS.findIndex(r => pts >= r.min && pts <= r.max);
+  return i < _RANGOS.length - 1 ? _RANGOS[i + 1] : null;
+}
+function _getPct(pts) {
+  const r = _getRango(pts);
+  if (r.max === Infinity) return 100;
+  return Math.min(100, Math.round(((pts - r.min) / (r.max - r.min + 1)) * 100));
+}
+
+// Utilidades
+function _iniciales(nombre, apellido) {
+  return ((nombre||'')[0] + (apellido||'')[0]).toUpperCase() || 'U';
+}
+function _fechaCorta(str) {
+  if (!str) return '';
+  return new Date(str).toLocaleDateString('es-MX', { year:'numeric', month:'long', day:'numeric' });
+}
+function _historialIcon(motivo) {
+  const m = (motivo||'').toLowerCase();
+  if (m.includes('reseña'))           return 'rate_review';
+  if (m.includes('lugar') || m.includes('establecimiento')) return 'storefront';
+  if (m.includes('foto'))             return 'photo_camera';
+  if (m.includes('edici'))            return 'edit';
+  if (m.includes('bienvenida') || m.includes('registro')) return 'celebration';
+  return 'add_circle';
+}
+
+// Animación odómetro 
+function _odometro(el, destino, ms) {
+  const start = performance.now();
+  const tick = (now) => {
+    const p = Math.min((now - start) / ms, 1);
+    const ease = 1 - Math.pow(1 - p, 4); // ease-out quart
+    el.textContent = Math.round(ease * destino).toLocaleString('es-MX');
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+// El esqueleto será cargado desde la vista.
+
+// Utilidades de modal
+function _abrirModal(id)  { const m = document.getElementById(id); m?.classList.remove('hidden'); m?.classList.add('flex'); }
+function _cerrarModal(id) { const m = document.getElementById(id); m?.classList.add('hidden');    m?.classList.remove('flex'); }
+
+// Modal: Editar perfil 
+function _abrirEdicion(nombre, apellido) {
+  document.getElementById('edit-nombre').value   = nombre  || '';
+  document.getElementById('edit-apellido').value = apellido|| '';
+  _abrirModal('modal-edicion');
+}
+
+async function _guardarPerfil() {
+  const btn      = document.getElementById('btn-guardar-perfil');
+  const nombre   = document.getElementById('edit-nombre')?.value?.trim();
+  const apellido = document.getElementById('edit-apellido')?.value?.trim();
+  if (!nombre) { showToast('El nombre es requerido', 'warning'); return; }
+  btn.disabled = true;
+  btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin" style="font-size:18px;">progress_activity</span> Guardando...</div>`;
+  try {
+    await api.actualizarPerfil({ nombre, apellido });
+    showToast('Perfil actualizado', 'success');
+    _cerrarModal('modal-edicion');
+    window.controllers.perfil();
+  } catch(_) {
+    showToast('No se pudo actualizar el perfil', 'error');
+    btn.disabled = false;
+    btn.innerHTML = 'Guardar cambios';
+  }
+}
+
+// Modal: Agregar lugar
+function _abrirAgregarLugar() { _abrirModal('modal-lugar'); }
+function _cerrarAgregarLugar(){ _cerrarModal('modal-lugar'); }
+
+async function _enviarLugar() {
+  const btn = document.getElementById('btn-enviar-lugar');
+  const nombre      = document.getElementById('lugar-nombre')?.value?.trim();
+  const tipo        = document.getElementById('lugar-tipo')?.value;
+  const descripcion = document.getElementById('lugar-desc')?.value?.trim();
+  const direccion   = document.getElementById('lugar-dir')?.value?.trim();
+  const es_informal = document.getElementById('lugar-informal')?.checked;
+
+  if (!nombre || !tipo) { showToast('Nombre y tipo son requeridos', 'warning'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin" style="font-size:16px;">progress_activity</span> Enviando...</div>`;
+
+  try {
+    await apiRequest('/establecimientos', {
+      method: 'POST',
+      body: JSON.stringify({ nombre, tipo_establecimiento: tipo, descripcion, direccion_texto: direccion, es_informal }),
+    });
+    showToast('¡Lugar enviado! Será revisado por el equipo.', 'success');
+    _cerrarAgregarLugar();
+    // Limpiar formulario
+    ['lugar-nombre','lugar-desc','lugar-dir'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    document.getElementById('lugar-informal').checked = false;
+    document.getElementById('lugar-tipo').value = '';
+  } catch(_) {
+    showToast('No se pudo enviar el lugar. Intenta de nuevo.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Enviar para revisión';
+  }
+}
+
+// Controlador principal 
+window.controllers.perfil = async () => {
+  const loaded = await renderView('perfil.html');
+  if (!loaded) return;
+
+  let usuario, rango_data, historial;
+  try {
+    [usuario, rango_data, historial] = await Promise.all([
+      api.getPerfil(),
+      api.getRango().catch(() => null),
+      api.getHistorialPuntos().catch(() => []),
+    ]);
+  } catch(_) {
+    document.getElementById('perfil-skeleton')?.classList.add('hidden');
+    document.getElementById('perfil-error')?.classList.remove('hidden');
+    document.getElementById('perfil-error')?.classList.add('flex');
+    return;
+  }
+
+  const puntos    = rango_data?.puntos_totales ?? usuario?.puntos_totales ?? 0;
+  const rango     = _getRango(puntos);
+  const rangoSig  = _getRangoSig(puntos);
+  const pct       = _getPct(puntos);
+  const iniciales = _iniciales(usuario.nombre, usuario.apellido);
+  const esProp    = usuario.tipo_usuario === 'propietario';
+  const tipoLabel = { visitante:'Visitante', propietario:'Propietario', admin:'Administrador' }[usuario.tipo_usuario] || 'Usuario';
+  const histItems = Array.isArray(historial) ? historial : (historial?.items || []);
+
+  const stats = [
+    { label:'Reseñas',         val: usuario.total_resenas        ?? 0, icon:'rate_review',   numerico:true  },
+    { label:'Favoritos',       val: usuario.total_favoritos       ?? 0, icon:'favorite',      numerico:true  },
+    { label:'Contribuciones',  val: usuario.total_contribuciones  ?? 0, icon:'storefront',    numerico:true  },
+    { label:'Miembro desde',   val: _fechaCorta(usuario.fecha_registro), icon:'calendar_month', numerico:false },
+  ];
+
+  // Ocultar esqueleto, mostrar contenido
+  document.getElementById('perfil-skeleton')?.classList.add('hidden');
+  document.getElementById('perfil-content')?.classList.remove('hidden');
+
+  // Inyectar información del usuario
+  const avatarEl = document.getElementById('perfil-avatar');
+  if (avatarEl) {
+    avatarEl.textContent = iniciales;
+    avatarEl.setAttribute('aria-label', `Avatar de ${usuario.nombre || 'usuario'}`);
+  }
+  document.getElementById('perfil-nombre-completo').textContent = `${usuario.nombre || ''} ${usuario.apellido || ''}`;
+  document.getElementById('perfil-email').textContent = usuario.email || '';
+  document.getElementById('perfil-tipo-label').textContent = tipoLabel;
+
+  // Acciones
+  const btnEditar = document.getElementById('btn-editar-perfil');
+  if (btnEditar) {
+    btnEditar.onclick = () => _abrirEdicion(usuario.nombre, usuario.apellido);
+  }
+  if (esProp) {
+    const btnAgregar = document.getElementById('btn-agregar-lugar');
+    if (btnAgregar) {
+      btnAgregar.classList.remove('hidden');
+      btnAgregar.classList.add('flex');
+    }
+  }
+
+  // Tarjeta de Rango
+  document.getElementById('rango-icon').textContent = rango.icon;
+  document.getElementById('rango-icon').style.color = rango.color;
+  document.getElementById('rango-nombre').textContent = rango.nombre;
+  document.getElementById('pts-odometro').style.color = rango.color;
+
+  const rangoProgreso = document.getElementById('rango-progreso-container');
+  if (rangoProgreso) {
+    rangoProgreso.innerHTML = rangoSig ? `
+      <div>
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-label-md text-text-tertiary">
+            Hacia <strong style="color:${_getRangoSig(puntos)?.color};">${rangoSig.nombre}</strong>
+          </span>
+          <span class="text-label-md text-secondary tabular-nums">${puntos.toLocaleString('es-MX')} / ${rangoSig.min.toLocaleString('es-MX')} pts</span>
         </div>
-    `);
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${pct}%;background-color:${rango.color};"></div>
+        </div>
+        <p class="text-label-md text-text-tertiary mt-1.5">
+          Te faltan <strong>${(rangoSig.min - puntos).toLocaleString('es-MX')} puntos</strong> para subir de rango.
+        </p>
+      </div>` : `
+      <div class="bg-accent-faint border border-accent/20 rounded p-3 flex items-center gap-2">
+        <span class="material-symbols-outlined text-accent" style="font-size:18px;">verified</span>
+        <p class="text-body-sm text-accent font-semibold">¡Has alcanzado el rango máximo!</p>
+      </div>`;
+  }
+
+  // Estadísticas
+  const statsContainer = document.getElementById('stats-container');
+  if (statsContainer) {
+    statsContainer.innerHTML = stats.map(s => `
+      <div class="bg-surface-raised border border-border-default rounded-md p-4 text-center">
+        <span class="material-symbols-outlined text-text-tertiary mb-2 block" style="font-size:22px;">${s.icon}</span>
+        ${s.numerico
+          ? `<p class="font-heading text-numeric-md text-primary tabular-nums">${(s.val||0).toLocaleString('es-MX')}</p>`
+          : `<p class="text-body-sm text-primary font-semibold leading-snug">${s.val}</p>`}
+        <p class="text-label-md text-text-tertiary mt-0.5">${s.label}</p>
+      </div>`).join('');
+  }
+
+  // Historial
+  const historialContainer = document.getElementById('historial-container');
+  if (historialContainer) {
+    historialContainer.innerHTML = histItems.length ? `
+      <div aria-label="Historial de actividad">
+        ${histItems.slice(0, 20).map((h, i) => {
+          const pts = h.puntos_ganados ?? h.puntos ?? 0;
+          const pos = pts >= 0;
+          return `
+            <div class="flex items-center gap-4 py-3 border-b border-border-subtle last:border-0 card-enter"
+                 style="animation-delay:${i*35}ms">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                          ${pos ? 'bg-success-faint text-success' : 'bg-accent-faint text-accent'}">
+                <span class="material-symbols-outlined" style="font-size:15px;">${_historialIcon(h.motivo)}</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-body-sm font-medium text-primary truncate">${h.motivo || 'Actividad'}</p>
+                <p class="text-label-md text-text-tertiary">${_fechaCorta(h.fecha)}</p>
+              </div>
+              <span class="text-numeric-sm font-bold flex-shrink-0 ${pos ? 'text-success' : 'text-accent'}">
+                ${pos ? '+' : ''}${pts} pts
+              </span>
+            </div>`;
+        }).join('')}
+      </div>` : `
+      <div class="flex flex-col items-center py-12 text-center">
+        <span class="material-symbols-outlined text-4xl text-text-tertiary mb-3">history</span>
+        <p class="text-body-sm text-text-tertiary">Aún no tienes actividad registrada.</p>
+        <p class="text-label-md text-text-tertiary mt-1">Deja reseñas o agrega lugares para ganar puntos.</p>
+      </div>`;
+  }
+
+  // Animar odómetro después del render
+  setTimeout(() => {
+    const el = document.getElementById('pts-odometro');
+    if (el) _odometro(el, puntos, 1400);
+  }, 180);
 };

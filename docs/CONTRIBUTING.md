@@ -44,7 +44,8 @@ ekiSystem/
 │   ├── schemas.py              ← Esquemas Pydantic
 │   ├── database.py             ← Configuración de engine y sesión SQLAlchemy
 │   ├── requirements.txt        ← Dependencias
-│   └── logic/                  ← Algoritmos de recomendación
+│   ├── engine/                 ← Algoritmos matemáticos del motor de recomendación
+│   └── services/               ← Lógica de negocio de la aplicación
 │
 └── frontend/
     ├── index.html              ← Estructura HTML SPA Shell
@@ -169,7 +170,7 @@ def get_top_vendors(limit: int = 10) -> list:
 - **Siempre** usar type hints en Python.
 - **Nunca** usar `print()` para debugging en código que se integre a `unstable` o `main`; usar el módulo `logging`.
 - **Siempre** validar el input antes de procesarlo (Pydantic en backend, validación básica en frontend).
-- **Nunca** colocar lógica de negocio dentro de las rutas. Las rutas en `eki_main.py` solo orquestan llamadas; toda la lógica va en `logic/`.
+- **Nunca** colocar lógica de negocio dentro de las rutas. Las rutas en `routers/` solo orquestan llamadas; toda la lógica de negocio va en `services/` y los cálculos en `engine/`.
 
 ### 6.2 Plantilla: Ruta FastAPI
 
@@ -179,7 +180,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from schemas import RecommendationResponse
-from logic.ranking import get_top_vendors
+from engine.ranking import get_top_vendors
 
 router = APIRouter(prefix="/recommendations", tags=["Recomendaciones"])
 
@@ -280,12 +281,12 @@ Estos son los cuatro módulos centrales del sistema. Cualquier lógica nueva de 
 
 | Módulo | Archivo | Responsabilidad |
 |---|---|---|
-| Filtrado por Contenido | `logic/content_filter.py` | Analizar características del puesto (categoría, ubicación, tags) y el perfil del usuario |
-| Filtrado Colaborativo | `logic/collab_filter.py` | Calcular similitud entre usuarios o ítems basada en interacciones pasadas |
-| Ranking y Boosting | `logic/ranking.py` | Aplicar factores de visibilidad a negocios con pocas reseñas (`review_count < BOOST_THRESHOLD`) |
-| Inicio en Frío | `logic/cold_start.py` | Estrategia para usuarios o vendedores nuevos sin historial de interacciones |
+| Filtrado por Contenido | `engine/content_filter.py` | Analizar características del puesto (categoría, ubicación, tags) y el perfil del usuario |
+| Filtrado Colaborativo | `engine/collab_filter.py` | Calcular similitud entre usuarios o ítems basada en interacciones pasadas |
+| Ranking y Boosting | `engine/ranking.py` | Aplicar factores de visibilidad a negocios con pocas reseñas (`review_count < BOOST_THRESHOLD`) |
+| Inicio en Frío | `engine/cold_start.py` | Estrategia para usuarios o vendedores nuevos sin historial de interacciones |
 
-**Boosting:** La función `compute_score_final` en `logic/ranking.py` combina tres señales con pesos configurables: `score_contenido` (similitud coseno entre perfil del usuario y características del establecimiento), `score_colaborativo` (item-to-item dentro del cluster) y `score_boost` (Haversine + bonus informal + popularidad de zona). Ver `docs/EkiSystem_Backend_Design.md §4.1` para el detalle.
+**Boosting:** La función `compute_score_final` en `engine/ranking.py` combina tres señales con pesos configurables: `score_contenido` (similitud coseno entre perfil del usuario y características del establecimiento), `score_colaborativo` (item-to-item dentro del cluster) y `score_boost` (Haversine + bonus informal + popularidad de zona). Ver `docs/EkiSystem_Backend_Design.md §4.1` para el detalle.
 
 ---
 
@@ -310,7 +311,7 @@ Verificar cada punto antes de abrir un PR hacia `unstable` o `main`:
 - [ ] ¿El código está en inglés y los comentarios en español?
 - [ ] ¿Las funciones tienen docstring y type hints?
 - [ ] ¿No hay credenciales ni valores hardcodeados?
-- [ ] ¿La lógica de negocio está en `logic/` y no en las rutas?
+- [ ] ¿La lógica de negocio está en `services/` y los algoritmos en `engine/`, en lugar de en las rutas?
 - [ ] ¿Los errores se manejan con `try/catch` o `HTTPException`?
 - [ ] ¿El archivo está en la carpeta correcta según la Sección 2?
 - [ ] **Si modificaste `models.py`:** ¿generaste una migración, la revisaste manualmente y ejecutaste `verify_schema.py`?

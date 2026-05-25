@@ -1,5 +1,5 @@
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy import text
@@ -93,13 +93,13 @@ def seed_recomendaciones_generadas(db: Session):
                     "score_contenido_usado": random.uniform(0.3, 0.9),
                     "score_colaborativo_usado": random.uniform(0.3, 0.9),
                     "score_boost_aplicado": random.uniform(0.1, 0.5),
-                    "distancia_km": random.uniform(0.5, uv.radio_busqueda_km),
+                    "distancia_km": random.uniform(0.5, float(uv.radio_busqueda_km)),  # type: ignore
                     "radio_usado_km": uv.radio_busqueda_km,
                     "fallback_nivel": 0,
                     "razon_principal": razon,
                     "detalle_razon": "Recomendado sintético de prueba",
                     "estrategia_usada": "hibrido",
-                    "fecha_generacion": datetime.utcnow()
+                    "fecha_generacion": datetime.now(timezone.utc)
                 })
                 
     if recomendaciones:

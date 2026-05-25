@@ -18,7 +18,7 @@
 3. [Capa de Validación — Pydantic Schemas](#3-capa-de-validación--pydantic-schemas)
    - 3.1 [Regla Create / Response](#31-regla-create--response)
    - 3.2 [Validaciones críticas obligatorias](#32-validaciones-críticas-obligatorias)
-4. [Capa de Negocio — Módulos logic/](#4-capa-de-negocio--módulos-logic)
+4. [Capa de Negocio — Módulos engine/ y services/](#4-capa-de-negocio--módulos-engine-y-services)
    - 4.1 [ranking.py](#41-rankingpy)
    - 4.2 [content_filter.py](#42-content_filterpy)
    - 4.3 [collab_filter.py](#43-collab_filterpy)
@@ -122,7 +122,7 @@ Request HTTP
 Response HTTP           → Serializado por el schema de respuesta (Response)
 ```
 
-**Regla de oro:** los routers no deben contener lógica de negocio. Un router solo llama a funciones de `logic/` y serializa el resultado. La lógica del motor de recomendación, la gestión de invariantes y los cálculos van siempre en `logic/`.
+**Regla de oro:** los routers no deben contener lógica de negocio. Un router solo llama a funciones de `services/` y serializa el resultado. La lógica matemática del motor va en `engine/`.
 
 ---
 
@@ -152,9 +152,9 @@ Estas validaciones deben vivir en Pydantic porque MySQL <8.0 ignora los CHECK co
 
 ---
 
-## 4. Capa de Negocio — Módulos logic/
+## 4. Capa de Negocio — Módulos engine/ y services/
 
-Los módulos en `backend/logic/` contienen las funciones de cálculo del motor. En la implementación actual, los métodos de consulta a la BD están marcados como TODO porque se completan cuando los routers estén listos. Las funciones matemáticas puras ya están implementadas.
+Los módulos en `backend/engine/` contienen las funciones de cálculo del motor matemático, mientras que `backend/services/` orquesta la lógica de negocio general. En la implementación actual, los métodos de consulta a la BD están marcados como TODO porque se completan cuando los routers estén listos. Las funciones matemáticas puras ya están implementadas.
 
 ### 4.1 ranking.py
 

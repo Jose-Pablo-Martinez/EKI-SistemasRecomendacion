@@ -5,27 +5,36 @@
  */
 window.controllers.onboarding = async () => {
     let step = 1;
-    let categoriasSeleccionadas = [];
-    let preciosSeleccionados = [];
+    let categoriasSeleccionadas = appState.user?.visitante?.vector_preferencias?.categorias_preferidas || [];
+    let preciosSeleccionados = appState.user?.visitante?.vector_preferencias?.precios_preferidos || [];
+    let isEditing = !!appState.user?.perfil_completado;
     let categoriasData = [];
 
     // 1. Cargar Vista HTML base
     const loaded = await renderView('onboarding.html');
     if (!loaded) return;
 
-    // Cache DOM Elements
+    // Elementos DOM
     const stepContainer = document.getElementById('step-container');
     const progressBar = document.getElementById('progress-bar');
     const stepIndicator = document.getElementById('step-indicator');
     const prevBtn = document.getElementById('btn-prev');
     const nextBtn = document.getElementById('btn-next');
+    const cancelBtn = document.getElementById('btn-cancel');
+
+    if (isEditing && cancelBtn) {
+        cancelBtn.classList.remove('hidden');
+        cancelBtn.addEventListener('click', () => {
+            window.location.hash = '#/perfil';
+        });
+    }
 
     const loadCategorias = async () => {
         try {
             categoriasData = await api.getCategorias() || [];
         } catch (err) {
             console.error("Error cargando categorías:", err);
-            // Mocks
+            // Datos de prueba (mocks)
             categoriasData = [
                 { id_categoria: 1, nombre: "Yucateca" },
                 { id_categoria: 2, nombre: "Antojitos" },
@@ -103,8 +112,8 @@ window.controllers.onboarding = async () => {
             };
 
             stepHtml = `
-                <h2 class="text-2xl xl:text-4xl 2xl:text-5xl font-heading font-bold mb-4 xl:mb-8 text-primary text-center">¿Cuánto es tu presupuesto?</h2>
-                <p class="mb-6 xl:mb-10 text-text-secondary text-sm xl:text-lg 2xl:text-xl text-center">Selecciona tu presupuestos preferidos.</p>
+                <h2 class="text-2xl xl:text-4xl 2xl:text-5xl font-heading font-bold mb-4 xl:mb-8 text-primary text-center">¿Cuál es tu presupuesto?</h2>
+                <p class="mb-6 xl:mb-10 text-text-secondary text-sm xl:text-lg 2xl:text-xl text-center">Selecciona tus presupuestos preferidos (puedes elegir más de uno).</p>
                 <div class="flex flex-wrap justify-center gap-4 xl:gap-8 2xl:gap-10 mb-6 w-full">
                     ${["Popular", "Casual", "Premium"].map(p => `
                         <div class="price-card w-full sm:w-64 xl:w-80 bg-surface-raised border border-border-default rounded-md p-6 xl:p-10 flex flex-col items-center justify-center cursor-pointer hover:border-border-strong hover:-translate-y-1 transition-all ${preciosSeleccionados.includes(p) ? 'border-accent bg-accent-faint scale-[1.02] shadow-sm' : ''}" data-name="${p}">
@@ -141,7 +150,7 @@ window.controllers.onboarding = async () => {
         if (step === 3) nextBtn.textContent = 'FINALIZAR';
         else nextBtn.textContent = 'SIGUIENTE';
 
-        // Rebind events for dynamic content
+        // Re-vincular eventos para contenido dinámico
         bindDynamicEvents();
     };
 
@@ -175,9 +184,14 @@ window.controllers.onboarding = async () => {
         }
 
         if (step === 3) {
-            document.getElementById('btn-location').addEventListener('click', async () => {
+            document.getElementById('btn-location').addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
                 const status = document.getElementById('location-status');
-                status.textContent = 'Obteniendo ubicación...';
+                
+                const originalHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin" style="font-size:20px;">progress_activity</span> Obteniendo...</div>`;
+                status.textContent = '';
                 status.className = 'text-sm xl:text-base text-center h-5 font-bold text-text-secondary';
                 
                 try {
@@ -200,12 +214,15 @@ window.controllers.onboarding = async () => {
                 } catch (err) {
                     status.textContent = 'No se pudo obtener la ubicación (permiso denegado o timeout).';
                     status.classList.replace('text-text-secondary', 'text-accent');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
                 }
             });
         }
     };
 
-    // Bind static events once
+    // Vincular eventos estáticos una vez
     prevBtn.addEventListener('click', () => {
         if (step > 1) { step--; renderCurrentStep(); }
     });
@@ -225,14 +242,21 @@ window.controllers.onboarding = async () => {
             renderCurrentStep();
         } else {
             nextBtn.disabled = true;
-            nextBtn.textContent = 'GUARDANDO...';
+            nextBtn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin" style="font-size:20px;">progress_activity</span> Guardando...</div>`;
             try {
                 const preferencias = {
                     categorias: categoriasSeleccionadas,
                     precios: preciosSeleccionados
                 };
                 await api.enviarOnboarding(preferencias);
-                if (appState.user) appState.user.perfil_completado = true;
+                if (appState.user) {
+                    appState.user.perfil_completado = true;
+                    if (!appState.user.visitante) appState.user.visitante = {};
+                    appState.user.visitante.vector_preferencias = {
+                        categorias_preferidas: categoriasSeleccionadas,
+                        precios_preferidos: preciosSeleccionados
+                    };
+                }
                 
                 window.components.Modal.show({
                     title: '¡Todo listo!',
@@ -244,7 +268,7 @@ window.controllers.onboarding = async () => {
                 const userMsg = window.errorHandler.handle(err, 'Onboarding');
                 window.components.Modal.show({ title: 'Ocurrió un problema', message: userMsg, type: 'error' });
                 nextBtn.disabled = false;
-                nextBtn.textContent = 'FINALIZAR';
+                nextBtn.innerHTML = 'FINALIZAR';
             }
         }
     });

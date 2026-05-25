@@ -8,7 +8,6 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -223,3 +222,19 @@ class HorarioResponse(BaseModel):
     hora_apertura: Optional[str] = None
     hora_cierre: Optional[str] = None
     cerrado: bool
+
+
+class BusquedaResponse(BaseModel):
+    """
+    Estructura envolvente (Wrapper) para los resultados de búsqueda.
+    Permite enviar una sugerencia de corrección ortográfica si la búsqueda original
+    no arroja resultados (ej. usuario escribe "tcko" -> sugiere "taco").
+    """
+    model_config = ConfigDict(from_attributes=True)
+    
+    resultados: list[EstablecimientoResponse]
+    sugerencia_correccion: Optional[str] = Field(
+        None, 
+        description="Palabra sugerida mediante Similitud de Levenshtein si hubo un posible error de dedo."
+    )
+
