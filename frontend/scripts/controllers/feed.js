@@ -72,8 +72,10 @@ function _seccionFeed(cat, items) {
 
 // Acciones globales 
 async function _irEstab(idEstab, idRec) {
-  try { await api.registrarClick(idRec); }          catch(_) {}
-  try { await api.registrarInteraccion(idEstab, 'vista_detalle'); } catch(_) {}
+  if (appState.isAuthenticated) {
+    try { await api.registrarClick(idRec); }          catch(_) {}
+    try { await api.registrarInteraccion(idEstab, 'vista_detalle'); } catch(_) {}
+  }
   window.location.hash = `#/establecimiento/${idEstab}`;
 }
 

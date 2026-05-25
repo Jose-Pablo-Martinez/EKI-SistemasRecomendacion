@@ -134,13 +134,17 @@ async function _enviarResena(idEstab) {
 // Acciones de botones
 // _favEstab ha sido reemplazado por window.Favorite.toggle
 
-function _abrirMaps(idEstab, lat, lon) {
-  api.registrarInteraccion(idEstab, 'abrir_maps').catch(()=>{});
-  window.open(`https://www.google.com/maps?q=${lat},${lon}`, '_blank');
-}
+window._abrirMaps = (idEstab, lat, lng) => {
+  if (appState.isAuthenticated) {
+    api.registrarInteraccion(idEstab, 'abrir_maps').catch(()=>{});
+  }
+  window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+};
 
-async function _compartir(idEstab, nombre) {
-  api.registrarInteraccion(idEstab, 'compartido').catch(()=>{});
+window._compartir = async (idEstab, nombre) => {
+  if (appState.isAuthenticated) {
+    api.registrarInteraccion(idEstab, 'compartido').catch(()=>{});
+  }
   const url = window.location.href;
   if (navigator.share) { try { await navigator.share({ title:nombre, url }); } catch(_) {} }
   else { navigator.clipboard.writeText(url).then(() => showToast('Enlace copiado', 'success')); }
@@ -170,10 +174,12 @@ window.controllers.establecimiento = async (id) => {
     return;
   }
 
-  api.registrarInteraccion(id, 'vista_detalle').catch(()=>{});
+  if (appState.isAuthenticated) {
+    api.registrarInteraccion(id, 'vista_detalle').catch(()=>{});
+  }
 
   const img       = `https://picsum.photos/seed/${estab.id_establecimiento||id}/1200/500`;
-  const cal       = estab.calificacion_promedio || 0;
+  const cal       = parseFloat(estab.calificacion_promedio) || 0;
   const totalR    = estab.total_resenas || 0;
   const resenas   = (estab.resenas||[]).filter(r => r.estado==='aprobado');
   const isAuth    = appState.isAuthenticated;
@@ -226,7 +232,7 @@ window.controllers.establecimiento = async (id) => {
               Maps
             </button>` : ''}
           ${estab.telefono ? `
-            <a href="tel:${estab.telefono}" onclick="api.registrarInteraccion(${estab.id_establecimiento},'llamada_telefono').catch(()=>{})"
+            <a href="tel:${estab.telefono}" onclick="if(window.appState.isAuthenticated){ api.registrarInteraccion(${estab.id_establecimiento},'llamada_telefono').catch(()=>{}); }"
               aria-label="Llamar"
               class="flex items-center gap-1.5 px-3 py-2 rounded border border-border-default
                      text-body-sm text-text-secondary hover:border-border-strong transition-all">

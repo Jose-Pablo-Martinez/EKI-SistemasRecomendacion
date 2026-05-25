@@ -19,11 +19,12 @@ window.Card = {
   // Tarjeta grande para el Feed
   renderFeed: (rec, delay = 0, onFavClick) => {
     const score  = Math.round((rec.score_total||0) * 100);
-    const dist   = rec.distancia_km ? `${rec.distancia_km.toFixed(1)} km` : null;
+    const distVal = parseFloat(rec.distancia_km);
+    const dist   = !isNaN(distVal) ? `${distVal.toFixed(1)} km` : null;
     const img    = `https://picsum.photos/seed/${rec.id_establecimiento}/600/360`;
     const c      = Math.round((rec.score_contenido_usado||0) * 100);
     const col    = Math.round((rec.score_colaborativo_usado||0) * 100);
-    const calStr = (rec.calificacion_promedio||0).toFixed(1);
+    const calStr = (parseFloat(rec.calificacion_promedio)||0).toFixed(1);
     
     // onClick para el fav
     const favClick = onFavClick 
@@ -125,8 +126,9 @@ window.Card = {
     // Si viene de favoritos, a veces trae 'e.establecimiento', lo normalizamos:
     const data = e.establecimiento || e;
     const id = data.id_establecimiento || e.id_establecimiento;
-    const cal = data.calificacion_promedio || 0;
-    const dist = data.distancia_km ? `${data.distancia_km.toFixed(1)} km` : null;
+    const cal = parseFloat(data.calificacion_promedio) || 0;
+    const distVal = parseFloat(data.distancia_km);
+    const dist = !isNaN(distVal) ? `${distVal.toFixed(1)} km` : null;
     const img = `https://picsum.photos/seed/${id}/${isFavCard ? '128/128' : '120/120'}`;
     const tipoLabel = window.Badges.tipoLabel(data.tipo_establecimiento);
     
