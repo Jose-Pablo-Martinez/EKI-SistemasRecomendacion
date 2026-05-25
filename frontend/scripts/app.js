@@ -11,7 +11,7 @@ const routes = {
   '#/perfil':    () => { if (requireAuth()) window.controllers.perfil() },
   '#/favoritos': () => { if (requireAuth()) window.controllers.favoritos() },
   '#/admin':     () => { if (requireAuth()) window.controllers.admin() },
-  '#/como-funciona': () => window.controllers.algoritmos(),
+  '#/como-funciona': () => window.controllers['como-funciona'](),
 };
 
 async function renderView(viewPath) {
@@ -108,16 +108,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   
   // Inicializar Web Worker para geolocalización en background
   if (window.Worker) {
-    const geoWorker = new Worker('scripts/workers/geo-worker.js');
-    geoWorker.onmessage = function(e) {
-      if (e.data.type === 'position_update') {
-        appState.setLocation(e.data.lat, e.data.lon);
-        if (appState.isAuthenticated) {
-          api.enviarUbicacion(e.data.lat, e.data.lon).catch(() => {});
-        }
+    window.geoWorker = new Worker('scripts/workers/geo-worker.js');
+    window.geoWorker.onmessage = ({ data }) => {
+      if (data.type === 'LOCATION') {
+        appState.setLocation(data.lat, data.lon);
+        api.enviarUbicacion(data.lat, data.lon).catch(() => {});
       }
     };
-    geoWorker.postMessage({ type: 'start_watching' });
+    window.geoWorker.postMessage({ type: 'START' });
   }
 
   updateHeader(); // Actualiza UI antes del primer render

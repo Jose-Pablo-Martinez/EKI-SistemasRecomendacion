@@ -357,5 +357,12 @@ window.controllers.establecimiento = async (id) => {
           </div>
         </div>
       </div>
+      <!-- Enlace caja blanca educativa -->
+      <div class="mt-4 text-center">
+        <a href="#/como-funciona"
+           class="text-label-md text-text-tertiary hover:text-secondary underline underline-offset-2 transition-colors">
+          ¿Cómo funcionan las recomendaciones?
+        </a>
+      </div>
   `;
 };

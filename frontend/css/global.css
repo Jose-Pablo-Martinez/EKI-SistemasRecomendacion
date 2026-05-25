@@ -1,4 +1,4 @@
-/* frontend/css/styles.css - Sistema de Diseño EkiSystem */
+/* frontend/css/global.css - Sistema de Diseño EkiSystem */
 
 @tailwind base;
 @tailwind components;
@@ -57,14 +57,12 @@
 
 @layer components {
 
-  /* Textura de fondo */
   .eki-texture-bg {
     background-image: url('../assets/backgroundEki.svg');
     background-repeat: no-repeat;
     background-size: cover;
     background-position: center;
     position: relative;
-    /* Esencial para que el ::before funcione */
   }
 
   .eki-texture-bg::before {
@@ -80,19 +78,13 @@
     z-index: 0;
   }
 
-  /* Animaciones personalizadas */
   .fade-in {
     animation: fadeIn 400ms cubic-bezier(0, 0, 0.2, 1) forwards;
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
 
   .card-enter {
@@ -101,38 +93,21 @@
   }
 
   @keyframes cardEnter {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);   }
   }
 
-  /* Skeleton loading */
   .skeleton {
     background-color: var(--surface-dim);
     animation: skeletonPulse 1.4s ease-in-out infinite;
   }
 
   @keyframes skeletonPulse {
-    0% {
-      opacity: 0.4;
-    }
-
-    50% {
-      opacity: 0.8;
-    }
-
-    100% {
-      opacity: 0.4;
-    }
+    0%   { opacity: 0.4; }
+    50%  { opacity: 0.8; }
+    100% { opacity: 0.4; }
   }
 
-  /* Barra de progreso onboarding */
   .progress-track {
     height: 6px;
     border-radius: 9999px;
@@ -149,166 +124,119 @@
   }
 
   @keyframes progressGrow {
-    from {
-      transform: scaleX(0);
-    }
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
 
-    to {
-      transform: scaleX(1);
-    }
+  /* Invisible hasta que recibe foco por teclado (Tab) */
+  .eki-skip-link {
+    position: absolute;
+    top: -120%;
+    left: 1rem;
+    z-index: 9999;
+    padding: 10px 20px;
+    background: var(--primary);
+    color: #fff;
+    font-family: Montserrat, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 0 0 8px 8px;
+    text-decoration: none;
+    transition: top 200ms ease;
+  }
+  .eki-skip-link:focus {
+    top: 0;
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+
+  /* Muestra anillo de foco solo con teclado, no con click */
+  :focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+
+  .eki-carousel {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 12px;     /* espacio para scrollbar en iOS */
+    /* Ocultar scrollbar: funcional pero invisible */
+    scrollbar-width: none;    /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+  .eki-carousel::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+  .eki-carousel > article,
+  .eki-carousel > div {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    /* 85vw en móvil pequeño, máx 300px — así se ve la siguiente tarjeta */
+    width: 85vw;
+    max-width: 300px;
   }
 }
 
-/* Tipografía de jerarquía */
-.text-display-xl {
-  font-size: 64px;
-  line-height: 72px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
+.text-display-xl  { font-size: 64px; line-height: 72px;  font-weight: 800; letter-spacing: -0.02em;  }
+.text-display-lg  { font-size: 48px; line-height: 56px;  font-weight: 700; letter-spacing: -0.015em; }
+.text-display-md  { font-size: 36px; line-height: 44px;  font-weight: 600; letter-spacing: -0.01em;  }
+.text-headline-lg { font-size: 28px; line-height: 36px;  font-weight: 600; letter-spacing: -0.005em; }
+.text-headline-md { font-size: 22px; line-height: 30px;  font-weight: 500; }
+.text-headline-sm { font-size: 18px; line-height: 26px;  font-weight: 500; }
+.text-body-lg     { font-size: 18px; line-height: 28px;  font-weight: 400; }
+.text-body-md     { font-size: 16px; line-height: 24px;  font-weight: 400; }
+.text-body-sm     { font-size: 14px; line-height: 20px;  font-weight: 400; }
+.text-label-xl    { font-size: 16px; line-height: 20px;  font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.text-label-lg    { font-size: 13px; line-height: 18px;  font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.text-label-md    { font-size: 12px; line-height: 16px;  font-weight: 500; letter-spacing: 0.03em; }
+.text-label-sm    { font-size: 11px; line-height: 14px;  font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+.text-numeric-lg  { font-size: 32px; line-height: 36px;  font-weight: 700; font-variant-numeric: tabular-nums; }
+.text-numeric-md  { font-size: 20px; line-height: 24px;  font-weight: 600; font-variant-numeric: tabular-nums; }
+.text-numeric-sm  { font-size: 14px; line-height: 18px;  font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.text-display-lg {
-  font-size: 48px;
-  line-height: 56px;
-  font-weight: 700;
-  letter-spacing: -0.015em;
-}
-
-.text-display-md {
-  font-size: 36px;
-  line-height: 44px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.text-headline-lg {
-  font-size: 28px;
-  line-height: 36px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-}
-
-.text-headline-md {
-  font-size: 22px;
-  line-height: 30px;
-  font-weight: 500;
-}
-
-.text-headline-sm {
-  font-size: 18px;
-  line-height: 26px;
-  font-weight: 500;
-}
-
-.text-body-lg {
-  font-size: 18px;
-  line-height: 28px;
-  font-weight: 400;
-}
-
-.text-body-md {
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-}
-
-.text-body-sm {
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 400;
-}
-
-.text-label-xl {
-  font-size: 16px;
-  line-height: 20px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.text-label-lg {
-  font-size: 13px;
-  line-height: 18px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.text-label-md {
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-}
-
-.text-label-sm {
-  font-size: 11px;
-  line-height: 14px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.text-numeric-lg {
-  font-size: 32px;
-  line-height: 36px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.text-numeric-md {
-  font-size: 20px;
-  line-height: 24px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.text-numeric-sm {
-  font-size: 14px;
-  line-height: 18px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Grid de diseño (basado en DESIGN.md) */
 @layer components {
   .eki-grid {
     display: grid;
     grid-template-columns: repeat(1, minmax(0, 1fr));
     gap: 16px;
-    /* gutter mobile */
     padding: 0 16px;
-    /* margin mobile */
   }
-
   @media (min-width: 768px) {
     .eki-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 24px;
-      /* gutter tablet */
       padding: 0 32px;
-      /* margin tablet */
     }
   }
-
   @media (min-width: 1024px) {
     .eki-grid {
       grid-template-columns: repeat(12, minmax(0, 1fr));
       gap: 24px;
-      /* gutter desktop */
       padding: 0 64px;
-      /* margin desktop */
     }
   }
 }
 
-/* Accesibilidad: Respetar preferencia de movimiento reducido del sistema operativo */
+/* Respeta la preferencia del OS — WCAG 2.1 §2.3.3                             */
+/* Una sola regla que desactiva TODO: animaciones, transiciones, scroll suave   */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  *, *::before, *::after {
+    animation-duration:        0.01ms !important;
+    animation-iteration-count: 1      !important;
+    transition-duration:       0.01ms !important;
+    scroll-behavior:           auto   !important;
+  }
+
+  /* card-enter debe seguir siendo visible aunque sin animación */
+  .card-enter {
+    opacity: 1;
   }
 }
