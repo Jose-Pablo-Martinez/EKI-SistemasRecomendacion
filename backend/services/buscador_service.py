@@ -47,7 +47,8 @@ def buscar_con_correccion(
     db: Session, 
     query: Optional[str] = None, 
     id_categoria: Optional[int] = None, 
-    id_colonia: Optional[int] = None
+    id_colonia: Optional[int] = None,
+    tipo_establecimiento: Optional[str] = None
 ) -> dict:
     """
     Realiza una búsqueda estándar y, si no encuentra resultados y existe un query de texto,
@@ -61,7 +62,8 @@ def buscar_con_correccion(
         db=db, 
         query=query, 
         id_categoria=id_categoria, 
-        id_colonia=id_colonia
+        id_colonia=id_colonia,
+        tipo_establecimiento=tipo_establecimiento
     )
     
     # Si hay resultados, o si no buscaron por texto, regresar normal sin sugerencias

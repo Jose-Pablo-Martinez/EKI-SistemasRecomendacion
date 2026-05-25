@@ -47,7 +47,7 @@ def actualizar_establecimiento(db: Session, id_establecimiento: int, id_usuario:
     db.refresh(est)
     return est
 
-def buscar_establecimientos(db: Session, query: Optional[str] = None, id_categoria: Optional[int] = None, id_colonia: Optional[int] = None):
+def buscar_establecimientos(db: Session, query: Optional[str] = None, id_categoria: Optional[int] = None, id_colonia: Optional[int] = None, tipo_establecimiento: Optional[str] = None):
     db_query = db.query(Establecimiento).filter(Establecimiento.estado == 'aprobado')
     
     if query:
@@ -62,6 +62,9 @@ def buscar_establecimientos(db: Session, query: Optional[str] = None, id_categor
         
     if id_colonia:
         db_query = db_query.filter(Establecimiento.id_colonia == id_colonia)
+        
+    if tipo_establecimiento == 'puesto_informal':
+        db_query = db_query.filter(Establecimiento.tipo_establecimiento == 'puesto_informal')
         
     return db_query.all()
 

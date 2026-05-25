@@ -174,8 +174,13 @@ window.controllers.establecimiento = async (id) => {
     return;
   }
 
+  let isFav = false;
   if (appState.isAuthenticated) {
     api.registrarInteraccion(id, 'vista_detalle').catch(()=>{});
+    try {
+      const favs = await api.getFavoritos();
+      isFav = favs.some(f => (f.id_establecimiento == id) || (f.establecimiento && f.establecimiento.id_establecimiento == id));
+    } catch (e) {}
   }
 
   const img       = `https://picsum.photos/seed/${estab.id_establecimiento||id}/1200/500`;
@@ -216,12 +221,13 @@ window.controllers.establecimiento = async (id) => {
         <!-- Botones de acción -->
         <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
           <button id="btn-fav-estab" onclick="window.Favorite.toggle(${estab.id_establecimiento}, this)"
-            aria-label="Guardar en favoritos"
-            aria-pressed="false"
-            class="flex items-center gap-1.5 px-3 py-2 rounded border border-border-default
-                   text-body-sm text-text-secondary hover:border-accent hover:text-accent transition-all">
-            <span class="material-symbols-outlined" style="font-size:17px;">favorite</span>
-            <span class="_fav-label">Guardar</span>
+            aria-label="${isFav ? 'Quitar de favoritos' : 'Guardar en favoritos'}"
+            aria-pressed="${isFav}"
+            class="flex items-center gap-1.5 px-3 py-2 rounded border 
+                   ${isFav ? 'border-accent bg-accent-faint text-accent' : 'border-border-default text-text-secondary'}
+                   hover:border-accent hover:text-accent transition-all">
+            <span class="material-symbols-outlined" style="font-size:17px; font-variation-settings: ${isFav ? "'FILL' 1" : "'FILL' 0"}">favorite</span>
+            <span class="_fav-label">${isFav ? 'Guardado' : 'Guardar'}</span>
           </button>
           ${estab.latitud && estab.longitud ? `
             <button onclick="_abrirMaps(${estab.id_establecimiento},${estab.latitud},${estab.longitud})"

@@ -14,22 +14,27 @@ window.Favorite = {
    * @param {HTMLElement} btnElement - El elemento <button> que disparó el evento.
    */
   toggle: async (idEstab, btnElement) => {
-    if (!window.appState.isAuthenticated) {
+    if (!window.appState || !window.appState.isAuthenticated) {
       window.location.hash = '#/login';
       return;
     }
 
     const isFav = btnElement.getAttribute('aria-pressed') === 'true';
-    const method = isFav ? 'DELETE' : 'POST';
     
     // Actualización optimista
     btnElement.setAttribute('aria-pressed', String(!isFav));
     btnElement.setAttribute('aria-label', !isFav ? 'Quitar de favoritos' : 'Guardar en favoritos');
     
+    // Estilizar el botón completo (borde y fondo)
+    btnElement.classList.toggle('border-accent', !isFav);
+    btnElement.classList.toggle('bg-accent-faint', !isFav);
+    btnElement.classList.toggle('text-accent', !isFav);
+    btnElement.classList.toggle('border-border-default', isFav);
+    btnElement.classList.toggle('text-text-secondary', isFav);
+
     const span = btnElement.querySelector('span');
     if (span) {
       span.style.fontVariationSettings = !isFav ? '"FILL" 1' : '"FILL" 0';
-      span.classList.toggle('text-accent', !isFav);
     }
     
     // Text label
@@ -43,22 +48,28 @@ window.Favorite = {
     setTimeout(() => btnElement.classList.remove('scale-110'), 150);
     
     // Toast
-    window.Toast.show(isFav ? 'Eliminado de favoritos' : 'Guardado en favoritos', isFav ? 'info' : 'success');
+    showToast(isFav ? 'Eliminado de favoritos' : 'Guardado en favoritos', isFav ? 'info' : 'success');
     
     try {
-      await window.api.toggleFavorito(idEstab, method);
+      await api.toggleFavorito(idEstab);
     } catch (e) {
       // Revertir en caso de error
       btnElement.setAttribute('aria-pressed', String(isFav));
       btnElement.setAttribute('aria-label', isFav ? 'Quitar de favoritos' : 'Guardar en favoritos');
+      btnElement.classList.toggle('border-accent', isFav);
+      btnElement.classList.toggle('bg-accent-faint', isFav);
+      btnElement.classList.toggle('text-accent', isFav);
+      btnElement.classList.toggle('border-border-default', !isFav);
+      btnElement.classList.toggle('text-text-secondary', !isFav);
+
       if (span) {
         span.style.fontVariationSettings = isFav ? '"FILL" 1' : '"FILL" 0';
-        span.classList.toggle('text-accent', isFav);
       }
       if (label) {
         label.textContent = isFav ? 'Guardado' : 'Guardar';
       }
-      window.Toast.show('Error al actualizar favoritos', 'error');
+      console.error("Error toggling favorito:", e);
+      showToast('Error al actualizar favoritos', 'error');
     }
   }
 };

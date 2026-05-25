@@ -39,7 +39,7 @@ async function _quitarFav(id) {
   if (btn) btn.disabled = true;
 
   try {
-    await api.toggleFavorito(id, 'DELETE');
+    await api.toggleFavorito(id);
 
     if (card) {
       card.style.transition = 'opacity 220ms ease, transform 220ms ease';
@@ -51,7 +51,7 @@ async function _quitarFav(id) {
         // Mostrar vacío si no quedan tarjetas
         const lista = document.getElementById('favs-lista');
         if (lista && !lista.querySelector('[id^="fav-"]')) {
-          lista.innerHTML = _estadoVacio();
+          lista.innerHTML = _favEstadoVacio();
         }
       }, 240);
     }

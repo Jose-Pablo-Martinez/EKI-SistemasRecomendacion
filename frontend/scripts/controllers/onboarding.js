@@ -5,8 +5,9 @@
  */
 window.controllers.onboarding = async () => {
     let step = 1;
-    let categoriasSeleccionadas = [];
-    let preciosSeleccionados = [];
+    let categoriasSeleccionadas = appState.user?.visitante?.vector_preferencias?.categorias_preferidas || [];
+    let preciosSeleccionados = appState.user?.visitante?.vector_preferencias?.precios_preferidos || [];
+    let isEditing = !!appState.user?.perfil_completado;
     let categoriasData = [];
 
     // 1. Cargar Vista HTML base
@@ -19,6 +20,14 @@ window.controllers.onboarding = async () => {
     const stepIndicator = document.getElementById('step-indicator');
     const prevBtn = document.getElementById('btn-prev');
     const nextBtn = document.getElementById('btn-next');
+    const cancelBtn = document.getElementById('btn-cancel');
+
+    if (isEditing && cancelBtn) {
+        cancelBtn.classList.remove('hidden');
+        cancelBtn.addEventListener('click', () => {
+            window.location.hash = '#/perfil';
+        });
+    }
 
     const loadCategorias = async () => {
         try {
@@ -240,7 +249,14 @@ window.controllers.onboarding = async () => {
                     precios: preciosSeleccionados
                 };
                 await api.enviarOnboarding(preferencias);
-                if (appState.user) appState.user.perfil_completado = true;
+                if (appState.user) {
+                    appState.user.perfil_completado = true;
+                    if (!appState.user.visitante) appState.user.visitante = {};
+                    appState.user.visitante.vector_preferencias = {
+                        categorias_preferidas: categoriasSeleccionadas,
+                        precios_preferidos: preciosSeleccionados
+                    };
+                }
                 
                 window.components.Modal.show({
                     title: '¡Todo listo!',

@@ -39,8 +39,20 @@ function logout() {
 }
 
 function confirmarLogout() {
-    if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-        logout();
+    if (window.components && window.components.Modal) {
+        window.components.Modal.showConfirm({
+            title: 'Cerrar Sesión',
+            message: '¿Estás seguro de que deseas cerrar sesión?',
+            confirmText: 'Cerrar Sesión',
+            cancelText: 'Cancelar',
+            onConfirm: () => {
+                logout();
+            }
+        });
+    } else {
+        if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+            logout();
+        }
     }
 }
 

@@ -61,6 +61,7 @@ class UsuarioResponse(BaseModel):
     activo: bool
     fecha_registro: datetime
     perfil_completado: bool = False
+    visitante: Optional["UsuarioVisitanteResponse"] = None
 
 
 class UsuarioVisitanteResponse(BaseModel):
@@ -76,6 +77,7 @@ class UsuarioVisitanteResponse(BaseModel):
     # id_cluster y id_rango se exponen como IDs (no se carga el objeto completo)
     id_cluster: Optional[int] = None
     id_rango: Optional[int] = None
+    vector_preferencias: Optional[dict] = None
 
 
 class UsuarioPropietarioResponse(BaseModel):

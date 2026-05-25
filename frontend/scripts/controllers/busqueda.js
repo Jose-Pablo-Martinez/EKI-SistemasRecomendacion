@@ -30,16 +30,6 @@ async function _ejecutarBusqueda(query) {
   const el = document.getElementById('busq-resultados');
   if (!el) return;
 
-  if (!query || query.length < 2) {
-    el.innerHTML = `
-      <div class="flex flex-col items-center justify-center py-16 text-center col-span-full">
-        <span class="material-symbols-outlined text-5xl text-text-tertiary mb-4">restaurant_menu</span>
-        <p class="font-heading text-headline-md text-primary mb-2">¿Qué se te antoja hoy?</p>
-        <p class="text-body-md text-text-secondary">Escribe al menos 2 letras para buscar.</p>
-      </div>`;
-    return;
-  }
-
   _ultimaBusqueda = query;
   el.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 col-span-full" role="list">${window.Skeletons.renderCompact(4)}</div>`;
 
@@ -48,13 +38,28 @@ async function _ejecutarBusqueda(query) {
     const response = await api.buscar(query, params);
     if (_ultimaBusqueda !== query) return; // busqueda obsoleta
     
-    const items = response.resultados || [];
+    let items = response.resultados || [];
     const sugerencia = response.sugerencia_correccion;
+    const isInitialState = (!query || query.length < 2);
+    
+    if (isInitialState) {
+      // Tomamos de 15 resultados aleatorios si la búsqueda está vacía
+      items = items.sort(() => 0.5 - Math.random()).slice(0, 15);
+    }
     
     let html = '';
     
+    if (isInitialState) {
+      html += `
+        <div class="flex flex-col items-center justify-center py-8 px-4 text-center col-span-full mb-6 bg-surface-raised border border-border-default rounded-md shadow-sm fade-in">
+          <span class="material-symbols-outlined text-5xl text-text-tertiary mb-3">restaurant_menu</span>
+          <p class="font-heading text-headline-sm text-primary mb-2">¿Qué se te antoja hoy?</p>
+          <p class="text-body-sm text-text-secondary">Escribe al menos 2 letras para buscar opciones específicas, o explora estas sugerencias iniciales.</p>
+        </div>`;
+    }
+    
     // Renderizado del banner de Corrección Ortográfica (Levenshtein)
-    if (sugerencia) {
+    if (sugerencia && !isInitialState) {
       html += `
         <div class="col-span-full bg-accent-faint border border-accent/30 text-accent rounded-md p-4 mb-2 flex items-center gap-3 fade-in cursor-pointer hover:bg-accent/10 transition-colors shadow-sm" 
              onclick="document.getElementById('busq-input').value='${sugerencia}'; _clearTimeout=_searchTimeout; _ultimaBusqueda='${sugerencia}'; _ejecutarBusqueda('${sugerencia}')">
@@ -115,12 +120,12 @@ window.controllers.busqueda = async () => {
 
   if (!input) return;
 
-  // Restaurar valor previo si lo había
+  // Restaurar valor previo si lo había y ejecutar búsqueda inicial
   if (_ultimaBusqueda) {
     input.value = _ultimaBusqueda;
     clearBtn?.classList.remove('hidden');
-    _ejecutarBusqueda(_ultimaBusqueda);
   }
+  _ejecutarBusqueda(_ultimaBusqueda || '');
 
   input.addEventListener('input', e => {
     const q = e.target.value.trim();

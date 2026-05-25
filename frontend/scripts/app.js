@@ -21,7 +21,8 @@ async function renderView(viewPath) {
   root.style.opacity = 0;
   
   try {
-      const response = await fetch(`views/${viewPath}`);
+      const ts = new Date().getTime();
+      const response = await fetch(`views/${viewPath}?t=${ts}`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const htmlContent = await response.text();
       
@@ -75,7 +76,7 @@ function updateHeader() {
   if (appState.isAuthenticated) {
     navMenu.innerHTML = `
       <a href="#/feed" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Feed</a>
-      <a href="#/buscar" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Buscar</a>
+      <a href="#/buscar" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Explorar</a>
       <a href="#/como-funciona" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors" title="Cómo funcionan las recomendaciones">ⓘ Info</a>
       ${appState.isAdmin ? '<a href="#/admin" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Admin</a>' : ''}
     `;
@@ -86,7 +87,9 @@ function updateHeader() {
       <a href="#/perfil" class="w-8 h-8 rounded-full bg-primary-faint flex items-center justify-center text-text-secondary font-bold hover:ring-2 ring-accent transition-all" title="Perfil">
         ${appState.user?.nombre ? appState.user.nombre[0].toUpperCase() : 'U'}
       </a>
-      <button onclick="confirmarLogout()" class="text-sm text-text-tertiary hover:text-accent">Cerrar sesión</button>
+      <button onclick="confirmarLogout()" class="text-sm font-bold text-accent border border-accent/30 hover:border-accent hover:bg-accent hover:text-white px-3 py-1.5 rounded transition-all shadow-sm flex items-center gap-1">
+        <span class="material-symbols-outlined" style="font-size: 16px;">logout</span> Cerrar sesión
+      </button>
     `;
   } else {
     navMenu.innerHTML = `
