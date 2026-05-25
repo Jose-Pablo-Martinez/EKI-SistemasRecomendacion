@@ -11,6 +11,7 @@ const routes = {
   '#/perfil':    () => { if (requireAuth()) window.controllers.perfil() },
   '#/favoritos': () => { if (requireAuth()) window.controllers.favoritos() },
   '#/admin':     () => { if (requireAuth()) window.controllers.admin() },
+  '#/como-funciona': () => window.controllers['como-funciona'](),
 };
 
 async function renderView(viewPath) {
@@ -103,5 +104,15 @@ window.addEventListener('DOMContentLoaded', async () => {
   appState.subscribe(updateHeader);
   await initState(); // Verifica token y carga usuario si existe
   updateHeader(); // Actualiza UI antes del primer render
+    if (window.Worker) {
+        window.geoWorker = new Worker('scripts/workers/geo-worker.js');
+        window.geoWorker.onmessage = ({ data }) => {
+          if (data.type === 'LOCATION') {
+            appState.setLocation(data.lat, data.lon);
+            api.enviarUbicacion(data.lat, data.lon).catch(() => {});
+          }
+        };
+        window.geoWorker.postMessage({ type: 'START' });
+      }
   handleRoute();  // Renderiza la página actual
 });
