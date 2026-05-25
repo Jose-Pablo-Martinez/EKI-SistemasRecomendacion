@@ -1,5 +1,4 @@
-window.tailwind = window.tailwind || {};
-window.tailwind.config = {
+tailwind.config = {
   theme: {
     screens: {
       'sm': '480px',
