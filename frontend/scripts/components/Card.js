@@ -17,7 +17,7 @@ window.Card = {
    * @returns {string} String HTML de la tarjeta completa.
    */
   // Tarjeta grande para el Feed
-  renderFeed: (rec, delay = 0, onFavClick) => {
+  renderFeed: (rec, delay = 0, onFavClick, isFavorite = false) => {
     // Soporte para estructura plana (mock) y anidada (API)
     const estab = rec.establecimiento || rec;
     const nombre = estab.nombre || rec.nombre_establecimiento || 'Desconocido';
@@ -34,10 +34,23 @@ window.Card = {
     const col    = Math.round((rec.score_colaborativo_usado||0) * 100);
     const calStr = cal_prom.toFixed(1);
     
+    const isFav = !!isFavorite;
+
     // onClick para el fav
     const favClick = onFavClick 
       ? `event.stopPropagation(); ${onFavClick}(${rec.id_establecimiento}, this)` 
       : `event.stopPropagation(); window.Favorite.toggle(${rec.id_establecimiento}, this)`;
+
+    const favClass = isFav
+      ? 'border-accent bg-accent-faint text-accent'
+      : 'border-border-default text-text-secondary';
+    const favPressed = isFav ? 'true' : 'false';
+    const favLabel = isFav
+      ? `Quitar ${nombre} de favoritos`
+      : `Guardar ${nombre} en favoritos`;
+    const favIconStyle = isFav
+      ? 'font-size:20px;font-variation-settings:"FILL" 1'
+      : 'font-size:20px;font-variation-settings:"FILL" 0';
 
     // onClick para la tarjeta completa
     const cardClick = `onclick="window.location.hash='#/establecimiento/${rec.id_establecimiento}'"`;
@@ -81,11 +94,11 @@ window.Card = {
             </h3>
             <button
               onclick="${favClick}"
-              class="text-text-tertiary hover:text-accent transition-colors flex-shrink-0 mt-0.5
-                     w-10 h-10 flex items-center justify-center rounded"
-              aria-label="Guardar ${nombre} en favoritos"
-              aria-pressed="false">
-              <span class="material-symbols-outlined" aria-hidden="true" style="font-size:20px;">favorite</span>
+              class="hover:text-accent transition-colors flex-shrink-0 mt-0.5
+                     w-10 h-10 flex items-center justify-center rounded border ${favClass}"
+              aria-label="${favLabel}"
+              aria-pressed="${favPressed}">
+              <span class="material-symbols-outlined" aria-hidden="true" style="${favIconStyle}">favorite</span>
             </button>
           </div>
 

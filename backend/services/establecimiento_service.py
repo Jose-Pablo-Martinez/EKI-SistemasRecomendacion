@@ -7,6 +7,7 @@ from backend.models.interacciones import InteraccionUsuario, Resena, FavoritoGua
 from backend.engine.collab_filter import compute_peso_interaccion
 from backend.schemas.establecimientos import EstablecimientoCreate, EstablecimientoUpdate, HorarioCreate, PlatilloCreate, ImagenCreate
 from backend.schemas.recomendaciones import InteraccionUsuarioCreate, ResenaCreate, FavoritoCreate, ReporteCreate
+from backend.services import gamificacion_service
 
 def obtener_establecimiento(db: Session, id_establecimiento: int):
     return db.query(Establecimiento).filter(Establecimiento.id_establecimiento == id_establecimiento, Establecimiento.estado == 'aprobado').first()
@@ -108,11 +109,14 @@ def crear_resena(db: Session, id_usuario: int, datos: ResenaCreate):
         id_establecimiento=datos.id_establecimiento,
         calificacion=datos.calificacion,
         comentario=datos.comentario,
-        estado='pendiente'
+        estado='aprobado'
     )
     db.add(resena)
     db.commit()
     db.refresh(resena)
+
+    # Otorgar puntos inmediatamente para reflejar progreso en tiempo real
+    gamificacion_service.otorgar_puntos(db, id_usuario, "crear_resena")
     return resena
 
 def toggle_favorito(db: Session, id_usuario: int, datos: FavoritoCreate):

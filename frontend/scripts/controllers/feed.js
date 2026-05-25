@@ -30,12 +30,18 @@ const _SECCIONES = {
   cold_start:            { titulo:"Sugerencias según tus gustos", icono:"explore",      textura:false },
 };
 
+let _favoritosSet = new Set();
+
 // Utilidades para el Feed se han movido a scripts/components/
 
 // Sección con carrusel en móvil
-function _seccionFeed(cat, items) {
+function _seccionFeed(cat, items, favoritosSet) {
   const cfg   = _SECCIONES[cat] || { titulo: cat, icono:'restaurant', textura:false };
-  const cards = items.map((r, i) => window.Card.renderFeed(r, i * 70, 'window.Favorite.toggle')).join('');
+  const cards = items.map((r, i) => {
+    const idEstab = r.id_establecimiento || r.establecimiento?.id_establecimiento;
+    const isFav = favoritosSet?.has(idEstab);
+    return window.Card.renderFeed(r, i * 70, 'window.Favorite.toggle', isFav);
+  }).join('');
 
   const inner = `
     <div class="flex items-center justify-between mb-5">
@@ -83,7 +89,7 @@ async function _irEstab(idEstab, idRec) {
 
 
 // Render del feed a partir de datos 
-function _renderFeedData(recs) {
+function _renderFeedData(recs, favoritosSet) {
   let grupos = {};
   if (Array.isArray(recs)) {
     recs.forEach(r => {
@@ -98,7 +104,7 @@ function _renderFeedData(recs) {
   const extra  = Object.keys(grupos).filter(k => !_SECCIONES[k]);
   return [...orden, ...extra]
     .filter(k => grupos[k]?.length)
-    .map(k => _seccionFeed(k, grupos[k]))
+    .map(k => _seccionFeed(k, grupos[k], favoritosSet))
     .join('');
 }
 
@@ -205,7 +211,7 @@ async function _cargarConRetry(intento) {
     const recs = await api.getRecomendaciones();
     _cancelarRetry();
     const el = document.getElementById('feed-content');
-    if (el) el.innerHTML = (recs && Object.keys(recs).length) ? _renderFeedData(recs) : _feedEstadoVacio();
+    if (el) el.innerHTML = (recs && Object.keys(recs).length) ? _renderFeedData(recs, _favoritosSet) : _feedEstadoVacio();
   } catch(err) {
     // Si el error parece ser de red/servidor (no 4xx del negocio), reintentar
     const esRed = !err.status || err.status === 0 || err.status >= 500;
@@ -247,15 +253,27 @@ window.controllers.feed = async () => {
     contentEl.innerHTML = _shellSkel();
   }
 
+  let favoritos = [];
+  try {
+    favoritos = await api.getFavoritos();
+  } catch (_) {
+    favoritos = [];
+  }
+  _favoritosSet = new Set(
+    favoritos
+      .map((f) => f.id_establecimiento || f.establecimiento?.id_establecimiento)
+      .filter((id) => !!id)
+  );
+
   // Intentar cargar datos reales
   try {
     const recs = await api.getRecomendaciones();
     const el   = document.getElementById('feed-content');
-    if (el) el.innerHTML = (recs && Object.keys(recs).length) ? _renderFeedData(recs) : _feedEstadoVacio();
+    if (el) el.innerHTML = (recs && Object.keys(recs).length) ? _renderFeedData(recs, _favoritosSet) : _feedEstadoVacio();
   } catch(err) {
     // Mostrar mock inmediatamente para que no haya pantalla en blanco
     const el = document.getElementById('feed-content');
-    if (el) el.innerHTML = _renderFeedData(_MOCK_RECS);
+    if (el) el.innerHTML = _renderFeedData(_MOCK_RECS, _favoritosSet);
 
     // Luego iniciar la secuencia de retry silenciosa en background
     // (si el backend responde durante el retry, reemplaza el mock)
