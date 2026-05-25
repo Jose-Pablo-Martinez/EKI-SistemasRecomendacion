@@ -187,11 +187,8 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
             # Si no hubo cambios, no es necesario recalcular el cold_start
             return
             
-        # Por simplicidad, guardaremos los arrays tal cual como seed del vector K-Means
-        visitante.vector_preferencias = {  # type: ignore[assignment]
-            "categorias_preferidas": categorias,
-            "precios_preferidos": precios
-        }
+        # Guardamos el estado de perfil completado
+        # El vector de preferencias será guardado en el bloque try de abajo
         visitante.perfil_completado = True  # type: ignore[assignment]
         
         # Asignación provisional de ID al cluster de usuario
@@ -209,6 +206,13 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
                 for i in range(min(len(precios), max(0, dim - len(categorias)))):
                     vector_simulado[len(categorias) + i] = 0.5
                     
+                # Guardamos las preferencias junto al vector numérico para K-Means
+                visitante.vector_preferencias = {  # type: ignore[assignment]
+                    "categorias_preferidas": categorias,
+                    "precios_preferidos": precios,
+                    "numerico": vector_simulado
+                }
+                
                 id_cluster_prov = assign_cluster_provisional(vector_simulado, clusters)
                 if id_cluster_prov is not None:
                     visitante.id_cluster = id_cluster_prov # type: ignore
