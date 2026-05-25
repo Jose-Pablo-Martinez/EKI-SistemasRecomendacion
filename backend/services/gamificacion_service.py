@@ -2,6 +2,7 @@ import logging
 from sqlalchemy.orm import Session
 from backend.models.interacciones import LogPuntos, ContribucionInformacion
 from backend.models.usuarios import UsuarioVisitante
+from backend.models.catalogo import RangoInformador
 from backend.schemas.recomendaciones import ContribucionCreate
 from typing import Optional
 
@@ -48,6 +49,13 @@ def otorgar_puntos(db: Session, id_usuario: int, accion: str, descripcion: str =
     puntos = PUNTOS_POR_ACCION.get(accion, 0)
     if puntos <= 0:
         return
+
+    # `log_puntos.id_usuario` referencia a `usuario_visitante.id_usuario`.
+    # Si el usuario no participa en gamificación (p.ej. admin), evitamos violar la FK.
+    visitante = db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).first()
+    if not visitante:
+        logger.warning("No se otorgaron puntos: usuario %s no es visitante", id_usuario)
+        return
         
     log = LogPuntos(
         id_usuario=id_usuario,
@@ -57,26 +65,23 @@ def otorgar_puntos(db: Session, id_usuario: int, accion: str, descripcion: str =
     )
     db.add(log)
     
-    # Actualizar desnormalizado y rangos
-    visitante = db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).first()
-    if visitante:
-        visitante.puntos_experiencia = visitante.puntos_experiencia + puntos  # type: ignore[assignment]
-        
-        # Verificar subida de rango
-        from backend.models.catalogo import RangoInformador
-        nuevo_rango = db.query(RangoInformador).filter(
-            RangoInformador.puntos_minimos <= visitante.puntos_experiencia
-        ).order_by(RangoInformador.puntos_minimos.desc()).first()
-        
-        if nuevo_rango and (visitante.id_rango != nuevo_rango.id_rango):
-            visitante.id_rango = nuevo_rango.id_rango  # type: ignore[assignment]
-            # Opcional: registrar motivo 'subida_rango' en log_puntos para el historial
-            log_subida = LogPuntos(
-                id_usuario=id_usuario,
-                puntos=0,
-                motivo="subida_rango"
-            )
-            db.add(log_subida)
+    # Actualizar desnormalizado con protección contra None
+    visitante.puntos_experiencia = (visitante.puntos_experiencia or 0) + puntos  # type: ignore[assignment]
+    
+    # Verificar subida de rango automáticamente con base en puntos_experiencia
+    nuevo_rango = db.query(RangoInformador).filter(
+        RangoInformador.puntos_minimos <= visitante.puntos_experiencia
+    ).order_by(RangoInformador.puntos_minimos.desc()).first()
+    
+    if nuevo_rango and (visitante.id_rango != nuevo_rango.id_rango):
+        visitante.id_rango = nuevo_rango.id_rango  # type: ignore[assignment]
+        # Opcional: registrar motivo 'subida_rango' en log_puntos para el historial
+        log_subida = LogPuntos(
+            id_usuario=id_usuario,
+            puntos=0,
+            motivo="subida_rango"
+        )
+        db.add(log_subida)
             
     db.commit()
     logger.info(f"Otorgados {puntos} pts a {id_usuario} por {accion}")
@@ -87,11 +92,13 @@ def obtener_historial_puntos(db: Session, id_usuario: int):
 def obtener_rango_actual(db: Session, id_usuario: int) -> dict:
     visitante = db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).first()
     if not visitante:
-        return {"puntos_experiencia": 0, "rango_actual": None}
+        return {"puntos_experiencia": 0, "puntos_totales": 0, "rango_actual": None}
     
     # En un sistema completo, consultaríamos la tabla RangoGamificacion
     # para determinar puntos faltantes para el próximo nivel
     return {
         "puntos_experiencia": visitante.puntos_experiencia,
+        # Alias para compatibilidad con el frontend (perfil.js espera puntos_totales)
+        "puntos_totales": visitante.puntos_experiencia,
         "rango_actual": visitante.id_rango
     }

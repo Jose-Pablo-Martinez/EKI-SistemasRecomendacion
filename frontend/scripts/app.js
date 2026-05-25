@@ -72,6 +72,11 @@ async function handleRoute() {
 function updateHeader() {
   const navMenu = document.getElementById('nav-menu');
   const userActions = document.getElementById('user-actions');
+  const logoLink = document.getElementById('logo-link');
+
+  if (logoLink) {
+    logoLink.setAttribute('href', appState.isAuthenticated ? '#/feed' : '#/');
+  }
   
   if (appState.isAuthenticated) {
     navMenu.innerHTML = `

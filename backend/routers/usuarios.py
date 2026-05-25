@@ -7,10 +7,11 @@ incluyendo registro, login, obtención de perfil y envío de onboarding.
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from backend.database import get_db
 from backend.models.usuarios import Usuario
-from backend.schemas.usuarios import UsuarioCreate, UsuarioResponse, UsuarioVisitanteResponse, PerfilUpdate, OnboardingData, UbicacionData
+from backend.schemas.usuarios import UsuarioCreate, UsuarioResponse, UsuarioVisitanteResponse, UsuarioPerfilResponse, PerfilUpdate, OnboardingData, UbicacionData
 from backend.services import usuario_service
 from backend.auth import create_access_token, get_current_user
 
@@ -41,10 +42,41 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db
     access_token = create_access_token(data={"sub": usuario.email, "sesion": id_sesion})
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.get("/me", response_model=UsuarioResponse)
-def get_my_profile(current_user: Usuario = Depends(get_current_user)):
+@router.get("/me", response_model=UsuarioPerfilResponse)
+def get_my_profile(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
     """Obtiene el perfil del usuario autenticado."""
-    return current_user
+    from backend.models.interacciones import Resena, FavoritoGuardado, ContribucionInformacion
+
+    total_resenas = db.query(func.count(Resena.id_resena)).filter(
+        Resena.id_usuario == current_user.id_usuario
+    ).scalar() or 0
+    total_favoritos = db.query(func.count(FavoritoGuardado.id_establecimiento)).filter(
+        FavoritoGuardado.id_usuario == current_user.id_usuario
+    ).scalar() or 0
+    total_contribuciones = db.query(func.count(ContribucionInformacion.id_contribucion)).filter(
+        ContribucionInformacion.id_usuario == current_user.id_usuario
+    ).scalar() or 0
+
+    puntos_totales = 0
+    if getattr(current_user, "visitante", None) is not None:
+        puntos_totales = getattr(current_user.visitante, "puntos_experiencia", 0) or 0
+
+    return {
+        "id_usuario": current_user.id_usuario,
+        "email": current_user.email,
+        "nombre": current_user.nombre,
+        "apellido": current_user.apellido,
+        "foto_perfil": current_user.foto_perfil,
+        "tipo_usuario": current_user.tipo_usuario,
+        "activo": current_user.activo,
+        "fecha_registro": current_user.fecha_registro,
+        "perfil_completado": current_user.perfil_completado,
+        "visitante": current_user.visitante,
+        "puntos_totales": puntos_totales,
+        "total_resenas": total_resenas,
+        "total_favoritos": total_favoritos,
+        "total_contribuciones": total_contribuciones,
+    }
 
 @router.patch("/me", response_model=UsuarioResponse)
 def update_my_profile(data: PerfilUpdate, current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):

@@ -65,6 +65,14 @@ class UsuarioResponse(BaseModel):
     visitante: Optional["UsuarioVisitanteResponse"] = None
 
 
+class UsuarioPerfilResponse(UsuarioResponse):
+    """Perfil extendido con totales de actividad del usuario."""
+    puntos_totales: int = 0
+    total_resenas: int = 0
+    total_favoritos: int = 0
+    total_contribuciones: int = 0
+
+
 class UsuarioVisitanteResponse(BaseModel):
     """Respuesta extendida con datos de visitante (gamificación y clustering)."""
     model_config = ConfigDict(from_attributes=True)
