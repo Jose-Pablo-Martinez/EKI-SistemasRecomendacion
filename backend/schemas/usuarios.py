@@ -4,7 +4,7 @@ Schemas de creación y respuesta para los tipos de usuario (TPT).
 """
 from __future__ import annotations
 from datetime import date, datetime
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -77,7 +77,7 @@ class UsuarioVisitanteResponse(BaseModel):
     # id_cluster y id_rango se exponen como IDs (no se carga el objeto completo)
     id_cluster: Optional[int] = None
     id_rango: Optional[int] = None
-    vector_preferencias: Optional[dict] = None
+    vector_preferencias: Optional[Union[dict, list]] = None
 
 
 class UsuarioPropietarioResponse(BaseModel):
