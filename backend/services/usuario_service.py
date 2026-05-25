@@ -161,6 +161,20 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
     """
     visitante = db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).first()
     if visitante:
+        # Verificar si las preferencias realmente cambiaron
+        prefs_actuales = visitante.vector_preferencias
+        cambiaron_preferencias = True
+        
+        if isinstance(prefs_actuales, dict):
+            cats_actuales = prefs_actuales.get("categorias_preferidas", [])
+            precios_actuales = prefs_actuales.get("precios_preferidos", [])
+            if set(cats_actuales) == set(categorias) and set(precios_actuales) == set(precios):
+                cambiaron_preferencias = False
+                
+        if not cambiaron_preferencias and visitante.perfil_completado:
+            # Si no hubo cambios, no es necesario recalcular el cold_start
+            return
+            
         # Por simplicidad, guardaremos los arrays tal cual como seed del vector K-Means
         visitante.vector_preferencias = {  # type: ignore[assignment]
             "categorias_preferidas": categorias,
