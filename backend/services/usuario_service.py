@@ -59,6 +59,14 @@ def autenticar_usuario(db: Session, email: str, password: str) -> Usuario | None
         return None
     return usuario
 
+def marcar_actividad_usuario(db: Session, id_usuario: int):
+    """
+    Actualiza la fecha_ultima_actividad del usuario visitante a la fecha y hora actual.
+    """
+    db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).update(
+        {"fecha_ultima_actividad": datetime.now(timezone.utc)}
+    )
+
 def registrar_dispositivo_sesion(db: Session, id_usuario: int, user_agent_string: str) -> str:
     """
     Registra el dispositivo actual y genera una nueva sesión.
@@ -95,6 +103,10 @@ def registrar_dispositivo_sesion(db: Session, id_usuario: int, user_agent_string
         id_dispositivo=nuevo_disp.id_dispositivo
     )
     db.add(nueva_sesion)
+    
+    # Marcar actividad
+    marcar_actividad_usuario(db, id_usuario)
+    
     db.commit()
     
     return id_sesion

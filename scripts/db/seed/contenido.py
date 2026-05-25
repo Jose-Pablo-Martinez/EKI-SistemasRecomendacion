@@ -110,8 +110,46 @@ def seed_vinculos_propietario(db: Session):
         db.execute(insert(PropietarioEstablecimiento).prefix_with("IGNORE").values(data_vinculos))
         db.commit()
 
+def seed_contribuciones_pendientes(db: Session):
+    print("Sembrando contribuciones pendientes para pruebas del admin...")
+    # Usuarios normales
+    usuarios = db.query(UsuarioVisitante).limit(5).all()
+    if not usuarios:
+        return
+        
+    contribuciones = []
+    
+    # 1. Sugerencia de un nuevo lugar
+    contribuciones.append({
+        "id_usuario": usuarios[0].id_usuario,
+        "id_establecimiento": None,
+        "tipo_contribucion": "nuevo_lugar",
+        "descripcion_cambio": '{"nombre": "Tacos El Ñero", "direccion": "Centro, calle 60", "tipo": "puesto_informal"}',
+        "estado": "pendiente",
+        "puntos_otorgados": 0
+    })
+    
+    # 2. Edición de información de un lugar existente
+    estab = db.query(Establecimiento).filter(Establecimiento.estado == "aprobado").first()
+    if estab and len(usuarios) > 1:
+        contribuciones.append({
+            "id_usuario": usuarios[1].id_usuario,
+            "id_establecimiento": estab.id_establecimiento,
+            "tipo_contribucion": "edicion_info",
+            "descripcion_cambio": '{"horario_cierre": "23:00"}',
+            "estado": "pendiente",
+            "puntos_otorgados": 0
+        })
+        
+    if contribuciones:
+        # Importar el modelo si no estaba importado
+        from backend.models.interacciones import ContribucionInformacion
+        db.execute(insert(ContribucionInformacion).prefix_with("IGNORE").values(contribuciones))
+        db.commit()
+
 def seed_contenido_completo(db: Session):
     seed_establecimiento_contenido(db)
     seed_preferencia_usuario(db)
     seed_vinculos_propietario(db)
+    seed_contribuciones_pendientes(db)
     print("Bloque de contenido completado.")

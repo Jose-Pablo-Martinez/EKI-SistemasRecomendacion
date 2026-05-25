@@ -78,7 +78,8 @@ def seed_usuarios(db: Session):
                     id_cluster=cluster_id,
                     perfil_completado=True,
                     puntos_experiencia=0,
-                    vector_preferencias=vec_variado
+                    vector_preferencias=vec_variado,
+                    fecha_ultima_actividad=datetime.now(timezone.utc)
                 )
                 db.add(uv)
                 db.commit()
@@ -125,7 +126,8 @@ def seed_usuarios(db: Session):
                     id_cluster=g["cluster"] if perfil_completado else None,
                     perfil_completado=perfil_completado,
                     radio_busqueda_km=g["radio"],
-                    vector_preferencias=clusters_vectors[g["cluster"]] if perfil_completado else None
+                    vector_preferencias=clusters_vectors[g["cluster"]] if perfil_completado else None,
+                    fecha_ultima_actividad=datetime.now(timezone.utc)
                 )
                 db.add(uv)
                 db.commit()
@@ -166,7 +168,8 @@ def seed_usuarios(db: Session):
                 id_rango=r_id,
                 id_cluster=random.choice([2, 4]),
                 perfil_completado=True,
-                radio_busqueda_km=8
+                radio_busqueda_km=8,
+                fecha_ultima_actividad=datetime.now(timezone.utc)
             )
             db.add(uv)
             db.commit()

@@ -7,6 +7,7 @@ from backend.models.interacciones import InteraccionUsuario, Resena, FavoritoGua
 from backend.engine.collab_filter import compute_peso_interaccion
 from backend.schemas.establecimientos import EstablecimientoCreate, EstablecimientoUpdate, HorarioCreate, PlatilloCreate, ImagenCreate
 from backend.schemas.recomendaciones import InteraccionUsuarioCreate, ResenaCreate, FavoritoCreate, ReporteCreate
+from backend.services.usuario_service import marcar_actividad_usuario
 
 def obtener_establecimiento(db: Session, id_establecimiento: int):
     return db.query(Establecimiento).filter(Establecimiento.id_establecimiento == id_establecimiento, Establecimiento.estado == 'aprobado').first()

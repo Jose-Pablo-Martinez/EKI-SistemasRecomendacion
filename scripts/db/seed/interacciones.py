@@ -128,12 +128,10 @@ def seed_interacciones_normales_y_resenas(db: Session):
             
             # Si es reseña_dejada, preparar reseña
             if t == "resena_dejada":
-                # Distribución: 80% aprobado, 15% pdte, 5% rechazada
-                rand = random.random()
-                estado = "aprobado" if rand < 0.8 else ("pendiente" if rand < 0.95 else "rechazado")
-                # 30% de las aprobadas no se procesan para permitir testing del pipeline NLP
-                es_aprobado = (estado == "aprobado")
-                procesado = es_aprobado and (random.random() > 0.3)
+                # Ahora todas las reseñas se aprueban automáticamente.
+                estado = "aprobado"
+                # 30% de las reseñas se quedan sin procesar para testing del NLP
+                procesado = (random.random() > 0.3)
                 
                 resenas.append({
                     "id_usuario": u.id_usuario,
