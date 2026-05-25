@@ -45,7 +45,7 @@ function _setAdminTab(id) {
   _ADMIN_TABS.forEach(t => {
     const btn = document.getElementById(`atab-${t.id}`);
     if (!btn) return;
-    // reset
+    // Reiniciar estilos
     btn.classList.remove('border-b-2','border-accent','text-primary','font-semibold','text-text-tertiary');
     if (t.id === id) {
       btn.classList.add('border-b-2','border-accent','text-primary','font-semibold');
@@ -102,7 +102,7 @@ async function _renderAdminTab(id) {
   }
 }
 
-// Card: establecimiento pendiente
+// Tarjeta: establecimiento pendiente
 function _cardEstab(e, idx) {
   const id = e.id_establecimiento;
   const tipoLabel = {
@@ -117,7 +117,7 @@ function _cardEstab(e, idx) {
         <div class="flex-1 min-w-0">
           <h3 class="font-heading text-headline-sm text-primary">${e.nombre || 'Sin nombre'}</h3>
           <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-            <span class="text-label-sm px-2 py-0.5 rounded bg-[#FBF2E2] text-[var(--warning)] border border-[var(--warning)]/30">
+            <span class="text-label-sm px-2 py-0.5 rounded bg-warning-faint text-[var(--warning)] border border-[var(--warning)]/30">
               Pendiente
             </span>
             <span class="text-label-md text-text-tertiary">${tipoLabel}</span>
@@ -162,7 +162,7 @@ function _cardEstab(e, idx) {
     </div>`;
 }
 
-// Card: reseña pendiente 
+// Tarjeta: reseña pendiente
 function _cardResena(r, idx) {
   const id  = r.id_resena;
   const cal = r.calificacion || 0;
@@ -178,8 +178,8 @@ function _cardResena(r, idx) {
             ${r.nombre_establecimiento || `Establecimiento #${r.id_establecimiento}`}
           </h3>
           <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-            <span style="color:#C08A40;font-size:1rem;">${'★'.repeat(cal)}${'☆'.repeat(5-cal)}</span>
-            <span class="text-label-sm px-2 py-0.5 rounded bg-[#FBF2E2] text-[var(--warning)] border border-[var(--warning)]/30">
+            <span class="text-warning-subtle" style="font-size:1rem;">${'★'.repeat(cal)}${'☆'.repeat(5-cal)}</span>
+            <span class="text-label-sm px-2 py-0.5 rounded bg-warning-faint text-[var(--warning)] border border-[var(--warning)]/30">
               Pendiente
             </span>
           </div>
@@ -258,7 +258,7 @@ async function _moderar(tipo, id, accion, cardId) {
   }
 }
 
-// Tab Jobs
+// Pestaña Trabajos (Jobs)
 function _renderJobs(box) {
   box.innerHTML = `
     <div class="space-y-4">
@@ -337,59 +337,36 @@ async function _dispararJob(jobId, label) {
   }
 }
 
-// Main Controller
-window.controllers.admin = () => {
-  // Guard
+// Controlador Principal
+window.controllers.admin = async () => {
+  const loaded = await renderView('admin.html');
+  if (!loaded) return;
+
+  // Protección de acceso
   if (!appState.isAdmin) {
-    renderPage(`
-      <div class="flex flex-col items-center justify-center py-32 text-center px-4">
-        <span class="material-symbols-outlined text-5xl text-text-tertiary mb-4">lock</span>
-        <h2 class="font-heading text-headline-lg text-primary mb-2">Acceso restringido</h2>
-        <p class="text-body-md text-text-secondary mb-6">Esta sección es solo para administradores.</p>
-        <a href="#/feed"
-          class="bg-accent text-white px-5 py-2.5 rounded font-semibold hover:bg-accent-hover transition-colors">
-          Volver al feed
-        </a>
-      </div>`);
+    document.getElementById('admin-restricted')?.classList.remove('hidden');
+    document.getElementById('admin-restricted')?.classList.add('flex');
     return;
   }
 
-  const tabsHtml = _ADMIN_TABS.map(t => `
-    <button id="atab-${t.id}" onclick="_setAdminTab('${t.id}')"
-      aria-selected="${t.id === _adminTab}"
-      class="flex items-center gap-2 px-4 py-3 text-label-lg transition-colors whitespace-nowrap
-             ${t.id === _adminTab
-               ? 'border-b-2 border-accent text-primary font-semibold'
-               : 'text-text-tertiary hover:text-primary'}">
-      <span class="material-symbols-outlined" style="font-size:17px;">${t.icon}</span>
-      ${t.label}
-    </button>`).join('');
+  document.getElementById('admin-content')?.classList.remove('hidden');
 
-  renderPage(`
-    <div class="w-full max-w-5xl mx-auto px-4 md:px-8 py-10 fade-in">
+  const tabsContainer = document.getElementById('admin-tabs');
+  if (tabsContainer) {
+    tabsContainer.innerHTML = _ADMIN_TABS.map(t => `
+      <button id="atab-${t.id}" onclick="_setAdminTab('${t.id}')"
+        aria-selected="${t.id === _adminTab}"
+        class="flex items-center gap-2 px-4 py-3 text-label-lg transition-colors whitespace-nowrap
+              ${t.id === _adminTab
+                ? 'border-b-2 border-accent text-primary font-semibold'
+                : 'text-text-tertiary hover:text-primary'}">
+        <span class="material-symbols-outlined" style="font-size:17px;">${t.icon}</span>
+        ${t.label}
+      </button>`).join('');
+  }
 
-      <!-- Header -->
-      <div class="mb-8">
-        <div class="flex items-center gap-3 mb-1">
-          <span class="material-symbols-outlined text-accent" style="font-size:28px;">admin_panel_settings</span>
-          <h1 class="font-heading text-display-md text-primary">Panel Admin</h1>
-        </div>
-        <p class="text-body-md text-text-secondary">Moderación de contenido y control de jobs offline.</p>
-      </div>
-
-      <!-- Tabs -->
-      <div class="flex border-b border-border-default mb-6 overflow-x-auto" role="tablist">
-        ${tabsHtml}
-      </div>
-
-      <!-- Contenido -->
-      <div id="admin-body">${_skelAdmin(3)}</div>
-    </div>
-
-    <style>
-      @keyframes _admSpin { to { transform:rotate(360deg); } }
-    </style>
-  `);
+  const adminBody = document.getElementById('admin-body');
+  if (adminBody) adminBody.innerHTML = _skelAdmin(3);
 
   setTimeout(() => _renderAdminTab(_adminTab), 150);
 };

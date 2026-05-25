@@ -15,7 +15,7 @@ window.controllers.login = async () => {
     const emailError = document.getElementById('email-error');
     const passwordError = document.getElementById('password-error');
     
-    // Toggle Password Visibility
+    // Alternar visibilidad de contraseña
     const togglePasswordBtn = document.getElementById('toggle-password');
     const iconPassword = document.getElementById('icon-password');
     togglePasswordBtn.addEventListener('click', () => {
@@ -68,12 +68,12 @@ window.controllers.login = async () => {
         if (hasError) return;
 
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin">progress_activity</span> Cargando...</div>';
+        submitBtn.innerHTML = '<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin">progress_activity</span> Iniciando sesión...</div>';
 
         try {
             const data = await api.login(email, password);
             saveToken(data.access_token);
-            await initState(); // Reload user state
+            await initState(); // Recargar estado del usuario
             
             if (appState.user && appState.user.perfil_completado) {
                 window.location.hash = '#/feed';
@@ -84,7 +84,7 @@ window.controllers.login = async () => {
             const userMsg = window.errorHandler.handle(err, 'Login');
             if (err.status === 401) {
                 showError(emailError, userMsg, emailInput);
-                showError(passwordError, '', passwordInput); // Solo borde para password
+                showError(passwordError, '', passwordInput); // Solo borde para contraseña
             } else {
                 errorDiv.textContent = userMsg;
                 errorDiv.classList.remove('hidden');

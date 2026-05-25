@@ -21,7 +21,8 @@ async function renderView(viewPath) {
   root.style.opacity = 0;
   
   try {
-      const response = await fetch(`views/${viewPath}`);
+      const ts = new Date().getTime();
+      const response = await fetch(`views/${viewPath}?t=${ts}`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const htmlContent = await response.text();
       
@@ -75,20 +76,26 @@ function updateHeader() {
   if (appState.isAuthenticated) {
     navMenu.innerHTML = `
       <a href="#/feed" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Feed</a>
-      <a href="#/buscar" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Buscar</a>
+      <a href="#/buscar" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Explorar</a>
+      <a href="#/como-funciona" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors" title="Cómo funcionan las recomendaciones">ⓘ Info</a>
       ${appState.isAdmin ? '<a href="#/admin" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Admin</a>' : ''}
     `;
     userActions.innerHTML = `
-      <a href="#/favoritos" class="text-text-tertiary hover:text-accent transition-colors" title="Favoritos">❤️</a>
+      <a href="#/favoritos" class="text-text-tertiary hover:text-accent transition-colors flex items-center justify-center" title="Favoritos">
+        <span class="material-symbols-outlined" style="font-size: 20px;">favorite</span>
+      </a>
       <a href="#/perfil" class="w-8 h-8 rounded-full bg-primary-faint flex items-center justify-center text-text-secondary font-bold hover:ring-2 ring-accent transition-all" title="Perfil">
         ${appState.user?.nombre ? appState.user.nombre[0].toUpperCase() : 'U'}
       </a>
-      <button onclick="logout()" class="text-sm text-text-tertiary hover:text-accent">Salir</button>
+      <button onclick="confirmarLogout()" class="text-sm font-bold text-accent border border-accent/30 hover:border-accent hover:bg-accent hover:text-white px-3 py-1.5 rounded transition-all shadow-sm flex items-center gap-1">
+        <span class="material-symbols-outlined" style="font-size: 16px;">logout</span> Cerrar sesión
+      </button>
     `;
   } else {
     navMenu.innerHTML = `
       <a href="#/" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Inicio</a>
       <a href="#/buscar" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Explorar</a>
+      <a href="#/como-funciona" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors" title="Cómo funcionan las recomendaciones">ⓘ Info</a>
     `;
     userActions.innerHTML = `
       <a href="#/login" class="bg-accent text-white px-4 py-2 rounded font-semibold text-sm hover:bg-accent-hover transition-colors shadow">Iniciar Sesión</a>
@@ -103,16 +110,19 @@ window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', async () => {
   appState.subscribe(updateHeader);
   await initState(); // Verifica token y carga usuario si existe
-  updateHeader(); // Actualiza UI antes del primer render
-    if (window.Worker) {
-        window.geoWorker = new Worker('scripts/workers/geo-worker.js');
-        window.geoWorker.onmessage = ({ data }) => {
-          if (data.type === 'LOCATION') {
-            appState.setLocation(data.lat, data.lon);
-            api.enviarUbicacion(data.lat, data.lon).catch(() => {});
-          }
-        };
-        window.geoWorker.postMessage({ type: 'START' });
+  
+  // Inicializar Web Worker para geolocalización en background
+  if (window.Worker) {
+    window.geoWorker = new Worker('scripts/workers/geo-worker.js');
+    window.geoWorker.onmessage = ({ data }) => {
+      if (data.type === 'LOCATION') {
+        appState.setLocation(data.lat, data.lon);
+        api.enviarUbicacion(data.lat, data.lon).catch(() => {});
       }
+    };
+    window.geoWorker.postMessage({ type: 'START' });
+  }
+
+  updateHeader(); // Actualiza UI antes del primer render
   handleRoute();  // Renderiza la página actual
 });

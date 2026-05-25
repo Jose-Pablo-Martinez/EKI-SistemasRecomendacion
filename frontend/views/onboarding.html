@@ -13,8 +13,11 @@
             <!-- El contenido dinámico será inyectado aquí -->
         </div>
         
-        <div class="flex justify-between mt-8 xl:mt-12 border-t border-border-subtle pt-6 xl:pt-10">
-            <button id="btn-prev" class="invisible text-text-secondary font-bold py-2 xl:py-3 px-4 xl:px-6 hover:text-primary transition-colors text-sm xl:text-base uppercase tracking-wider">Atrás</button>
+        <div class="flex justify-between items-center mt-8 xl:mt-12 border-t border-border-subtle pt-6 xl:pt-10">
+            <div class="flex gap-2">
+                <button id="btn-cancel" class="hidden text-accent border border-accent/30 font-bold py-2 xl:py-3 px-4 xl:px-6 hover:bg-accent/10 transition-colors rounded text-sm xl:text-base uppercase tracking-wider">Salir</button>
+                <button id="btn-prev" class="invisible text-text-secondary font-bold py-2 xl:py-3 px-4 xl:px-6 hover:text-primary transition-colors text-sm xl:text-base uppercase tracking-wider">Atrás</button>
+            </div>
             <button id="btn-next" class="bg-accent text-white font-bold py-2 xl:py-3 px-8 xl:px-12 rounded hover:bg-accent-hover active:scale-95 transition-all text-sm xl:text-base uppercase tracking-wider shadow">Siguiente</button>
         </div>
     </div>

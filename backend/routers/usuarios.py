@@ -52,6 +52,27 @@ def update_my_profile(data: PerfilUpdate, current_user: Usuario = Depends(get_cu
     updated = usuario_service.actualizar_perfil(db, current_user.id_usuario, data.model_dump(exclude_unset=True))  # type: ignore[arg-type]
     return updated
 
+@router.get("/me/favoritos")
+def get_mis_favoritos(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Obtiene la lista de establecimientos favoritos del usuario."""
+    from backend.models.interacciones import FavoritoGuardado
+    from sqlalchemy.orm import joinedload
+    
+    favoritos_db = db.query(FavoritoGuardado).options(
+        joinedload(FavoritoGuardado.establecimiento)
+    ).filter(FavoritoGuardado.id_usuario == current_user.id_usuario).all()
+    
+    resultados = []
+    for f in favoritos_db:
+        if f.establecimiento:
+            resultados.append({
+                "id_establecimiento": f.id_establecimiento,
+                "fecha_guardado": f.fecha_guardado,
+                "nota_personal": f.nota_personal,
+                "establecimiento": f.establecimiento
+            })
+    return resultados
+
 @router.post("/logout")
 def logout(id_sesion: str, current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
     """Cierra la sesión actual."""

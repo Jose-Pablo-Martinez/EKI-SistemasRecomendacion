@@ -69,12 +69,12 @@ def get_cold_start_recommendations(
     )
     stmt = (
         select(Establecimiento)
-        .join(MetricaEstablecimiento, Establecimiento.id_establecimiento == MetricaEstablecimiento.id_establecimiento)
+        .outerjoin(MetricaEstablecimiento, Establecimiento.id_establecimiento == MetricaEstablecimiento.id_establecimiento)
         .where(
             Establecimiento.es_activo == True,
             Establecimiento.estado == "aprobado"
         )
-        .order_by(MetricaEstablecimiento.popularidad_7d.desc().nulls_last())
+        .order_by(MetricaEstablecimiento.popularidad_7d.desc())
         .limit(limit)
     )
     return list(db.scalars(stmt).all())

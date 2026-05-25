@@ -175,8 +175,14 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
             
             # Simulamos un vector numérico simplificado a partir del JSON
             # En producción esto sería un embedding semántico
-            vector_simulado = [1.0] * len(categorias) + [0.5] * len(precios)
-            if vector_simulado:
+            if clusters and clusters[0].centroide:
+                dim = len(clusters[0].centroide)  # type: ignore
+                vector_simulado = [0.0] * dim
+                for i in range(min(len(categorias), dim)):
+                    vector_simulado[i] = 1.0
+                for i in range(min(len(precios), max(0, dim - len(categorias)))):
+                    vector_simulado[len(categorias) + i] = 0.5
+                    
                 id_cluster_prov = assign_cluster_provisional(vector_simulado, clusters)
                 if id_cluster_prov is not None:
                     visitante.id_cluster = id_cluster_prov # type: ignore
@@ -185,3 +191,31 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
             logging.getLogger(__name__).warning("No se pudo asignar cluster provisional en onboarding: %s", e)
             
         db.commit()
+
+        # Generar recomendaciones de inicio en frío (Cold Start) inmediatamente
+        try:
+            from backend.engine.cold_start import get_cold_start_recommendations
+            from backend.models.interacciones import RecomendacionGenerada
+            
+            estabs_cold_start = get_cold_start_recommendations(db, visitante, limit=10)
+            for i, estab in enumerate(estabs_cold_start):
+                nueva_rec = RecomendacionGenerada(
+                    id_usuario=id_usuario,
+                    id_establecimiento=estab.id_establecimiento,
+                    categoria_recomendacion="cold_start",
+                    posicion=i,
+                    score_total=0.95 - (i * 0.01),
+                    score_contenido_usado=0.90 - (i * 0.01),
+                    score_colaborativo_usado=0.85 - (i * 0.01),
+                    razon_principal="cold_start",
+                    detalle_razon="Seleccionado como punto de partida según tus intereses.",
+                    estrategia_usada="cold_start",
+                    radio_usado_km=visitante.radio_busqueda_km or 5,
+                    fallback_nivel=0,
+                    fecha_generacion=datetime.now(timezone.utc)
+                )
+                db.add(nueva_rec)
+            db.commit()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Error al generar cold start: %s", e)

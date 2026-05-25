@@ -24,8 +24,8 @@ function solicitarUbicacion() {
 
 const _TOAST_CONFIG = {
   info:    { icon: 'info',             title: 'Información', border: 'var(--secondary)',   bg: 'var(--secondary-faint)',  text: 'var(--secondary)' },
-  success: { icon: 'check_circle',     title: '¡Listo!',     border: 'var(--success)',     bg: '#EBF4ED',                 text: 'var(--success)'   },
-  warning: { icon: 'warning',          title: 'Atención',    border: 'var(--warning)',     bg: '#FBF2E2',                 text: 'var(--warning)'   },
+  success: { icon: 'check_circle',     title: '¡Listo!',     border: 'var(--success)',     bg: 'var(--success-faint)',    text: 'var(--success)'   },
+  warning: { icon: 'warning',          title: 'Atención',    border: 'var(--warning)',     bg: 'var(--warning-faint)',    text: 'var(--warning)'   },
   error:   { icon: 'error',            title: 'Error',       border: 'var(--accent)',      bg: 'var(--accent-faint)',     text: 'var(--accent)'    },
 };
 
@@ -47,7 +47,7 @@ function showToast(message, type = 'info', duration = 4000) {
     border: 1px solid ${cfg.border}40;
     border-left: 3px solid ${cfg.border};
     background: ${cfg.bg};
-    box-shadow: 0 4px 24px rgba(30,27,24,0.10);
+    box-shadow: 0 4px 24px color-mix(in srgb, var(--primary) 10%, transparent);
     max-width: 340px;
     width: 100%;
     transform: translateX(110%);

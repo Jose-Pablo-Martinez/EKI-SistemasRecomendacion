@@ -13,20 +13,21 @@
   
   <link rel="icon" type="image/svg+xml" href="assets/isotipoEki.svg" />
   
+  <!-- Carga del motor Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <script src="scripts/tailwind-config.js"></script>
+  <!-- Configuración de diseño inyectada sobre el motor -->
+  <script src="tailwind.config.js"></script>
+  <!-- Estilos base de tailwind para el proyecto -->
   <link rel="stylesheet" href="css/global.css" />
 </head>
 
 <body class="bg-surface font-sans text-text-primary min-h-screen flex flex-col antialiased selection:bg-accent selection:text-white">
-
   <!-- FASE 5: Skip link — primer elemento del body, visible solo en foco por teclado -->
   <a href="#app-root"
      class="eki-skip-link"
      tabindex="1">
     Ir al contenido principal
   </a>
-
   <!-- Header persistente (se actualiza según auth state) -->
   <header id="app-header" class="border-b border-border-default bg-surface-raised sticky top-0 z-40">
     <div id="header-container" class="w-full max-w-8xl mx-auto px-4 md:px-8 2xl:px-16 min-h-[4rem] py-3 flex items-center justify-between flex-wrap gap-4">
@@ -78,14 +79,23 @@
        aria-atomic="false">
   </div>
 
-  <!-- Scripts (orden importa) -->
+  <!-- Scripts (El orden si importa) -->
   <script src="scripts/utils/validators.js"></script>
   <script src="scripts/utils/errorHandler.js"></script>
   <script src="scripts/utils.js"></script>
   <script src="scripts/state.js"></script>
   <script src="scripts/api.js"></script>
   <script src="scripts/auth.js"></script>
+
+  <!-- Componentes reutilizables del frontend -->
   <script src="scripts/components/Modal.js"></script>
+  <script src="scripts/components/Stars.js"></script>
+  <script src="scripts/components/Badges.js"></script>
+  <script src="scripts/components/Skeletons.js"></script>
+  <script src="scripts/components/Favorite.js"></script>
+  <script src="scripts/components/Card.js"></script>
+
+  <!-- Controladores de las vistas -->
   <script src="scripts/controllers/home.js"></script>
   <script src="scripts/controllers/login.js"></script>
   <script src="scripts/controllers/register.js"></script>

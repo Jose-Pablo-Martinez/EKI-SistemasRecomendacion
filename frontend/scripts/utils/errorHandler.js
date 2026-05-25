@@ -1,30 +1,63 @@
 /**
- * Archivo modificado: 2026-05-23
- * Función: Centraliza el manejo de errores del sistema, 
- * traduciendo respuestas HTTP en mensajes amigables.
+ * errorHandler.js — Componente para Gestión Centralizada de Errores
+ *
+ * Captura errores de red, respuestas HTTP no exitosas y excepciones internas,
+ * emitiendo un log altamente técnico a la consola para debugging y
+ * retornando un string amigable, claro y no ambiguo para el usuario final.
  */
 window.errorHandler = {
-    handle(error, context) {
-        console.error(`[Error en ${context}]:`, error);
+    handle(error, context = 'Aplicación') {
+        // 1. Log técnico para Debugging (Sin exponer el stack trace crudo como texto por seguridad)
+        const errorStatus = error.status ? `(HTTP ${error.status})` : '(Sin status HTTP)';
+        const apiDetail = error.message || error.detail || 'Sin detalles adicionales';
         
-        let userMessage = "Ha ocurrido un error inesperado. Por favor, intenta de nuevo.";
+        console.group(`[ERROR] ${context}`);
+        console.error(`Status: ${errorStatus}`);
+        console.error(`Mensaje API: ${apiDetail}`);
+        // Se omite el stack trace explícito. El objeto crudo a continuación permite
+        // a los desarrolladores inspeccionarlo en la consola localmente sin quemarlo en texto.
+        console.error('Objeto Error:', error);
+        console.groupEnd();
         
-        if (error.message && error.message !== "Error del servidor" && error.message !== "Not Found" && !error.message.includes('Failed to fetch')) {
-            userMessage = error.message; // El backend nos mandó un mensaje detallado, lo usamos.
-        } else if (error.status === 401) {
-            userMessage = "No tienes autorización o tu sesión ha expirado.";
-        } else if (error.status === 400) {
-            userMessage = "Los datos proporcionados no son válidos.";
-        } else if (error.status === 422) {
-            userMessage = "Por favor, verifica que todos los campos estén correctamente llenados.";
-        } else if (error.message && error.message.includes('Failed to fetch')) {
-            userMessage = "No pudimos conectar con el servidor. Verifica tu conexión a internet.";
-        } else if (error.status === 404) {
-            userMessage = "El servicio solicitado aún no está disponible o no existe (Error 404).";
-        } else if (error.status >= 500) {
-            userMessage = "El servidor está experimentando problemas técnicos. Intenta de nuevo más tarde.";
+        // 2. Traducción amigable y no ambigua para el Usuario Final
+        
+        // Errores de Conexión o Red (Fetch falló completamente)
+        if (error.message && error.message.includes('Failed to fetch')) {
+            return "Parece que no tienes conexión a internet o nuestros servidores están en mantenimiento. Por favor, verifica tu red.";
         }
 
-        return userMessage;
+        // Errores HTTP
+        switch (error.status) {
+            case 400: // Bad Request
+                return apiDetail && apiDetail !== "Error del servidor" 
+                    ? apiDetail 
+                    : "Los datos ingresados tienen un error. Por favor, revísalos e intenta de nuevo.";
+            case 401: // Unauthorized
+                return "Tu sesión ha expirado o tus credenciales son incorrectas. Por favor, inicia sesión de nuevo.";
+            case 403: // Forbidden
+                return "No tienes los permisos necesarios para realizar esta acción.";
+            case 404: // Not Found
+                return "No pudimos encontrar lo que buscabas. Es posible que haya sido eliminado o movido.";
+            case 409: // Conflict
+                return apiDetail && apiDetail !== "Error del servidor"
+                    ? apiDetail
+                    : "Hubo un conflicto con los datos (ej: el registro ya existe).";
+            case 422: // Unprocessable Entity (Típico en FastAPI por fallas de validación)
+                return "Faltan datos obligatorios o su formato es incorrecto. Verifica el formulario.";
+            case 429: // Too Many Requests
+                return "Has realizado demasiadas solicitudes en poco tiempo. Por favor, espera unos minutos.";
+        }
+
+        // Errores 500+ (Server Errors)
+        if (error.status >= 500) {
+            return "Nuestros servidores están experimentando un problema técnico. Ya lo estamos revisando, intenta más tarde.";
+        }
+
+        // Fallback genérico para errores no catalogados
+        if (error.message && error.message !== "Error del servidor" && error.message !== "Not Found") {
+            return error.message; 
+        }
+
+        return "Ha ocurrido un error inesperado. Por favor, intenta de nuevo o recarga la página.";
     }
 };

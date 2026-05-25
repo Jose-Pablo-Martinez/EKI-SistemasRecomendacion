@@ -28,6 +28,8 @@ const appState = {
   }
 };
 
+window.appState = appState;
+
 // Al iniciar la app, verificar si hay token
 async function initState() {
   const token = localStorage.getItem('eki_token');
