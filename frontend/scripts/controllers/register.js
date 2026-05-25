@@ -120,7 +120,7 @@ window.controllers.register = async () => {
         if (hasError) return;
 
         submitBtn.disabled = true;
-        submitBtn.textContent = 'CREANDO CUENTA...';
+        submitBtn.innerHTML = '<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin">progress_activity</span> Creando cuenta...</div>';
 
         try {
             await api.registro({ nombre, apellido, email, password, tipo_usuario: 'visitante' });

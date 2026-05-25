@@ -175,9 +175,14 @@ window.controllers.onboarding = async () => {
         }
 
         if (step === 3) {
-            document.getElementById('btn-location').addEventListener('click', async () => {
+            document.getElementById('btn-location').addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
                 const status = document.getElementById('location-status');
-                status.textContent = 'Obteniendo ubicación...';
+                
+                const originalHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin" style="font-size:20px;">progress_activity</span> Obteniendo...</div>`;
+                status.textContent = '';
                 status.className = 'text-sm xl:text-base text-center h-5 font-bold text-text-secondary';
                 
                 try {
@@ -200,6 +205,9 @@ window.controllers.onboarding = async () => {
                 } catch (err) {
                     status.textContent = 'No se pudo obtener la ubicación (permiso denegado o timeout).';
                     status.classList.replace('text-text-secondary', 'text-accent');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
                 }
             });
         }
@@ -225,7 +233,7 @@ window.controllers.onboarding = async () => {
             renderCurrentStep();
         } else {
             nextBtn.disabled = true;
-            nextBtn.textContent = 'GUARDANDO...';
+            nextBtn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin" style="font-size:20px;">progress_activity</span> Guardando...</div>`;
             try {
                 const preferencias = {
                     categorias: categoriasSeleccionadas,
@@ -244,7 +252,7 @@ window.controllers.onboarding = async () => {
                 const userMsg = window.errorHandler.handle(err, 'Onboarding');
                 window.components.Modal.show({ title: 'Ocurrió un problema', message: userMsg, type: 'error' });
                 nextBtn.disabled = false;
-                nextBtn.textContent = 'FINALIZAR';
+                nextBtn.innerHTML = 'FINALIZAR';
             }
         }
     });

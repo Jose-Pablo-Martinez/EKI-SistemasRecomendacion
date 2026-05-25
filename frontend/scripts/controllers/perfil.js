@@ -74,7 +74,7 @@ async function _guardarPerfil() {
   const apellido = document.getElementById('edit-apellido')?.value?.trim();
   if (!nombre) { showToast('El nombre es requerido', 'warning'); return; }
   btn.disabled = true;
-  btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;animation:spin 1s linear infinite;">progress_activity</span>&nbsp;Guardando...`;
+  btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin" style="font-size:18px;">progress_activity</span> Guardando...</div>`;
   try {
     await api.actualizarPerfil({ nombre, apellido });
     showToast('Perfil actualizado', 'success');
@@ -102,7 +102,7 @@ async function _enviarLugar() {
   if (!nombre || !tipo) { showToast('Nombre y tipo son requeridos', 'warning'); return; }
 
   btn.disabled = true;
-  btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;animation:spin 1s linear infinite;">progress_activity</span>&nbsp;Enviando...`;
+  btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin" style="font-size:16px;">progress_activity</span> Enviando...</div>`;
 
   try {
     await apiRequest('/establecimientos', {
