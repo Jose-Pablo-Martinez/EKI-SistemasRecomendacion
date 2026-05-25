@@ -13,7 +13,7 @@ let _ultimaBusqueda = '';
 // Helpers 
 function _starsB(rating) {
   return [1,2,3,4,5].map(i =>
-    `<span style="color:${i<=Math.round(rating||0)?'#C08A40':'#DCD4C8'};">★</span>`
+    `<span style="color:${i<=Math.round(rating||0)?'var(--warning-subtle)':'var(--border-default)'};">★</span>`
   ).join('');
 }
 
@@ -37,7 +37,7 @@ function _tarjetaBusq(e, idx) {
   const tipoLabel = { puesto_informal:'Puesto informal', restaurante:'Restaurante', local_comercial:'Local' }[e.tipo_establecimiento] || '';
 
   return `
-    <article
+    <article role="listitem"
       class="bg-surface-raised border border-border-default rounded-md p-4 flex gap-4
              hover:border-border-strong hover:shadow-sm transition-all duration-150 cursor-pointer group card-enter"
       style="animation-delay:${idx*50}ms"
@@ -69,20 +69,16 @@ function _tarjetaBusq(e, idx) {
 }
 
 // Renderizar resultados
-function _renderResultados(items, query) {
-  const el = document.getElementById('busq-resultados');
-  if (!el) return;
-
+function _renderResultadosHTML(items, query) {
   if (!items || !items.length) {
-    el.innerHTML = `
-      <div class="flex flex-col items-center justify-center py-16 text-center col-span-full">
+    return `
+      <div class="flex flex-col items-center justify-center py-16 text-center col-span-full fade-in">
         <span class="material-symbols-outlined text-4xl text-text-tertiary mb-3">search_off</span>
         <p class="font-heading text-headline-sm text-primary mb-1">Sin resultados para "${query}"</p>
         <p class="text-body-sm text-text-secondary">Prueba con otro término o cambia los filtros.</p>
       </div>`;
-    return;
   }
-  el.innerHTML = items.map((e, i) => _tarjetaBusq(e, i)).join('');
+  return items.map((e, i) => _tarjetaBusq(e, i)).join('');
 }
 
 // Ejecutar búsqueda
@@ -101,14 +97,31 @@ async function _ejecutarBusqueda(query) {
   }
 
   _ultimaBusqueda = query;
-  el.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 col-span-full">${_skeletonsBusq(4)}</div>`;
+  el.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 col-span-full" role="list">${_skeletonsBusq(4)}</div>`;
 
   try {
     const params = { tipo: _filtroActivo };
-    const resultados = await api.buscar(query, params);
+    const response = await api.buscar(query, params);
     if (_ultimaBusqueda !== query) return; // busqueda obsoleta
-    el.innerHTML = '';
-    _renderResultados(resultados, query);
+    
+    const items = response.resultados || [];
+    const sugerencia = response.sugerencia_correccion;
+    
+    let html = '';
+    
+    // Renderizado del banner de Corrección Ortográfica (Levenshtein)
+    if (sugerencia) {
+      html += `
+        <div class="col-span-full bg-accent-faint border border-accent/30 text-accent rounded-md p-4 mb-2 flex items-center gap-3 fade-in cursor-pointer hover:bg-accent/10 transition-colors shadow-sm" 
+             onclick="document.getElementById('busq-input').value='${sugerencia}'; _clearTimeout=_searchTimeout; _ultimaBusqueda='${sugerencia}'; _ejecutarBusqueda('${sugerencia}')">
+          <span class="material-symbols-outlined" style="font-size:24px;">spellcheck</span>
+          <p class="font-medium text-body-md">No encontramos "${query}". ¿Quizás quisiste decir <strong class="underline">${sugerencia}</strong>?</p>
+        </div>
+      `;
+    }
+    
+    html += _renderResultadosHTML(items, query);
+    el.innerHTML = html;
   } catch(e) {
     el.innerHTML = `
       <div class="flex flex-col items-center justify-center py-12 text-center col-span-full">
@@ -123,92 +136,49 @@ async function _ejecutarBusqueda(query) {
 }
 
 // Main Controller
-window.controllers.busqueda = () => {
+window.controllers.busqueda = async () => {
 
-  const chipsHtml = _FILTROS.map(f => `
-    <button
-      data-tipo="${f.valor}"
-      onclick="_setFiltro('${f.valor}')"
-      class="chip-filtro flex items-center gap-1.5 px-4 py-2 rounded-full border text-label-lg transition-all
-             ${_filtroActivo === f.valor
-               ? 'bg-primary text-white border-primary'
-               : 'bg-surface-raised border-border-default text-text-secondary hover:border-border-strong hover:text-primary'}">
-      <span class="material-symbols-outlined" style="font-size:15px;line-height:1;">${f.icono}</span>
-      ${f.label}
-    </button>`).join('');
+  const loaded = await renderView('busqueda.html');
+  if (!loaded) return;
 
-  renderPage(`
-    <div class="w-full max-w-8xl mx-auto px-4 md:px-8 2xl:px-16 py-10 fade-in">
+  const chipsContainer = document.getElementById('chips-container');
+  if (chipsContainer) {
+    chipsContainer.innerHTML = _FILTROS.map(f => `
+      <button
+        data-tipo="${f.valor}"
+        onclick="_setFiltro('${f.valor}')"
+        class="chip-filtro flex items-center gap-1.5 px-4 py-2 rounded-full border text-label-lg transition-all
+              ${_filtroActivo === f.valor
+                ? 'bg-primary text-white border-primary'
+                : 'bg-surface-raised border-border-default text-text-secondary hover:border-border-strong hover:text-primary'}">
+        <span class="material-symbols-outlined" style="font-size:15px;line-height:1;">${f.icono}</span>
+        ${f.label}
+      </button>`).join('');
+  }
 
-      <!-- Header de la página -->
-      <div class="mb-8">
-        <h1 class="font-heading text-display-md text-primary mb-1">Explorar</h1>
-        <p class="text-body-lg text-text-secondary">Encuentra lugares por nombre, tipo o zona.</p>
-      </div>
+  const input = document.getElementById('busq-input');
+  const clearBtn = document.getElementById('busq-clear');
+  if (!input) return;
 
-      <!-- Barra de búsqueda -->
-      <div class="relative max-w-2xl mb-6">
-        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary">
-          <span class="material-symbols-outlined" style="font-size:20px;">search</span>
-        </span>
-        <input
-          type="text"
-          id="busq-input"
-          placeholder="¿Qué se te antoja hoy?"
-          autocomplete="off"
-          class="w-full bg-surface-raised border border-border-default rounded-md pl-11 pr-4 py-3.5
-                 text-body-md text-text-primary placeholder:text-text-tertiary
-                 focus:outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus/20
-                 shadow-sm transition-all"
-        />
-        <button id="busq-clear" onclick="_clearBusqueda()"
-          class="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-primary transition-colors hidden">
-          <span class="material-symbols-outlined" style="font-size:18px;">close</span>
-        </button>
-      </div>
+  // Restaurar valor previo si lo había
+  if (_ultimaBusqueda) {
+    input.value = _ultimaBusqueda;
+    clearBtn?.classList.remove('hidden');
+    _ejecutarBusqueda(_ultimaBusqueda);
+  }
 
-      <!-- Chips de filtro -->
-      <div class="flex gap-2 flex-wrap mb-8" id="chips-container">
-        ${chipsHtml}
-      </div>
+  input.addEventListener('input', e => {
+    const q = e.target.value.trim();
+    clearBtn?.classList.toggle('hidden', !q);
+    clearTimeout(_searchTimeout);
+    _searchTimeout = setTimeout(() => _ejecutarBusqueda(q), 300);
+  });
 
-      <!-- Resultados -->
-      <div id="busq-resultados" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div class="flex flex-col items-center justify-center py-16 text-center col-span-full">
-          <span class="material-symbols-outlined text-5xl text-text-tertiary mb-4">restaurant_menu</span>
-          <p class="font-heading text-headline-md text-primary mb-2">¿Qué se te antoja hoy?</p>
-          <p class="text-body-md text-text-secondary">Escribe al menos 2 letras para buscar.</p>
-        </div>
-      </div>
-    </div>
-  `);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') _clearBusqueda();
+  });
 
-  // Enganchar eventos después del render
-  setTimeout(() => {
-    const input = document.getElementById('busq-input');
-    const clearBtn = document.getElementById('busq-clear');
-    if (!input) return;
-
-    // Restaurar valor previo si lo había
-    if (_ultimaBusqueda) {
-      input.value = _ultimaBusqueda;
-      clearBtn?.classList.remove('hidden');
-      _ejecutarBusqueda(_ultimaBusqueda);
-    }
-
-    input.addEventListener('input', e => {
-      const q = e.target.value.trim();
-      clearBtn?.classList.toggle('hidden', !q);
-      clearTimeout(_searchTimeout);
-      _searchTimeout = setTimeout(() => _ejecutarBusqueda(q), 300);
-    });
-
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Escape') _clearBusqueda();
-    });
-
-    input.focus();
-  }, 150);
+  input.focus();
 };
 
 // Cambiar filtro 

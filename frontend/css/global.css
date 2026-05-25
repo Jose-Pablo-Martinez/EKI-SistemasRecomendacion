@@ -18,6 +18,8 @@
     --primary-muted: #453E39;
     --primary-ghost: #6B625C;
     --primary-faint: #E6E0D9;
+    --text-secondary: #4D4540;
+    --text-tertiary: #7E756F;
 
     /* Acento */
     --accent: #8B3A3A;
@@ -33,14 +35,23 @@
 
     /* Semánticos */
     --success: #3A6B4A;
+    --success-faint: #EBF4ED;
     --warning: #8A6020;
     --warning-subtle: #C08A40;
+    --warning-faint: #FBF2E2;
 
     /* Bordes */
     --border-subtle: #EFE9DF;
     --border-default: #DCD4C8;
     --border-strong: #C9BFB7;
     --border-focus: #4A6F8A;
+  }
+
+  /* Accesibilidad: Focus visible siempre presente — DESIGN.md §Accesibilidad */
+  :focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
@@ -64,7 +75,7 @@
     width: 100%;
     height: 100%;
     /* Utilizamos el color base (surface) casi opaco para difuminar la imagen de fondo */
-    background-color: rgba(253, 248, 241, 0.96);
+    background-color: color-mix(in srgb, var(--surface) 96%, transparent);
     pointer-events: none;
     z-index: 0;
   }
@@ -288,5 +299,16 @@
       padding: 0 64px;
       /* margin desktop */
     }
+  }
+}
+
+/* Accesibilidad: Respetar preferencia de movimiento reducido del sistema operativo */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

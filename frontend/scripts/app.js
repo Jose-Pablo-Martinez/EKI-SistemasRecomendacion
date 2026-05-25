@@ -11,6 +11,7 @@ const routes = {
   '#/perfil':    () => { if (requireAuth()) window.controllers.perfil() },
   '#/favoritos': () => { if (requireAuth()) window.controllers.favoritos() },
   '#/admin':     () => { if (requireAuth()) window.controllers.admin() },
+  '#/como-funciona': () => window.controllers.algoritmos(),
 };
 
 async function renderView(viewPath) {
@@ -75,6 +76,7 @@ function updateHeader() {
     navMenu.innerHTML = `
       <a href="#/feed" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Feed</a>
       <a href="#/buscar" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Buscar</a>
+      <a href="#/como-funciona" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors" title="Cómo funcionan las recomendaciones">ⓘ Info</a>
       ${appState.isAdmin ? '<a href="#/admin" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Admin</a>' : ''}
     `;
     userActions.innerHTML = `
@@ -88,6 +90,7 @@ function updateHeader() {
     navMenu.innerHTML = `
       <a href="#/" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Inicio</a>
       <a href="#/buscar" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors">Explorar</a>
+      <a href="#/como-funciona" class="text-text-tertiary hover:text-text-primary text-sm font-bold tracking-widest uppercase transition-colors" title="Cómo funcionan las recomendaciones">ⓘ Info</a>
     `;
     userActions.innerHTML = `
       <a href="#/login" class="bg-accent text-white px-4 py-2 rounded font-semibold text-sm hover:bg-accent-hover transition-colors shadow">Iniciar Sesión</a>
@@ -102,6 +105,21 @@ window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', async () => {
   appState.subscribe(updateHeader);
   await initState(); // Verifica token y carga usuario si existe
+  
+  // Inicializar Web Worker para geolocalización en background
+  if (window.Worker) {
+    const geoWorker = new Worker('scripts/workers/geo-worker.js');
+    geoWorker.onmessage = function(e) {
+      if (e.data.type === 'position_update') {
+        appState.setLocation(e.data.lat, e.data.lon);
+        if (appState.isAuthenticated) {
+          api.enviarUbicacion(e.data.lat, e.data.lon).catch(() => {});
+        }
+      }
+    };
+    geoWorker.postMessage({ type: 'start_watching' });
+  }
+
   updateHeader(); // Actualiza UI antes del primer render
   handleRoute();  // Renderiza la página actual
 });

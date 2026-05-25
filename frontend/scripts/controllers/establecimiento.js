@@ -4,7 +4,7 @@ const _DIAS_ORDEN = ['lunes','martes','miercoles','jueves','viernes','sabado','d
 
 // Helpers 
 function _starsE(rating) {
-  return [1,2,3,4,5].map(i => `<span style="color:${i<=Math.round(rating||0)?'#C08A40':'#DCD4C8'};">★</span>`).join('');
+  return [1,2,3,4,5].map(i => `<span style="color:${i<=Math.round(rating||0)?'var(--warning-subtle)':'var(--border-default)'};">★</span>`).join('');
 }
 
 function _fecha(str) {
@@ -60,7 +60,7 @@ function _resena(r, idx) {
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 flex-wrap mb-1">
           <span class="text-body-sm font-semibold text-primary">${r.nombre_usuario||'Usuario'}</span>
-          <span style="color:#C08A40;font-size:0.85rem;">${'★'.repeat(cal)}${'☆'.repeat(5-cal)}</span>
+          <span class="text-warning-subtle" style="font-size:0.85rem;">${'★'.repeat(cal)}${'☆'.repeat(5-cal)}</span>
           ${r.fecha_resena ? `<span class="text-label-md text-text-tertiary">${_fecha(r.fecha_resena)}</span>` : ''}
           ${r.procesado_nlp ? _sentimientoBadge(r.polaridad) : ''}
         </div>
@@ -72,11 +72,15 @@ function _resena(r, idx) {
 // Estrellas interactivas
 function _starsInteractivos() {
   return `
-    <div id="star-selector" class="flex gap-1 mb-4" data-value="0">
+    <div id="star-selector" class="flex gap-1 mb-4" role="group" aria-label="Calificación">
       ${[1,2,3,4,5].map(n => `
-        <button type="button" data-star="${n}" onclick="_selectStar(${n})"
-          class="text-3xl leading-none transition-transform hover:scale-110 focus:outline-none"
-          style="color:#DCD4C8;">★</button>`).join('')}
+        <button type="button" data-star="${n}" 
+          onclick="_selectStar(${n})"
+          onkeydown="_handleStarKeydown(event, ${n})"
+          aria-label="${n} estrella${n > 1 ? 's' : ''}"
+          aria-pressed="false"
+          class="text-3xl leading-none transition-transform hover:scale-110"
+          style="color:var(--border-default);">★</button>`).join('')}
     </div>
     <input type="hidden" id="star-value" value="0" />`;
 }
@@ -84,8 +88,29 @@ function _starsInteractivos() {
 function _selectStar(n) {
   document.getElementById('star-value').value = n;
   document.querySelectorAll('#star-selector button').forEach(btn => {
-    btn.style.color = parseInt(btn.dataset.star) <= n ? '#C08A40' : '#DCD4C8';
+    const starVal = parseInt(btn.dataset.star);
+    btn.style.color = starVal <= n ? 'var(--warning-subtle)' : 'var(--border-default)';
+    btn.setAttribute('aria-pressed', starVal <= n ? 'true' : 'false');
   });
+}
+
+function _handleStarKeydown(e, n) {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (n < 5) {
+      const next = document.querySelector(`#star-selector button[data-star="${n + 1}"]`);
+      if (next) { next.focus(); _selectStar(n + 1); }
+    }
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (n > 1) {
+      const prev = document.querySelector(`#star-selector button[data-star="${n - 1}"]`);
+      if (prev) { prev.focus(); _selectStar(n - 1); }
+    }
+  } else if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    _selectStar(n);
+  }
 }
 
 // Enviar reseña
@@ -118,7 +143,7 @@ async function _favEstab(idEstab) {
     if (btn) {
       btn.dataset.fav = was ? 'false' : 'true';
       btn.querySelector('.material-symbols-outlined').textContent = was ? 'favorite' : 'favorite';
-      btn.querySelector('.material-symbols-outlined').style.color = was ? '' : '#8B3A3A';
+      btn.querySelector('.material-symbols-outlined').style.color = was ? '' : 'var(--accent)';
       btn.querySelector('._fav-label').textContent = was ? 'Guardar' : 'Guardado';
     }
     showToast(was ? 'Eliminado de favoritos' : '¡Guardado en favoritos!', was ? 'info' : 'success');
@@ -141,38 +166,23 @@ async function _compartir(idEstab, nombre) {
 window.controllers.establecimiento = async (id) => {
   if (!id) { window.location.hash = '#/feed'; return; }
 
-  // Shell skeleton
-  renderPage(`
-    <div class="w-full max-w-5xl mx-auto px-4 md:px-8 py-8">
-      <a href="javascript:history.back()" class="inline-flex items-center gap-1 text-body-sm font-semibold text-text-tertiary hover:text-secondary transition-colors mb-6 group">
-        <span class="material-symbols-outlined group-hover:-translate-x-1 transition-transform" style="font-size:18px;">arrow_back</span>
-        Volver
-      </a>
-      <div class="skeleton h-10 w-2/3 rounded mb-3"></div>
-      <div class="skeleton h-5 w-1/4 rounded mb-8"></div>
-      <div class="skeleton w-full rounded-md mb-8" style="aspect-ratio:21/9;max-height:400px;"></div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div class="md:col-span-2 space-y-4">
-          <div class="skeleton h-4 rounded w-full"></div>
-          <div class="skeleton h-4 rounded w-5/6"></div>
-          <div class="skeleton h-4 rounded w-4/6"></div>
-        </div>
-        <div class="skeleton h-48 rounded-md"></div>
-      </div>
-    </div>
-  `);
+  const loaded = await renderView('establecimiento.html');
+  if (!loaded) return;
+
+  const container = document.getElementById('estab-container');
+  if (!container) return;
 
   let estab;
   try {
     estab = await api.getEstablecimiento(id);
   } catch(e) {
-    renderPage(`
+    container.innerHTML = `
       <div class="flex flex-col items-center justify-center py-32 text-center px-4">
         <span class="material-symbols-outlined text-5xl text-text-tertiary mb-4">restaurant</span>
         <h2 class="font-heading text-headline-lg text-primary mb-2">Establecimiento no encontrado</h2>
         <p class="text-body-md text-text-secondary mb-6">Este lugar no está disponible o aún no ha sido aprobado.</p>
         <a href="#/buscar" class="bg-accent text-white px-5 py-2.5 rounded font-semibold hover:bg-accent-hover transition-colors">Explorar lugares</a>
-      </div>`);
+      </div>`;
     return;
   }
 
@@ -185,9 +195,7 @@ window.controllers.establecimiento = async (id) => {
   const isAuth    = appState.isAuthenticated;
   const tipoLabel = { puesto_informal:'Puesto Informal', restaurante:'Restaurante', local_comercial:'Local Comercial' }[estab.tipo_establecimiento] || 'Establecimiento';
 
-  renderPage(`
-    <div class="w-full max-w-5xl mx-auto px-4 md:px-8 py-8 fade-in">
-
+  container.innerHTML = `
       <!-- Back -->
       <a href="javascript:history.back()" class="inline-flex items-center gap-1 text-body-sm font-semibold text-text-tertiary hover:text-secondary transition-colors mb-6 group">
         <span class="material-symbols-outlined group-hover:-translate-x-1 transition-transform" style="font-size:18px;">arrow_back</span>
@@ -218,6 +226,7 @@ window.controllers.establecimiento = async (id) => {
         <!-- Botones de acción -->
         <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
           <button id="btn-fav-estab" onclick="_favEstab(${estab.id_establecimiento})"
+            aria-label="Guardar en favoritos"
             class="flex items-center gap-1.5 px-3 py-2 rounded border border-border-default
                    text-body-sm text-text-secondary hover:border-accent hover:text-accent transition-all">
             <span class="material-symbols-outlined" style="font-size:17px;">favorite</span>
@@ -225,6 +234,7 @@ window.controllers.establecimiento = async (id) => {
           </button>
           ${estab.latitud && estab.longitud ? `
             <button onclick="_abrirMaps(${estab.id_establecimiento},${estab.latitud},${estab.longitud})"
+              aria-label="Abrir en Maps"
               class="flex items-center gap-1.5 px-3 py-2 rounded border border-border-default
                      text-body-sm text-text-secondary hover:border-secondary hover:text-secondary transition-all">
               <span class="material-symbols-outlined" style="font-size:17px;">map</span>
@@ -232,12 +242,14 @@ window.controllers.establecimiento = async (id) => {
             </button>` : ''}
           ${estab.telefono ? `
             <a href="tel:${estab.telefono}" onclick="api.registrarInteraccion(${estab.id_establecimiento},'llamada_telefono').catch(()=>{})"
+              aria-label="Llamar"
               class="flex items-center gap-1.5 px-3 py-2 rounded border border-border-default
                      text-body-sm text-text-secondary hover:border-border-strong transition-all">
               <span class="material-symbols-outlined" style="font-size:17px;">call</span>
               ${estab.telefono}
             </a>` : ''}
-          <button onclick="_compartir(${estab.id_establecimiento},'${(estab.nombre||'').replace(/'/g,"\\'")}'"
+          <button onclick="_compartir(${estab.id_establecimiento},'${(estab.nombre||'').replace(/'/g,"\\'")}')"
+            aria-label="Compartir"
             class="flex items-center gap-1.5 px-3 py-2 rounded border border-border-default
                    text-body-sm text-text-secondary hover:border-border-strong transition-all">
             <span class="material-symbols-outlined" style="font-size:17px;">share</span>
@@ -279,7 +291,7 @@ window.controllers.establecimiento = async (id) => {
                 <div class="flex items-center gap-2">
                   <span class="text-numeric-lg text-primary tabular-nums">${cal.toFixed(1)}</span>
                   <div>
-                    <div style="color:#C08A40;">${'★'.repeat(Math.round(cal))}${'☆'.repeat(5-Math.round(cal))}</div>
+                    <div class="text-warning-subtle">${'★'.repeat(Math.round(cal))}${'☆'.repeat(5-Math.round(cal))}</div>
                     <div class="text-label-md text-text-tertiary">${totalR} reseñas</div>
                   </div>
                 </div>` : ''}
@@ -345,6 +357,5 @@ window.controllers.establecimiento = async (id) => {
           </div>
         </div>
       </div>
-    </div>
-  `);
+  `;
 };

@@ -1,0 +1,42 @@
+<div class="w-full max-w-8xl mx-auto px-4 md:px-8 2xl:px-16 py-10 fade-in">
+
+  <!-- Header de la página -->
+  <div class="mb-8">
+    <h1 class="font-heading text-display-md text-primary mb-1">Explorar</h1>
+    <p class="text-body-lg text-text-secondary">Encuentra lugares por nombre, tipo o zona.</p>
+  </div>
+
+  <!-- Barra de búsqueda -->
+  <div class="relative max-w-2xl mb-6">
+    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary">
+      <span class="material-symbols-outlined" style="font-size:20px;">search</span>
+    </span>
+    <input
+      type="text"
+      id="busq-input"
+      placeholder="¿Qué se te antoja hoy?"
+      autocomplete="off"
+      class="w-full bg-surface-raised border border-border-default rounded-md pl-11 pr-4 py-3.5
+             text-body-md text-text-primary placeholder:text-text-tertiary
+             focus:outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus/20
+             shadow-sm transition-all"
+    />
+    <button id="busq-clear" onclick="_clearBusqueda()"
+      class="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-primary transition-colors hidden">
+      <span class="material-symbols-outlined" style="font-size:18px;">close</span>
+    </button>
+  </div>
+
+  <!-- Chips de filtro -->
+  <div class="flex gap-2 flex-wrap mb-8" id="chips-container">
+  </div>
+
+  <!-- Resultados -->
+  <div id="busq-resultados" role="list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div class="flex flex-col items-center justify-center py-16 text-center col-span-full">
+      <span class="material-symbols-outlined text-5xl text-text-tertiary mb-4">restaurant_menu</span>
+      <p class="font-heading text-headline-md text-primary mb-2">¿Qué se te antoja hoy?</p>
+      <p class="text-body-md text-text-secondary">Escribe al menos 2 letras para buscar.</p>
+    </div>
+  </div>
+</div>

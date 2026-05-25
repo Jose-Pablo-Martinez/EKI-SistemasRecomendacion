@@ -1,29 +1,31 @@
 
-// Mock data
+// Mock data (Alineado con generador_recomendaciones.py)
 const _MOCK_RECS = [
-  { id_recomendacion:1, id_establecimiento:101, nombre_establecimiento:"Los Tacos de la Abuela Chole", categoria_recomendacion:"tendencia_informal", es_informal:true,  calificacion_promedio:4.8, total_resenas:47,  distancia_km:0.9, tipo_establecimiento:"puesto_informal", razon_principal:"Joya muy popular en tu zona",         detalle_razon:"Visitado frecuentemente por personas con gustos similares a los tuyos", score_total:0.91, score_contenido_usado:0.88, score_colaborativo_usado:0.94, score_boost_aplicado:0.92, estrategia_usada:"tendencia_informal" },
+  { id_recomendacion:1, id_establecimiento:101, nombre_establecimiento:"Los Tacos de la Abuela Chole", categoria_recomendacion:"top_picks_hibrido", es_informal:true,  calificacion_promedio:4.9, total_resenas:147,  distancia_km:0.9, tipo_establecimiento:"puesto_informal", razon_principal:"El match perfecto para ti", detalle_razon:"Mezcla tus gustos, tu tribu y distancia cercana", score_total:0.98, score_contenido_usado:0.95, score_colaborativo_usado:0.94, score_boost_aplicado:0.99, estrategia_usada:"hibrido" },
   { id_recomendacion:2, id_establecimiento:102, nombre_establecimiento:"Cochinita Pibil Don Rubén",   categoria_recomendacion:"preferencia_contenido",  es_informal:false, calificacion_promedio:4.6, total_resenas:112, distancia_km:2.1, tipo_establecimiento:"local_comercial",  razon_principal:"Perfecto para tus gustos yucatecos", detalle_razon:"Alta similitud con tus preferencias de cocina regional",          score_total:0.87, score_contenido_usado:0.93, score_colaborativo_usado:0.78, score_boost_aplicado:0.80, estrategia_usada:"content_filter" },
-  { id_recomendacion:3, id_establecimiento:103, nombre_establecimiento:"Marquesitas El Arco",         categoria_recomendacion:"cercania",               es_informal:true,  calificacion_promedio:4.5, total_resenas:89,  distancia_km:0.4, tipo_establecimiento:"puesto_informal", razon_principal:"A pasos de ti",               detalle_razon:"Uno de los lugares mejor calificados a menos de 500 m",              score_total:0.82, score_contenido_usado:0.75, score_colaborativo_usado:0.72, score_boost_aplicado:0.99, estrategia_usada:"cercania" },
+  { id_recomendacion:3, id_establecimiento:103, nombre_establecimiento:"Marquesitas El Arco",         categoria_recomendacion:"popularidad_zona",       es_informal:true,  calificacion_promedio:4.5, total_resenas:89,  distancia_km:0.4, tipo_establecimiento:"puesto_informal", razon_principal:"A pasos de ti",               detalle_razon:"Uno de los lugares más populares a menos de 500 m",              score_total:0.82, score_contenido_usado:0.75, score_colaborativo_usado:0.72, score_boost_aplicado:0.99, estrategia_usada:"popularidad" },
   { id_recomendacion:4, id_establecimiento:104, nombre_establecimiento:"Panuchos Santa Lucía",        categoria_recomendacion:"tendencia_informal",     es_informal:true,  calificacion_promedio:4.9, total_resenas:31,  distancia_km:1.7, tipo_establecimiento:"puesto_informal", razon_principal:"La joya más escondida del barrio", detalle_razon:"Muy poco conocido pero altísimamente valorado por quienes lo visitan", score_total:0.89, score_contenido_usado:0.85, score_colaborativo_usado:0.82, score_boost_aplicado:0.96, estrategia_usada:"tendencia_informal" },
   { id_recomendacion:5, id_establecimiento:105, nombre_establecimiento:"Sopa de Lima Doña Esther",    categoria_recomendacion:"colaborativo_cluster",   es_informal:false, calificacion_promedio:4.7, total_resenas:64,  distancia_km:3.2, tipo_establecimiento:"restaurante",    razon_principal:"Muy popular en tu comunidad",  detalle_razon:"Usuarios con preferencias similares a las tuyas lo visitan seguido",  score_total:0.84, score_contenido_usado:0.80, score_colaborativo_usado:0.91, score_boost_aplicado:0.75, estrategia_usada:"collab_filter" },
-  { id_recomendacion:6, id_establecimiento:106, nombre_establecimiento:"Tamales Colados La Lupita",   categoria_recomendacion:"cercania",               es_informal:true,  calificacion_promedio:4.4, total_resenas:22,  distancia_km:0.7, tipo_establecimiento:"puesto_informal", razon_principal:"En tu misma cuadra",          detalle_razon:"Puesto informal con excelente reputación a menos de 1 km",           score_total:0.79, score_contenido_usado:0.72, score_colaborativo_usado:0.68, score_boost_aplicado:0.97, estrategia_usada:"cercania" },
-  { id_recomendacion:7, id_establecimiento:107, nombre_establecimiento:"Café de Altura Mirador",      categoria_recomendacion:"preferencia_contenido",  es_informal:false, calificacion_promedio:4.3, total_resenas:56,  distancia_km:1.5, tipo_establecimiento:"local_comercial",  razon_principal:"Coincide con tu amor por el café", detalle_razon:"Alta compatibilidad con tus categorías favoritas",                 score_total:0.81, score_contenido_usado:0.90, score_colaborativo_usado:0.70, score_boost_aplicado:0.74, estrategia_usada:"content_filter" },
+  { id_recomendacion:6, id_establecimiento:106, nombre_establecimiento:"Tamales Colados La Lupita",   categoria_recomendacion:"descubrimiento",         es_informal:true,  calificacion_promedio:0.0, total_resenas:0,   distancia_km:1.2, tipo_establecimiento:"puesto_informal", razon_principal:"¡Recién agregado!",          detalle_razon:"Sé de los primeros en probar este lugar",           score_total:0.75, score_contenido_usado:0.0, score_colaborativo_usado:0.0, score_boost_aplicado:0.0, estrategia_usada:"novedad" },
+  { id_recomendacion:7, id_establecimiento:107, nombre_establecimiento:"Café de Altura Mirador",      categoria_recomendacion:"cold_start",             es_informal:false, calificacion_promedio:4.3, total_resenas:156, distancia_km:1.5, tipo_establecimiento:"local_comercial",  razon_principal:"Un clásico seguro", detalle_razon:"Lugar muy reconocido en la ciudad",                 score_total:0.81, score_contenido_usado:0.90, score_colaborativo_usado:0.70, score_boost_aplicado:0.74, estrategia_usada:"popularidad_global" },
 ];
 
-// Configuración de secciones
+// Configuración de secciones (Sincronizado con Motor_Recomendaciones.md del Backend)
 const _SECCIONES = {
-  cercania:             { titulo:"Cerca de ti",               icono:"near_me",       textura:false },
+  top_picks_hibrido:    { titulo:"Mejores Selecciones Para Ti",icono:"star",          textura:true  }, // Carrusel Estrella
   preferencia_contenido:{ titulo:"Basado en tus gustos",      icono:"favorite",      textura:false },
-  colaborativo_cluster: { titulo:"Usuarios como tú visitan",  icono:"group",         textura:false },
-  tendencia_informal:   { titulo:"Joyas Ocultas",             icono:"auto_awesome",  textura:true  },
-  cold_start:           { titulo:"Para empezar",              icono:"explore",       textura:false },
+  colaborativo_cluster: { titulo:"Gente como tú visitó",      icono:"group",         textura:false },
+  popularidad_zona:     { titulo:"Populares cerca de ti",     icono:"near_me",       textura:false },
+  tendencia_informal:   { titulo:"Apoya el comercio local",   icono:"storefront",    textura:true  },
+  descubrimiento:       { titulo:"Descubrimientos recientes", icono:"new_releases",  textura:false },
+  cold_start:           { titulo:"Populares de la semana",    icono:"explore",       textura:false },
 };
 
 // Helpers
 function _stars(rating) {
   const r = rating || 0;
   return [1,2,3,4,5].map(i =>
-    `<span style="color:${i<=Math.round(r)?'#C08A40':'#DCD4C8'};">★</span>`
+    `<span style="color:${i<=Math.round(r)?'var(--warning-subtle)':'var(--border-default)'};">★</span>`
   ).join('');
 }
 
@@ -58,8 +60,8 @@ function _tarjeta(rec, delay) {
   const col   = Math.round((rec.score_colaborativo_usado||0)*100);
 
   return `
-    <article
-      class="bg-surface-raised border border-border-default rounded-md overflow-hidden
+    <article role="listitem"
+      class="bg-surface-raised border border-border-default rounded-md overflow-hidden flex-shrink-0 w-72 md:w-auto snap-start
              hover:border-border-strong hover:shadow-md transition-all duration-200 cursor-pointer group card-enter"
       style="animation-delay:${delay}ms"
       onclick="_irEstab(${rec.id_establecimiento},${rec.id_recomendacion})">
@@ -126,7 +128,7 @@ function _seccionFeed(cat, items) {
         Ver todo <span class="material-symbols-outlined" style="font-size:16px;">arrow_forward</span>
       </a>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">${cards}</div>`;
+    <div role="list" aria-label="${cfg.titulo}" class="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 md:grid md:grid-cols-2 md:gap-5 md:overflow-x-visible md:snap-none md:mx-0 md:px-0 lg:grid-cols-3">${cards}</div>`;
 
   if (cfg.textura) {
     return `<section class="mb-14 eki-texture-bg rounded-md relative overflow-hidden p-6 md:p-8">
@@ -148,9 +150,38 @@ async function _favFeed(idEstab, btn) {
   try {
     await api.toggleFavorito(idEstab, was ? 'DELETE' : 'POST');
     btn.dataset.fav = was ? 'false' : 'true';
-    btn.querySelector('.material-symbols-outlined').style.color = was ? '' : '#8B3A3A';
+    btn.querySelector('.material-symbols-outlined').style.color = was ? '' : 'var(--accent)';
     showToast(was ? 'Eliminado de favoritos' : '¡Guardado en favoritos!', was ? 'info' : 'success');
   } catch(_) { showToast('No se pudo actualizar el favorito', 'error'); }
+}
+
+// Retry inteligente para Render spin-down (cold start ~20-30s)
+async function _fetchRecomendacionesConRetry(maxIntentos = 4, delaySeg = 5) {
+  for (let intento = 1; intento <= maxIntentos; intento++) {
+    try {
+      const recs = await api.getRecomendaciones();
+      return recs; // éxito
+    } catch (err) {
+      if (intento === maxIntentos) throw err;
+      // Mostrar UI de "despertando servidor" con contador regresivo
+      _mostrarEstadoDespertando(intento, delaySeg);
+      await new Promise(r => setTimeout(r, delaySeg * 1000));
+    }
+  }
+}
+
+function _mostrarEstadoDespertando(intento, delaySeg) {
+  const el = document.getElementById('feed-content');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="flex flex-col items-center justify-center py-20 text-center fade-in">
+      <span class="material-symbols-outlined text-5xl text-accent mb-4 animate-pulse">cloud_sync</span>
+      <h3 class="font-heading text-headline-md text-primary mb-2">El servidor está despertando...</h3>
+      <p class="text-body-sm text-text-secondary mb-2">
+        Esto puede tomar hasta 30 segundos la primera vez del día.
+      </p>
+      <p class="text-label-md text-text-tertiary">Intento ${intento} — reintentando en ${delaySeg}s</p>
+    </div>`;
 }
 
 // Controller
@@ -163,37 +194,37 @@ window.controllers.feed = async () => {
 
   const nombre = appState.user?.nombre || '';
 
-  renderPage(`
-    <div class="w-full max-w-8xl mx-auto px-4 md:px-8 2xl:px-16 py-10">
-      <div class="mb-10 fade-in">
-        <h1 class="font-heading text-display-md text-primary mb-1">
-          ${nombre ? `Hola, ${nombre}` : '¡Bienvenido de vuelta'}
-        </h1>
-        <p class="text-body-lg text-text-secondary">¿Qué se te antoja hoy?</p>
-      </div>
+  const loaded = await renderView('feed.html');
+  if (!loaded) return;
 
-      <div id="feed-content">
-        <section class="mb-14">
-          <div class="flex items-center gap-3 mb-6">
-            <div class="skeleton w-5 h-5 rounded"></div>
-            <div class="skeleton h-7 w-44 rounded"></div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">${_skeletons(3)}</div>
-        </section>
-        <section class="mb-14">
-          <div class="flex items-center gap-3 mb-6">
-            <div class="skeleton w-5 h-5 rounded"></div>
-            <div class="skeleton h-7 w-56 rounded"></div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">${_skeletons(3)}</div>
-        </section>
-      </div>
-    </div>
-  `);
+  const titleEl = document.getElementById('feed-title');
+  if (titleEl) {
+    titleEl.textContent = nombre ? `Hola, ${nombre}` : '¡Bienvenido de vuelta!';
+  }
+
+  const contentEl = document.getElementById('feed-content');
+  if (contentEl) {
+    contentEl.innerHTML = `
+      <section class="mb-14">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="skeleton w-5 h-5 rounded"></div>
+          <div class="skeleton h-7 w-44 rounded"></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">${_skeletons(3)}</div>
+      </section>
+      <section class="mb-14">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="skeleton w-5 h-5 rounded"></div>
+          <div class="skeleton h-7 w-56 rounded"></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">${_skeletons(3)}</div>
+      </section>
+    `;
+  }
 
   try {
     let recs = [];
-    try { recs = await api.getRecomendaciones(); } catch(_) {}
+    try { recs = await _fetchRecomendacionesConRetry(4, 5); } catch(_) {}
     if (!recs || !recs.length) recs = _MOCK_RECS;
 
     const grupos = {};

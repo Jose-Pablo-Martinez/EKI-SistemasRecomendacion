@@ -10,41 +10,41 @@ tailwind.config = {
     extend: {
       colors: {
         // Fondos y superficies
-        surface:        '#FDF8F1',  // Arena cálida
-        'surface-dim':  '#EFE9DF',  // Roca desgastada
-        'surface-raised': '#FFFFFF', // Piedra caliza
-        'surface-overlay': '#F7F1E8', // Pergamino
+        surface:        'var(--surface)',
+        'surface-dim':  'var(--surface-dim)',
+        'surface-raised': 'var(--surface-raised)',
+        'surface-overlay': 'var(--surface-overlay)',
         // Primario (Obsidiana)
-        primary:        '#1E1B18',
-        'primary-subtle': '#2D2926',
-        'primary-muted': '#453E39',
-        'primary-ghost': '#6B625C',
-        'primary-faint': '#E6E0D9',
+        primary:        'var(--primary)',
+        'primary-subtle': 'var(--primary-subtle)',
+        'primary-muted': 'var(--primary-muted)',
+        'primary-ghost': 'var(--primary-ghost)',
+        'primary-faint': 'var(--primary-faint)',
         // Acento (Rojo Maya)
-        accent:         '#8B3A3A',
-        'accent-hover':  '#7A3030',
-        'accent-active': '#6A2828',
-        'accent-faint':  '#F5E6E6',
-        'accent-muted':  '#D4898A',
+        accent:         'var(--accent)',
+        'accent-hover':  'var(--accent-hover)',
+        'accent-active': 'var(--accent-active)',
+        'accent-faint':  'var(--accent-faint)',
+        'accent-muted':  'var(--accent-muted)',
         // Secundario (Azul Maya)
-        secondary:      '#4A6F8A',
-        'secondary-subtle': '#7393B3',
-        'secondary-faint': '#E8EFF4',
+        secondary:      'var(--secondary)',
+        'secondary-subtle': 'var(--secondary-subtle)',
+        'secondary-faint': 'var(--secondary-faint)',
         // Semánticos
-        success:        '#3A6B4A',
-        'success-faint': '#EBF4ED',
-        warning:        '#8A6020',
-        'warning-subtle': '#C08A40',
-        'warning-faint': '#FBF2E2',
+        success:        'var(--success)',
+        'success-faint': 'var(--success-faint)',
+        warning:        'var(--warning)',
+        'warning-subtle': 'var(--warning-subtle)',
+        'warning-faint': 'var(--warning-faint)',
         // Bordes
-        'border-subtle': '#EFE9DF',
-        'border-default': '#DCD4C8',
-        'border-strong':  '#C9BFB7',
-        'border-focus':   '#4A6F8A',
+        'border-subtle': 'var(--border-subtle)',
+        'border-default': 'var(--border-default)',
+        'border-strong':  'var(--border-strong)',
+        'border-focus':   'var(--border-focus)',
         // Texto
-        'text-primary':   '#1E1B18',
-        'text-secondary': '#4D4540',
-        'text-tertiary':  '#7E756F',
+        'text-primary':   'var(--primary)',
+        'text-secondary': 'var(--text-secondary)',
+        'text-tertiary':  'var(--text-tertiary)',
       },
       fontFamily: {
         heading: ['"Science Gothic"', 'sans-serif'],

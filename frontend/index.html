@@ -24,6 +24,13 @@
 </head>
 
 <body class="bg-surface font-sans text-text-primary min-h-screen flex flex-col antialiased selection:bg-accent selection:text-white">
+  <!-- Skip Link de accesibilidad (visible solo al hacer Tab) -->
+  <a href="#app-root" 
+     class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 
+            focus:z-50 focus:bg-accent focus:text-white focus:px-4 focus:py-2 
+            focus:rounded focus:font-semibold focus:shadow-lg">
+    Ir al contenido principal
+  </a>
   <!-- Header persistente (se actualiza según auth state) -->
   <header id="app-header" class="border-b border-border-default bg-surface-raised sticky top-0 z-40">
     <div id="header-container" class="w-full max-w-8xl mx-auto px-4 md:px-8 2xl:px-16 min-h-[4rem] py-3 flex items-center justify-between flex-wrap gap-4">
@@ -83,6 +90,7 @@
   <script src="scripts/controllers/perfil.js"></script>
   <script src="scripts/controllers/favoritos.js"></script>
   <script src="scripts/controllers/admin.js"></script>
+  <script src="scripts/controllers/algoritmos.js"></script>
   <script src="scripts/app.js"></script>
 </body>
 </html>

@@ -36,11 +36,11 @@ function _cardFav(fav, idx) {
     : null;
 
   const starsHtml = [1,2,3,4,5]
-    .map(i => `<span style="color:${i<=Math.round(cal)?'#C08A40':'#DCD4C8'};">★</span>`)
+    .map(i => `<span style="color:${i<=Math.round(cal)?'var(--warning-subtle)':'var(--border-default)'};">★</span>`)
     .join('');
 
   return `
-    <div id="fav-${id}"
+    <div id="fav-${id}" role="listitem"
          class="bg-surface-raised border border-border-default rounded-md p-4 flex gap-4
                 hover:border-border-strong transition-all duration-150 group card-enter"
          style="animation-delay:${idx*50}ms">
@@ -150,15 +150,11 @@ function _estadoVacio() {
 
 // Controller
 window.controllers.favoritos = async () => {
-  renderPage(`
-    <div class="w-full max-w-3xl mx-auto px-4 md:px-8 py-10">
-      <div class="flex items-center gap-3 mb-8">
-        <h1 class="font-heading text-display-md text-primary">Mis favoritos</h1>
-        <span id="favs-badge" class="text-headline-md text-text-tertiary tabular-nums"></span>
-      </div>
-      <div id="favs-lista" class="space-y-3">${_skelFavs(4)}</div>
-    </div>
-  `);
+  const loaded = await renderView('favoritos.html');
+  if (!loaded) return;
+
+  const lista = document.getElementById('favs-lista');
+  if (lista) lista.innerHTML = _skelFavs(4);
 
   try {
     let favoritos = [];
