@@ -55,10 +55,10 @@ Si ejecutas el job de clustering y la consola reporta que no hay suficientes usu
 El algoritmo ignora a los usuarios cuyo `vector_preferencias` o establecimientos cuyo `vector_caracteristicas` sean `NULL`. En datos de prueba falsos (dummy data), es común que estos vectores falten.
 
 **Solución temporal para desarrollo:**
-Existe un script "semilla" que inyecta vectores aleatorios en toda tu base de datos para permitir que el motor funcione:
+Existe un script "semilla" (ahora integrado en el flujo principal de `scripts.db.seed.seed`, pero que se puede correr individualmente) que inyecta vectores aleatorios en toda tu base de datos para permitir que el motor funcione:
 
 ```powershell
-python -m backend.jobs.seed_vectores
+python -m scripts.db.seed.vectores
 ```
 
 Tras recibir el mensaje de "¡Éxito!", podrás ejecutar los jobs de `clustering` y `recomendaciones` sin problemas.

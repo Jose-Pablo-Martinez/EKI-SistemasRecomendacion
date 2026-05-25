@@ -64,10 +64,10 @@ Crea las tablas directamente con `create_all()` sin pasar por Alembic. **Útil s
 > [!WARNING]
 > No usar `init_db.py` como sustituto de las migraciones. Una vez que las tablas estén estables y se hayan generado migraciones reales, usar **siempre** `migrate.py`.
 
-### `scripts/db/seed/seed.py` — Poblar la base de datos con datos de prueba
+### `scripts/db/seed/seed_orquestador.py` — Poblar la base de datos con datos de prueba
 ```powershell
 # Modo más común para desarrollo local:
-python scripts/db/seed/seed.py --modo desarrollo
+python scripts/db/seed/seed_orquestador.py --modo desarrollo
 ```
 Ver §4 de este documento para el flujo completo y todos los modos disponibles (`catalogo`, `desarrollo`, `demo`, `limpiar`).
 
@@ -162,7 +162,7 @@ alembic downgrade base
 
 ## 4. Flujo de Seed (Población Inicial de Datos y Mantenimiento)
 
-El seed es el proceso de insertar datos iniciales y de prueba en la base de datos. El script `scripts/db/seed.py` es el orquestador principal y cuenta con 4 modos de operación:
+El seed es el proceso de insertar datos iniciales y de prueba en la base de datos. El script `scripts/db/seed_orquestador.py` es el orquestador principal y cuenta con 4 modos de operación:
 
 | Modo | Propósito | Entorno | Detalle |
 |---|---|---|---|
@@ -177,16 +177,16 @@ El seed es el proceso de insertar datos iniciales y de prueba en la base de dato
 python scripts/db/ops/migrate.py
 
 # 2. Correr el seed completo
-python scripts/db/seed/seed.py --modo desarrollo
+python scripts/db/seed/seed_orquestador.py --modo desarrollo
 
 # Si necesitas reiniciar los datos posteriormente:
-python scripts/db/seed/seed.py --modo limpiar
+python scripts/db/seed/seed_orquestador.py --modo limpiar
 ```
 
 ### Preparar `ekidb` para la Primera Puesta en Producción (Usuarios Reales)
 ```powershell
 # En .env cambia: DB_NAME=ekidb
-python scripts/db/seed/seed.py --modo catalogo
+python scripts/db/seed/seed_orquestador.py --modo catalogo
 ```
 
 ### Preparar `ekidb` para Evaluación Académica (Demo)
@@ -197,10 +197,10 @@ Si requieres mostrar el proyecto a profesores usando el entorno productivo con d
 python scripts/db/ops/check_connection.py
 
 # 3. Inyectar datos completos para la presentación
-python scripts/db/seed/seed.py --modo demo
+python scripts/db/seed/seed_orquestador.py --modo demo
 
 # 4. Después de la presentación, limpiar la basura de prueba:
-python scripts/db/seed/seed.py --modo limpiar --force
+python scripts/db/seed/seed_orquestador.py --modo limpiar --force
 
 # 5. Restaurar en .env: DB_NAME=defaultdb
 ```

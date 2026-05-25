@@ -58,6 +58,7 @@ class UsuarioResponse(BaseModel):
     apellido: str
     foto_perfil: Optional[str] = None
     tipo_usuario: str
+    total_resenas: int = 0
     activo: bool
     fecha_registro: datetime
     perfil_completado: bool = False

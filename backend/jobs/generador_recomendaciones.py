@@ -181,7 +181,7 @@ def generar_para_usuario(
                 
             # Ordenar por el super-score de mayor a menor
             top_picks.sort(key=lambda x: x[1], reverse=True)
-            agregar_recomendaciones(top_picks, "top_picks_hibrido", "mejores_selecciones", "hibrido")
+            agregar_recomendaciones(top_picks, "preferencia_contenido", "preferencia_categoria", "hibrido")
 
     # 3. Estrategia Global / Fallback (Aplica para todos)
     # Recomendaciones populares por ranking base
@@ -190,11 +190,11 @@ def generar_para_usuario(
         
     # Tendencia Informal
     if estabs_informal:
-        agregar_recomendaciones(estabs_informal, "tendencia_informal", "popular_informal", "popularidad")
+        agregar_recomendaciones(estabs_informal, "tendencia_informal", "tendencia_informal", "popularidad")
         
     # Descubrimiento
     if estabs_descubrimiento:
-        agregar_recomendaciones(estabs_descubrimiento, "descubrimiento", "nuevo_lugar", "novedad")
+        agregar_recomendaciones(estabs_descubrimiento, "descubrimiento", "descubrimiento", "serendipia")
             
     return nuevas_recomendaciones
 
@@ -228,7 +228,7 @@ def procesar_generacion(db: Session) -> None:
         Establecimiento.es_activo == True,
         Establecimiento.estado == "aprobado",
         Establecimiento.es_informal == True
-    ).order_by(MetricaEstablecimiento.popularidad_7d.desc().nulls_last()).limit(MAX_RECOMENDACIONES_POR_CATEGORIA).all()
+    ).order_by(MetricaEstablecimiento.popularidad_7d.desc()).limit(MAX_RECOMENDACIONES_POR_CATEGORIA).all()
     
     estabs_descubrimiento = db.query(Establecimiento).filter(
         Establecimiento.es_activo == True,

@@ -1,3 +1,8 @@
+"""
+Sembrador de establecimientos (Restaurantes, Locales, Puestos Informales).
+Se encarga de inyectar lugares físicos, asignarles categorías/etiquetas semánticamente
+relevantes y generar su menú, horarios e imágenes base.
+"""
 import random
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
@@ -5,7 +10,8 @@ from sqlalchemy.dialects.mysql import insert
 from backend.models import (
     Establecimiento, Restaurante, LocalComercial, PuestoInformal,
     MetricaEstablecimiento, Horario, Platillo, Imagen, Colonia,
-    ClusterEstablecimiento, Usuario
+    ClusterEstablecimiento, Usuario, Categoria, Etiqueta,
+    EstablecimientoCategoria, EstablecimientoEtiqueta
 )
 
 def seed_establecimientos(db: Session):
@@ -16,6 +22,8 @@ def seed_establecimientos(db: Session):
         return
     colonias = db.query(Colonia).all()
     clusters = db.query(ClusterEstablecimiento).all()
+    categorias = db.query(Categoria).filter(Categoria.id_categoria_padre.isnot(None)).all()
+    etiquetas = db.query(Etiqueta).all()
     
     nombres_rest = ["La Lupita", "La Chaya Maya", "Mariscos El Puerto", "Pizzería Roma", "El Mesón", "Sushito", "Steak House", "Nuevo Restaurante XYZ"]
     nombres_locales = ["Jugos La Raza", "Cocina Económica Marcelina", "Café Mérida", "Panadería San Marcos", "Lonchería Central", "Taquería Paco", "El Buen Sabor"]
@@ -65,6 +73,46 @@ def seed_establecimientos(db: Session):
             elif tipo_enum == "puesto_informal":
                 p = PuestoInformal(id_puesto=e.id_establecimiento, dias_tipicos="Lunes a Sábado")
                 db.add(p)
+            db.commit()
+            
+            # Asignar Categorías y Etiquetas semánticas basadas en el nombre
+            nombre_lower = nombre.lower()
+            cats_elegidas = []
+            etiqs_elegidas = []
+            
+            # Mapeo simple basado en palabras clave
+            if "taco" in nombre_lower or "taquería" in nombre_lower or "trompo" in nombre_lower:
+                cats_elegidas = [c for c in categorias if "Tacos" in c.nombre]
+                etiqs_elegidas = [et for et in etiquetas if et.nombre in ["económico", "tradicional", "para_llevar"]]
+            elif "cochinita" in nombre_lower or "pibil" in nombre_lower:
+                cats_elegidas = [c for c in categorias if "Cochinita" in c.nombre or "Yucateca" in c.nombre]
+                etiqs_elegidas = [et for et in etiquetas if et.nombre in ["tradicional", "abierto_temprano", "para_llevar"]]
+            elif "mariscos" in nombre_lower or "camarón" in nombre_lower:
+                cats_elegidas = [c for c in categorias if "Mariscos" in c.nombre]
+                etiqs_elegidas = [et for et in etiquetas if et.nombre in ["familiar", "tradicional"]]
+            elif "pizza" in nombre_lower:
+                cats_elegidas = [c for c in categorias if "Pizza" in c.nombre or "Rápida" in c.nombre]
+                etiqs_elegidas = [et for et in etiquetas if et.nombre in ["para_llevar", "familiar"]]
+            elif "café" in nombre_lower:
+                cats_elegidas = [c for c in categorias if "Café" in c.nombre]
+                etiqs_elegidas = [et for et in etiquetas if et.nombre in ["wifi", "abierto_temprano"]]
+            elif "helados" in nombre_lower or "marquesitas" in nombre_lower:
+                cats_elegidas = [c for c in categorias if "Helados" in c.nombre or "Dulces" in c.nombre]
+                etiqs_elegidas = [et for et in etiquetas if et.nombre in ["para_llevar", "económico"]]
+            elif "lima" in nombre_lower or "chaya" in nombre_lower or "lupita" in nombre_lower:
+                cats_elegidas = [c for c in categorias if "Yucateca" in c.nombre or "Caldos" in c.nombre]
+                etiqs_elegidas = [et for et in etiquetas if et.nombre in ["tradicional", "familiar"]]
+            else:
+                # Fallback: asignar algo genérico
+                if categorias: cats_elegidas = random.sample(categorias, k=1)
+                if etiquetas: etiqs_elegidas = random.sample(etiquetas, k=2)
+                
+            for c_db in cats_elegidas:
+                ec = EstablecimientoCategoria(id_establecimiento=e.id_establecimiento, id_categoria=c_db.id_categoria)
+                db.merge(ec)
+            for et_db in etiqs_elegidas:
+                ee = EstablecimientoEtiqueta(id_establecimiento=e.id_establecimiento, id_etiqueta=et_db.id_etiqueta)
+                db.merge(ee)
             db.commit()
             
             # Si es aprobado, crear métricas

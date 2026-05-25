@@ -35,7 +35,7 @@ function _fechaCorta(str) {
 }
 function _historialIcon(motivo) {
   const m = (motivo||'').toLowerCase();
-  if (m.includes('reseña'))           return 'rate_review';
+  if (m.includes('reseña') || m.includes('resena')) return 'rate_review';
   if (m.includes('lugar') || m.includes('establecimiento')) return 'storefront';
   if (m.includes('foto'))             return 'photo_camera';
   if (m.includes('edici'))            return 'edit';

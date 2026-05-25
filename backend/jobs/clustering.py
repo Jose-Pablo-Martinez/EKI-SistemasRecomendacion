@@ -44,8 +44,26 @@ def obtener_vectores_usuarios(db: Session) -> Tuple[List[UsuarioVisitante], np.n
         UsuarioVisitante.fecha_ultima_actividad >= fecha_limite
     ).all()
     
-    vectores = [u.vector_preferencias for u in usuarios]
-    return usuarios, np.array(vectores)
+    vectores = []
+    usuarios_filtrados = []
+    
+    for u in usuarios:
+        vec = u.vector_preferencias
+        if isinstance(vec, dict):
+            vec = vec.get("numerico", [])
+            
+        if isinstance(vec, list) and len(vec) > 0:
+            vectores.append(vec)
+            usuarios_filtrados.append(u)
+            
+    # Garantizar que todos los vectores tengan la misma dimensión rellenando con 0s si es necesario
+    if vectores:
+        max_dim = max(len(v) for v in vectores)
+        vectores_homogeneos = [v + [0.0] * (max_dim - len(v)) for v in vectores]
+    else:
+        vectores_homogeneos = []
+        
+    return usuarios_filtrados, np.array(vectores_homogeneos)
 
 def obtener_vectores_establecimientos(db: Session) -> Tuple[List[Establecimiento], np.ndarray]:
     """

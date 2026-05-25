@@ -1,3 +1,8 @@
+"""
+Sembrador de centroides K-Means (Clusters).
+Define e inyecta los perfiles ancla tanto para usuarios como para establecimientos,
+los cuales sirven como punto de partida estático para los algoritmos de Machine Learning.
+"""
 from sqlalchemy.orm import Session
 from backend.models import ClusterUsuario, ClusterEstablecimiento
 from sqlalchemy.dialects.mysql import insert

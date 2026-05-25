@@ -1,8 +1,8 @@
 // frontend/js/app.js
 
 const routes = {
-  '':            () => window.controllers.home(),
-  '#/':          () => window.controllers.home(),
+  '':            () => { if (appState.isAuthenticated) window.location.hash = '#/feed'; else window.controllers.home() },
+  '#/':          () => { if (appState.isAuthenticated) window.location.hash = '#/feed'; else window.controllers.home() },
   '#/login':     () => window.controllers.login(),
   '#/registro':  () => window.controllers.register(),
   '#/onboarding':() => { if (requireAuth()) window.controllers.onboarding() },

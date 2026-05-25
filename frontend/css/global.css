@@ -7,49 +7,49 @@
 @layer base {
   :root {
     /* Fondos y superficies */
-    --surface: #FDF8F1;
-    --surface-dim: #EFE9DF;
-    --surface-raised: #FFFFFF;
-    --surface-overlay: #F7F1E8;
+    --surface: 253 248 241;
+    --surface-dim: 239 233 223;
+    --surface-raised: 255 255 255;
+    --surface-overlay: 247 241 232;
 
     /* Primario */
-    --primary: #1E1B18;
-    --primary-subtle: #2D2926;
-    --primary-muted: #453E39;
-    --primary-ghost: #6B625C;
-    --primary-faint: #E6E0D9;
-    --text-secondary: #4D4540;
-    --text-tertiary: #7E756F;
+    --primary: 30 27 24;
+    --primary-subtle: 45 41 38;
+    --primary-muted: 69 62 57;
+    --primary-ghost: 107 98 92;
+    --primary-faint: 230 224 217;
+    --text-secondary: 77 69 64;
+    --text-tertiary: 126 117 111;
 
     /* Acento */
-    --accent: #8B3A3A;
-    --accent-hover: #7A3030;
-    --accent-active: #6A2828;
-    --accent-faint: #F5E6E6;
-    --accent-muted: #D4898A;
+    --accent: 139 58 58;
+    --accent-hover: 122 48 48;
+    --accent-active: 106 40 40;
+    --accent-faint: 245 230 230;
+    --accent-muted: 212 137 138;
 
     /* Secundario */
-    --secondary: #4A6F8A;
-    --secondary-subtle: #7393B3;
-    --secondary-faint: #E8EFF4;
+    --secondary: 74 111 138;
+    --secondary-subtle: 115 147 179;
+    --secondary-faint: 232 239 244;
 
     /* Semánticos */
-    --success: #3A6B4A;
-    --success-faint: #EBF4ED;
-    --warning: #8A6020;
-    --warning-subtle: #C08A40;
-    --warning-faint: #FBF2E2;
+    --success: 58 107 74;
+    --success-faint: 235 244 237;
+    --warning: 138 96 32;
+    --warning-subtle: 192 138 64;
+    --warning-faint: 251 242 226;
 
     /* Bordes */
-    --border-subtle: #EFE9DF;
-    --border-default: #DCD4C8;
-    --border-strong: #C9BFB7;
-    --border-focus: #4A6F8A;
+    --border-subtle: 239 233 223;
+    --border-default: 220 212 200;
+    --border-strong: 201 191 183;
+    --border-focus: 74 111 138;
   }
 
   /* Accesibilidad: Focus visible siempre presente — DESIGN.md §Accesibilidad */
   :focus-visible {
-    outline: 2px solid var(--border-focus);
+    outline: 2px solid rgb(var(--border-focus));
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -73,7 +73,7 @@
     width: 100%;
     height: 100%;
     /* Utilizamos el color base (surface) casi opaco para difuminar la imagen de fondo */
-    background-color: color-mix(in srgb, var(--surface) 96%, transparent);
+    background-color: color-mix(in srgb, rgb(var(--surface)) 96%, transparent);
     pointer-events: none;
     z-index: 0;
   }
@@ -98,7 +98,7 @@
   }
 
   .skeleton {
-    background-color: var(--surface-dim);
+    background-color: rgb(var(--surface-dim));
     animation: skeletonPulse 1.4s ease-in-out infinite;
   }
 
@@ -111,13 +111,13 @@
   .progress-track {
     height: 6px;
     border-radius: 9999px;
-    background-color: var(--surface-dim);
+    background-color: rgb(var(--surface-dim));
     overflow: hidden;
   }
 
   .progress-fill {
     height: 100%;
-    background-color: var(--secondary);
+    background-color: rgb(var(--secondary));
     border-radius: 9999px;
     animation: progressGrow 600ms ease-out forwards;
     transform-origin: left center;
@@ -135,7 +135,7 @@
     left: 1rem;
     z-index: 9999;
     padding: 10px 20px;
-    background: var(--primary);
+    background: rgb(var(--primary));
     color: #fff;
     font-family: Montserrat, sans-serif;
     font-size: 13px;
@@ -146,13 +146,13 @@
   }
   .eki-skip-link:focus {
     top: 0;
-    outline: 2px solid var(--border-focus);
+    outline: 2px solid rgb(var(--border-focus));
     outline-offset: 2px;
   }
 
   /* Muestra anillo de foco solo con teclado, no con click */
   :focus-visible {
-    outline: 2px solid var(--border-focus);
+    outline: 2px solid rgb(var(--border-focus));
     outline-offset: 2px;
     border-radius: 4px;
   }

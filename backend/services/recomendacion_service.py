@@ -42,10 +42,21 @@ def _obtener_ubicacion_reciente(db: Session, id_usuario: int) -> Optional[Ubicac
 
 def _obtener_recomendaciones_crudas(db: Session, id_usuario: int) -> List[RecomendacionGenerada]:
     """Consulta la base de datos por recomendaciones vigentes (últimos 7 días)."""
+    from backend.models.establecimientos import Establecimiento
+    from backend.models.interacciones import Resena
+    from sqlalchemy.orm import selectinload
+    
     fecha_limite = datetime.now(timezone.utc) - timedelta(days=7)
     stmt_recs = (
         select(RecomendacionGenerada)
-        .options(joinedload(RecomendacionGenerada.establecimiento))
+        .options(
+            joinedload(RecomendacionGenerada.establecimiento).options(
+                selectinload(Establecimiento.resenas).selectinload(Resena.usuario),
+                selectinload(Establecimiento.platillos),
+                selectinload(Establecimiento.horarios),
+                selectinload(Establecimiento.imagenes)
+            )
+        )
         .where(
             RecomendacionGenerada.id_usuario == id_usuario,
             RecomendacionGenerada.fecha_generacion >= fecha_limite
@@ -140,7 +151,8 @@ def obtener_recomendaciones(db: Session, id_usuario: int) -> Dict[str, List[Any]
         _calcular_distancias(recs, ubicacion)
         resultados_finales[categoria] = _aplicar_fallback_cascada(recs, radio_base)
 
-    db.commit()  # Persiste los cálculos de fallback/distancias
+    # Nota: No hacemos db.commit() aquí para evitar N queries de UPDATE síncronas 
+    # por cada petición GET, lo cual volvía inusable el feed.
     return resultados_finales
 
 

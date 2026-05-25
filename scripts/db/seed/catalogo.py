@@ -1,3 +1,7 @@
+"""
+Sembrador de datos estáticos y catálogos base (Países, Estados, Municipios, Colonias, Categorías, Etiquetas).
+Se encarga de inicializar la estructura taxonómica y geográfica requerida por el dominio.
+"""
 from sqlalchemy.orm import Session
 from backend.models import Pais, EstadoGeo, Municipio, Colonia, RangoInformador, Categoria, Etiqueta
 from sqlalchemy.dialects.mysql import insert

@@ -216,6 +216,12 @@ class Resena(Base):
     # Relaciones
     usuario         = relationship("Usuario", back_populates="resenas")
     establecimiento = relationship("Establecimiento", back_populates="resenas")
+    
+    @property
+    def nombre_usuario(self) -> str:
+        if self.usuario:
+            return f"{self.usuario.nombre} {self.usuario.apellido}".strip()
+        return "Usuario Anónimo"
 
 
 class FavoritoGuardado(Base):

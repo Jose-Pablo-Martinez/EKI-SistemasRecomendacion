@@ -65,23 +65,24 @@ def otorgar_puntos(db: Session, id_usuario: int, accion: str, descripcion: str =
     )
     db.add(log)
     
-    # Actualizar desnormalizado
+    # Actualizar desnormalizado con protección contra None
     visitante.puntos_experiencia = (visitante.puntos_experiencia or 0) + puntos  # type: ignore[assignment]
-
-    # Recalcular rango automáticamente con base en puntos_experiencia
-    # Selecciona el rango con mayor puntos_minimos <= puntos actuales
-    rangos = db.query(RangoInformador).order_by(RangoInformador.puntos_minimos.asc()).all()
-    if rangos:
-        pts_actuales = int(visitante.puntos_experiencia or 0)
-        rango_obj = None
-        for r in rangos:
-            if pts_actuales >= int(r.puntos_minimos):
-                rango_obj = r
-            else:
-                break
-        if rango_obj and visitante.id_rango != rango_obj.id_rango:
-            visitante.id_rango = rango_obj.id_rango
-        
+    
+    # Verificar subida de rango automáticamente con base en puntos_experiencia
+    nuevo_rango = db.query(RangoInformador).filter(
+        RangoInformador.puntos_minimos <= visitante.puntos_experiencia
+    ).order_by(RangoInformador.puntos_minimos.desc()).first()
+    
+    if nuevo_rango and (visitante.id_rango != nuevo_rango.id_rango):
+        visitante.id_rango = nuevo_rango.id_rango  # type: ignore[assignment]
+        # Opcional: registrar motivo 'subida_rango' en log_puntos para el historial
+        log_subida = LogPuntos(
+            id_usuario=id_usuario,
+            puntos=0,
+            motivo="subida_rango"
+        )
+        db.add(log_subida)
+            
     db.commit()
     logger.info(f"Otorgados {puntos} pts a {id_usuario} por {accion}")
 
