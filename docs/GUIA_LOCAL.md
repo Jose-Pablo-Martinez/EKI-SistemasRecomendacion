@@ -105,9 +105,35 @@ Para poder desarrollar y probar el sistema (entrenar K-Means, etc.), inyectaremo
 python scripts/db/seed/seed_orquestador.py --modo desarrollo
 ```
 
-> **Tip de Mantenimiento:** Si durante el desarrollo necesitas reiniciar tu entorno y borrar los datos de prueba para empezar de cero, usa `python scripts/db/seed/seed_orquestador.py --modo limpiar`.
+> **Tip de Mantenimiento:** Si durante el desarrollo necesitas reiniciar tu entorno y borrar los datos de prueba para empezar de cero, usa primero `--modo limpiar` y luego `--modo desarrollo`:
+> ```powershell
+> python scripts/db/seed/seed_orquestador.py --modo limpiar
+> python scripts/db/seed/seed_orquestador.py --modo desarrollo
+> ```
 
 Ver [docs/OPERATIONS.md](docs/OPERATIONS.md) §4 para el detalle de todos los comandos y modos del seed.
+
+### Paso 4 — Ejecutar los Jobs Offline del Motor
+
+Después del seed, los datos existen pero el motor de IA aún no ha procesado las recomendaciones. Ejecuta los jobs en este orden exacto para que el sistema quede completamente funcional:
+
+```powershell
+# 1. Analizar reseñas con NLP
+python -m backend.jobs.runner --job nlp
+
+# 2. Calcular popularidad y métricas de tendencia
+python -m backend.jobs.runner --job metricas
+
+# 3. Agrupar usuarios en tribus (K-Means)
+python -m backend.jobs.runner --job clustering
+
+# 4. Generar el catálogo de recomendaciones para todos los usuarios
+python -m backend.jobs.runner --job recomendaciones
+```
+
+> [!NOTE]
+> El job de `clustering` puede tardar entre 20-60 segundos dependiendo del volumen de datos. Es normal.
+> Para más detalle sobre qué hace cada job y cómo depurar errores, consulta [docs/Ejecutar_Jobs_Offline.md](docs/Ejecutar_Jobs_Offline.md).
 
 ---
 
@@ -140,7 +166,7 @@ HeidiSQL permite explorar visualmente las tablas de Aiven sin escribir SQL manua
 
 Con el venv activo y el `.env` configurado, inicia FastAPI:
 ```powershell
-uvicorn backend.eki_main:app --reload --port 8000
+python -m uvicorn backend.eki_main:app --reload --port 8000
 ```
 
 Verifica que funcione abriendo en tu navegador:
@@ -177,10 +203,10 @@ Tu rama feature/ → PR a unstable → (revisión del equipo) → merge a main �
 Este flujo es más delicado. Ver [docs/OPERATIONS.md](docs/OPERATIONS.md) §3 para el procedimiento completo y todos los casos posibles (agregar columna, eliminar tabla, revertir, etc.).
 
 Resumen del flujo:
-1. Modifica `backend/models.py`.
+1. Modifica `backend/models/` según las convenciones del esquema.
 2. Genera la migración: `alembic revision --autogenerate -m "descripcion"`
 3. Revisa el archivo generado en `backend/migrations/versions/`.
-4. Aplica localmente: `python scripts/db/migrate.py`
+4. Aplica localmente: `python scripts/db/ops/migrate.py`
 5. Sube el nuevo archivo de migración con tu PR.
 6. Al hacer merge a `main`: el pipeline activa el GitHub Environment **`ekiEnvironment`** y aplica la migración a producción (`ekidb`) automáticamente.
 
