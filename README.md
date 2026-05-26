@@ -115,6 +115,44 @@ Este proyecto utiliza un flujo de automatización profesional con **tres pipelin
  
 ---
  
+## 🧠 ¿Cómo Funcionan las Recomendaciones?
+
+EkiSystem utiliza un **motor híbrido de recomendación** con arquitectura **Offline-First**: los algoritmos pesados corren en segundo plano mediante _Jobs_, guardan resultados en base de datos, y el Feed del usuario solo hace un `SELECT` rápido a esa tabla. Esto garantiza respuestas en menos de 200ms.
+
+### Modelo Híbrido
+
+El sistema combina tres señales para calcular la recomendación final de cada usuario:
+
+```
+Score Final = (Similitud Coseno × W₁)         ← ¿Hace match con tus gustos?
+            + (Colaborativo Item-to-Item × W₂) ← ¿Lo visita gente como tú?
+            + (Boost Geográfico × W₃)          ← ¿Está cerca? ¿Es informal?
+```
+
+### Algoritmos Implementados
+
+| Algoritmo | Tecnología | ¿Para qué se usa? |
+| :--- | :--- | :--- |
+| **Similitud Coseno** | `scikit-learn` | Comparar el perfil del usuario con las características del establecimiento |
+| **K-Means Clustering** | `scikit-learn` | Agrupar usuarios en "Tribus" con gustos similares (base del colaborativo) |
+| **Filtrado Colaborativo Item-to-Item** | SQLAlchemy | Recomendar lo que visitó la tribu del usuario |
+| **Fórmula de Haversine** | Implementación propia | Calcular distancia GPS real entre usuario y establecimiento |
+| **Análisis de Sentimiento NLP** | `TextBlob` | Extraer polaridad y subjetividad de las reseñas |
+| **Distancia de Levenshtein** | Implementación propia | Corrección ortográfica en el buscador |
+| **Cold Start (Inicio en Frío)** | Popularidad global | Recomendaciones seguras para usuarios nuevos sin historial |
+
+### Inicio en Frío
+
+Cuando un usuario es nuevo o aún no tiene historial suficiente, el sistema detecta automáticamente este estado y le sirve los establecimientos más populares globalmente como punto de partida seguro. Una vez que acumula interacciones, el siguiente ciclo de jobs lo migra al modelo híbrido completo.
+
+### Caja Blanca (Explicabilidad)
+
+Cada recomendación incluye metadatos que explican la razón al usuario: el carrusel al que pertenece, el algoritmo que la generó, y los scores individuales de cada señal. Esto contrasta con modelos de "caja negra" donde la razón es opaca.
+
+> Para el detalle técnico completo de cada algoritmo, ver [docs/Motor_Recomendaciones.md](docs/Motor_Recomendaciones.md).
+
+---
+ 
 ## 🌿 Flujo de Trabajo (Git Flow)
  
 Para mantener la integridad del código, el equipo de desarrollo trabaja bajo el siguiente esquema de ramas:

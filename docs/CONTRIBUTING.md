@@ -11,7 +11,7 @@
 | Nombre | Esquina Jach ki' (EKI) |
 | Dominio | Sistema de recomendación gastronómica — Mérida, Yucatán |
 | Arquitectura | Monorepositorio · Backend API REST · Frontend Vanilla JS |
-| Etapa actual | Esquema de BD implementado (v0.2.0) — 38 tablas, migración aplicada |
+| Etapa actual | MVP funcional en producción — Motor híbrido activo, 5 jobs offline operativos, 38 tablas |
 | Despliegue | GitHub Pages (frontend) · Render (backend) · Aiven MySQL (base de datos) |
 | Institución | Facultad de Matemáticas, UADY |
 
@@ -26,32 +26,39 @@ No crear archivos fuera de esta estructura sin que el equipo lo acuerde previame
 ```
 ekiSystem/
 │
-├── CONTRIBUTING.md             ← Este archivo (actualizar solo con consenso del equipo)
+├── docs/                           ← Documentación del equipo
+│   ├── CONTRIBUTING.md             ← Este archivo
+│   ├── GUIA_LOCAL.md               ← Onboarding para nuevos devs
+│   ├── Ejecutar_Jobs_Offline.md    ← Guía de ejecución de jobs del motor
+│   ├── Motor_Recomendaciones.md    ← Detalle técnico de todos los algoritmos
+│   └── OPERATIONS.md               ← Manual operativo (BD, CI/CD, seeds)
 │
 ├── scripts/
 │   ├── setup/
 │   │   └── setup_env.py        ← Configura .env y verifica ca.pem
 │   └── db/
-│       ├── check_connection.py ← Diagnóstico de conexión a Aiven
-│       ├── migrate.py          ← Aplica migraciones Alembic
-│       ├── init_db.py          ← Arranque rápido (solo fase inicial)
-│       └── seed_orquestador.py             ← Población de datos iniciales (se crea cuando tablas sean definitivas)
+│       ├── ops/                 ← Scripts operativos (conexión, migración)
+│       └── seed/                ← Sembradores de datos de prueba
+│           └── seed_orquestador.py  ← Orquestador principal del seed
 │
 ├── backend/
 │   ├── migrations/             ← Historial de cambios de BD (Alembic)
 │   ├── eki_main.py             ← Punto de entrada FastAPI + registro de routers
-│   ├── models.py               ← Modelos SQLAlchemy (tablas de MariaDB)
-│   ├── schemas.py              ← Esquemas Pydantic
-│   ├── database.py             ← Configuración de engine y sesión SQLAlchemy
-│   ├── requirements.txt        ← Dependencias
+│   ├── models/                 ← Modelos SQLAlchemy por dominio
+│   ├── schemas/                ← Esquemas Pydantic por dominio
+│   ├── routers/                ← Rutas FastAPI por módulo
+│   ├── services/               ← Lógica de negocio de la aplicación
 │   ├── engine/                 ← Algoritmos matemáticos del motor de recomendación
-│   └── services/               ← Lógica de negocio de la aplicación
+│   ├── jobs/                   ← Jobs offline del motor (runner, clustering, nlp, etc.)
+│   └── database.py             ← Configuración de engine y sesión SQLAlchemy
 │
 └── frontend/
     ├── index.html              ← Estructura HTML SPA Shell
     ├── views/                  ← Archivos HTML estáticos de las vistas
-    ├── scripts/app.js          ← Router SPA asíncrono y renderizador de vistas
-    └── css/styles.css          ← Ajustes de diseño
+    └── scripts/
+        ├── app.js              ← Router SPA asíncrono y renderizador de vistas
+        ├── controllers/        ← Controladores por página
+        └── utils/              ← Utilidades compartidas (validadores, errores)
 ```
 
 ### 2.1 Gestión de Cambios en la BD
@@ -149,7 +156,7 @@ def get_top_vendors(limit: int = 10) -> list:
 
 | Tecnología | Rol | Lineamiento |
 |---|---|---|
-| MariaDB | Base de datos relacional | Garantizar integridad ACID; definir FK con `ondelete` explícito |
+| MySQL (Aiven) | Base de datos relacional en la nube | Garantizar integridad ACID; definir FK con `ondelete` explícito. Compatible con PyMySQL + SQLAlchemy |
 
 ### Frontend
 
@@ -281,12 +288,16 @@ Estos son los cuatro módulos centrales del sistema. Cualquier lógica nueva de 
 
 | Módulo | Archivo | Responsabilidad |
 |---|---|---|
-| Filtrado por Contenido | `engine/content_filter.py` | Analizar características del puesto (categoría, ubicación, tags) y el perfil del usuario |
-| Filtrado Colaborativo | `engine/collab_filter.py` | Calcular similitud entre usuarios o ítems basada en interacciones pasadas |
-| Ranking y Boosting | `engine/ranking.py` | Aplicar factores de visibilidad a negocios con pocas reseñas (`review_count < BOOST_THRESHOLD`) |
-| Inicio en Frío | `engine/cold_start.py` | Estrategia para usuarios o vendedores nuevos sin historial de interacciones |
+| Filtrado por Contenido | `engine/content_filter.py` | Similitud coseno entre `vector_preferencias` del usuario y `vector_caracteristicas` del establecimiento |
+| Filtrado Colaborativo | `engine/collab_filter.py` | Item-to-item dentro del cluster K-Means asignado al usuario |
+| Ranking y Boosting | `engine/ranking.py` | Suma ponderada de los tres scores + bonus Haversine + bonus informal |
+| Inicio en Frío | `engine/cold_start.py` | Popularidad global para usuarios nuevos o sin historial suficiente |
+| Buscador / Corrección de texto | `engine/lexical_filter.py` | Distancia de Levenshtein para sugerir correcciones ortográficas en el buscador |
+| Análisis de Sentimiento NLP | `jobs/nlp_pipeline.py` | TextBlob + traducción automática para extraer polaridad y subjetividad de reseñas |
+| Clustering de Tribus | `jobs/clustering.py` | K-Means con selección automática de K vía Silhouette Score |
+| Métricas de Popularidad | `jobs/metricas.py` | Cálculo batch de popularidad, tendencia y calificación promedio por establecimiento |
 
-**Boosting:** La función `compute_score_final` en `engine/ranking.py` combina tres señales con pesos configurables: `score_contenido` (similitud coseno entre perfil del usuario y características del establecimiento), `score_colaborativo` (item-to-item dentro del cluster) y `score_boost` (Haversine + bonus informal + popularidad de zona). Ver `docs/EkiSystem_Backend_Design.md §4.1` para el detalle.
+**Boosting:** La función `compute_score_final` en `engine/ranking.py` combina tres señales con pesos configurables: `score_contenido` (similitud coseno), `score_colaborativo` (item-to-item del cluster) y `score_boost` (Haversine + bonus informal + popularidad de zona). La suma **no se normaliza** Min-Max porque solo importa el ranking relativo, no la escala absoluta. Ver `docs/Motor_Recomendaciones.md` para el detalle completo.
 
 ---
 
