@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 MIN_RESULTADOS_POR_CATEGORIA = 10
 MAX_SECCIONES_FEED = 5
-MAX_ITEMS_POR_SECCION = 12
+MAX_ITEMS_POR_SECCION = 15
 
 _SECCIONES_ALGORITMO_ORDEN = [
     "top_picks_hibrido",
@@ -99,9 +99,25 @@ def _agrupar_por_categoria(
     agrupado: Dict[str, List[RecomendacionGenerada]] = {}
     for r in recs:
         cat = str(r.categoria_recomendacion)  # type: ignore
+        
+        # Truco para separar los híbridos sin necesidad de modificar el ENUM de la base de datos
+        if cat == "preferencia_contenido" and str(r.estrategia_usada) == "hibrido":
+            cat = "top_picks_hibrido"
+            
         if cat not in agrupado:
             agrupado[cat] = []
         agrupado[cat].append(r)
+    
+    # Deduplicar: el mismo establecimiento puede aparecer en registros de distintos runs
+    # (los clickeados sobreviven 30 días). Nos quedamos con el más reciente por establecimiento.
+    for cat in agrupado:
+        vistos: Dict[int, RecomendacionGenerada] = {}
+        for r in sorted(agrupado[cat], key=lambda x: x.fecha_generacion, reverse=True):
+            estab_id = int(r.id_establecimiento)  # type: ignore
+            if estab_id not in vistos:
+                vistos[estab_id] = r
+        agrupado[cat] = sorted(vistos.values(), key=lambda x: x.posicion)
+    
     return agrupado
 
 
@@ -215,27 +231,43 @@ def obtener_recomendaciones_secciones(db: Session, id_usuario: int) -> List[Dict
     """Devuelve el feed organizado en carruseles mixtos (algoritmo + categoria)."""
     recs_por_categoria = obtener_recomendaciones(db, id_usuario)
 
-    secciones: List[Dict[str, Any]] = []
-    for key in _SECCIONES_ALGORITMO_ORDEN:
-        items = recs_por_categoria.get(key) or []
-        if not items:
-            continue
-        secciones.append({
-            "key": key,
-            "title": _SECCIONES_ALGORITMO_TITULO.get(key, key),
-            "kind": "algoritmo",
-            "items": items[:MAX_ITEMS_POR_SECCION],
-        })
-        if len(secciones) >= MAX_SECCIONES_FEED:
-            return secciones
-
-    restantes = MAX_SECCIONES_FEED - len(secciones)
-    if restantes <= 0:
-        return secciones
-
-    secciones.extend(
-        _secciones_por_categoria(recs_por_categoria, restantes, MAX_ITEMS_POR_SECCION)
+    # Detectar si el usuario solo tiene cold_start (usuario nuevo sin jobs offline)
+    categorias_presentes = set(recs_por_categoria.keys())
+    solo_cold_start = categorias_presentes == {"cold_start"} or (
+        categorias_presentes <= {"cold_start", "popularidad_zona", "tendencia_informal", "descubrimiento"}
+        and "cold_start" in categorias_presentes
     )
+
+    secciones: List[Dict[str, Any]] = []
+
+    if solo_cold_start:
+        # Para usuarios 100% nuevos, no intentamos inventar carruseles por categoría.
+        # Simplemente mostramos las recomendaciones bajo un título amigable.
+        items = recs_por_categoria.get("cold_start") or []
+        if items:
+            secciones.append({
+                "key": "cold_start",
+                "title": "Selecciones para empezar",
+                "kind": "algoritmo",
+                "items": items[:MAX_ITEMS_POR_SECCION],
+            })
+    else:
+        # Para usuarios con ML: solo secciones de algoritmo, sin duplicar por categoría
+        for key in _SECCIONES_ALGORITMO_ORDEN:
+            if key == "cold_start":
+                continue  # No mezclar cold_start con secciones ML
+            items = recs_por_categoria.get(key) or []
+            if not items:
+                continue
+            secciones.append({
+                "key": key,
+                "title": _SECCIONES_ALGORITMO_TITULO.get(key, key),
+                "kind": "algoritmo",
+                "items": items[:MAX_ITEMS_POR_SECCION],
+            })
+            if len(secciones) >= MAX_SECCIONES_FEED:
+                break
+
     return secciones
 
 

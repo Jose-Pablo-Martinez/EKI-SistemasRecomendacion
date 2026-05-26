@@ -26,13 +26,14 @@ window.Card = {
     const cal_prom = parseFloat(estab.calificacion_promedio) || 0;
     const resenas = estab.total_resenas || 0;
 
-    const score  = Math.round((rec.score_total||0) * 100);
+    const score  = Math.min(100, Math.max(0, Math.round((rec.score_total||0) * 100)));
     const distVal = parseFloat(rec.distancia_km);
     const dist   = !isNaN(distVal) ? `${distVal.toFixed(1)} km` : null;
     const img    = `https://picsum.photos/seed/${rec.id_establecimiento}/600/360`;
-    const c      = Math.round((rec.score_contenido_usado||0) * 100);
-    const col    = Math.round((rec.score_colaborativo_usado||0) * 100);
+    const c      = Math.min(100, Math.max(0, Math.round((rec.score_contenido_usado||0) * 100)));
+    const col    = Math.min(100, Math.max(0, Math.round((rec.score_colaborativo_usado||0) * 100)));
     const calStr = cal_prom.toFixed(1);
+    const hasBreakdown = (c > 0 || col > 0);
     
     const isColdStart = rec.categoria_recomendacion === 'cold_start' || rec.razon_principal === 'cold_start';
     
@@ -76,7 +77,7 @@ window.Card = {
                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                loading="lazy"
                onerror="this.src='https://picsum.photos/600/360?grayscale'" />
-          ${isColdStart ? '' : `
+          ${(isColdStart || score === 0) ? '' : `
           <div class="absolute top-3 right-3 bg-secondary/90 backdrop-blur-sm text-white
                       text-label-md px-2 py-0.5 rounded font-bold tabular-nums shadow-sm"
                aria-label="${score}% de compatibilidad">
@@ -129,9 +130,21 @@ window.Card = {
                     aria-hidden="true"
                     style="font-size:15px;margin-top:2px;">shield</span>
               <div class="min-w-0">
-                <p class="text-body-sm font-semibold text-secondary leading-snug">${rec.razon_principal === 'cold_start' ? 'Sugerencia inicial' : (rec.razon_principal || 'Sugerencia Inicial')}</p>
+                <p class="text-body-sm font-semibold text-secondary leading-snug">
+                  ${({
+                    'preferencia_categoria': 'Perfecto para tus gustos',
+                    'historial_similar': 'Visitado frecuentemente',
+                    'popular_zona': 'Populares de la zona',
+                    'colaborativo': 'Muy popular en tu comunidad',
+                    'cluster_similar': 'Recomendado para tu perfil',
+                    'cercano': 'A pasos de ti',
+                    'cold_start': 'Sugerencia inicial',
+                    'descubrimiento': 'Algo nuevo para ti',
+                    'tendencia_informal': 'Joya informal'
+                  })[rec.razon_principal] || rec.razon_principal || 'Sugerencia Inicial'}
+                </p>
                 <p class="text-label-md text-text-tertiary mt-0.5 leading-relaxed">${rec.detalle_razon || 'Seleccionado para empezar'}</p>
-                ${isColdStart ? '' : `
+                ${(isColdStart || !hasBreakdown) ? '' : `
                 <div class="flex gap-4 mt-2">
                   <span class="text-label-md text-text-tertiary">
                     <strong class="text-secondary font-semibold">${c}%</strong> Tu gusto

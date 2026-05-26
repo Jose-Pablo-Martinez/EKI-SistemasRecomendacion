@@ -81,6 +81,8 @@
     left: 0;
     width: 100%;
     height: 100%;
+    border-radius: inherit;
+    overflow: hidden;
     /* Utilizamos el color base (surface) casi opaco para difuminar la imagen de fondo */
     background-color: color-mix(in srgb, rgb(var(--surface)) 96%, transparent);
     pointer-events: none;
@@ -180,6 +182,13 @@
     /* Ocultar scrollbar: funcional pero invisible */
     scrollbar-width: none;    /* Firefox */
     -ms-overflow-style: none; /* IE/Edge */
+    
+    /* En movil: expandir más allá del padding de la pantalla para evitar corte abrupto */
+    margin-left: -16px;
+    margin-right: -16px;
+    /* Agregamos más padding para que no se vean pegadas a la pantalla (24px) */
+    padding-left: 24px;
+    padding-right: 24px;
   }
 
   .eki-carousel-wrap {
@@ -188,14 +197,17 @@
   }
 
   @media (min-width: 768px) {
+    .eki-carousel {
+      margin-left: 0;
+      margin-right: 0;
+      padding-left: 0;
+      padding-right: 0;
+    }
     .eki-carousel-wrap {
       display: grid;
       grid-template-columns: 46px minmax(0, 1fr) 46px;
       align-items: center;
       gap: 12px;
-    }
-    .eki-carousel-wrap.no-arrows {
-      display: block;
     }
   }
 
@@ -224,7 +236,7 @@
   }
 
   .eki-carousel-wrap.no-arrows .eki-carousel-btn {
-    display: none !important;
+    visibility: hidden;
   }
   .eki-carousel::-webkit-scrollbar {
     display: none; /* Chrome/Safari */

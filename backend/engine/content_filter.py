@@ -78,7 +78,11 @@ def get_content_based_recommendations(
     if not valid_candidatos:
         return []
 
-    user_vec = np.array(usuario.vector_preferencias).reshape(1, -1)
+    user_vec_raw = usuario.vector_preferencias
+    if isinstance(user_vec_raw, dict) and "numerico" in user_vec_raw:
+        user_vec_raw = user_vec_raw["numerico"]
+        
+    user_vec = np.array(user_vec_raw).reshape(1, -1)
     cand_vecs = np.array([c.vector_caracteristicas for c in valid_candidatos])
 
     scores = cosine_similarity(user_vec, cand_vecs).flatten()
@@ -101,10 +105,17 @@ def compute_cosine_similarity(vector_a: list[float], vector_b: list[float]) -> f
     Returns:
         Similitud en [0.0, 1.0]. Retorna 0.0 si algún vector es nulo o vacío.
     """
-    if not vector_a or not vector_b or len(vector_a) != len(vector_b):
+    if not vector_a or not vector_b:
+        return 0.0
+        
+    vec_a_raw = vector_a
+    if isinstance(vec_a_raw, dict) and "numerico" in vec_a_raw:
+        vec_a_raw = vec_a_raw["numerico"]
+        
+    if len(vec_a_raw) != len(vector_b):
         return 0.0
 
-    user_vec = np.array(vector_a).reshape(1, -1)
+    user_vec = np.array(vec_a_raw).reshape(1, -1)
     item_vec = np.array(vector_b).reshape(1, -1)
     
     return float(cosine_similarity(user_vec, item_vec)[0, 0])

@@ -27,7 +27,7 @@ const _SECCIONES = {
   preferencia_contenido: { titulo:"Basado en tus gustos",        icono:"favorite",      textura:false },
   colaborativo_cluster:  { titulo:"Personas como tu visitaron",  icono:"group",         textura:false },
   popularidad_zona:      { titulo:"Populares cerca de ti",       icono:"trending_up",   textura:false },
-  tendencia_informal:    { titulo:"Apoya el comercio local",     icono:"auto_awesome",  textura:true  },
+  tendencia_informal:    { titulo:"Apoya el comercio local",     icono:"auto_awesome",  textura:false },
   descubrimiento:        { titulo:"Descubrimientos recientes",   icono:"new_releases", textura:false },
   cold_start:            { titulo:"Populares de la semana",      icono:"explore",       textura:false },
   cercania:              { titulo:"Cerca de ti",                 icono:"near_me",       textura:false },
@@ -89,7 +89,7 @@ function _seccionFeed(cat, items, favoritosSet, section = null) {
 
   if (cfg.textura) {
     return `
-      <section class="mb-14 eki-texture-bg rounded-md relative overflow-hidden p-6 md:p-8">
+      <section class="mb-14 eki-texture-bg rounded-md relative p-6 md:p-8">
         <div class="relative z-10">${inner}</div>
       </section>`;
   }
