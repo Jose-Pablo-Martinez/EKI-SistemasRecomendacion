@@ -21,13 +21,16 @@ const _MOCK_RECS = [
   { id_recomendacion:7,  id_establecimiento:107, nombre_establecimiento:"Café de Altura Mirador",      categoria_recomendacion:"preferencia_contenido", es_informal:false, calificacion_promedio:4.3, total_resenas:56,  distancia_km:1.5, tipo_establecimiento:"local_comercial",   razon_principal:"Coincide con tu amor por el café", detalle_razon:"Alta compatibilidad con tus categorías favoritas",            score_total:0.81, score_contenido_usado:0.90, score_colaborativo_usado:0.70, estrategia_usada:"content_filter"     },
 ];
 
-// Config de secciones
+// Config de secciones (fallback local para iconos/estilo)
 const _SECCIONES = {
-  cercania:              { titulo:"Cerca de ti",              icono:"near_me",      textura:false },
-  preferencia_contenido: { titulo:"Basado en tus gustos",     icono:"favorite",     textura:false },
-  colaborativo_cluster:  { titulo:"Usuarios como tú visitan", icono:"group",        textura:false },
-  tendencia_informal:    { titulo:"Joyas Ocultas",            icono:"auto_awesome", textura:true  },
-  cold_start:            { titulo:"Sugerencias según tus gustos", icono:"explore",      textura:false },
+  top_picks_hibrido:     { titulo:"Mejores selecciones para ti", icono:"star",          textura:false },
+  preferencia_contenido: { titulo:"Basado en tus gustos",        icono:"favorite",      textura:false },
+  colaborativo_cluster:  { titulo:"Personas como tu visitaron",  icono:"group",         textura:false },
+  popularidad_zona:      { titulo:"Populares cerca de ti",       icono:"trending_up",   textura:false },
+  tendencia_informal:    { titulo:"Apoya el comercio local",     icono:"auto_awesome",  textura:true  },
+  descubrimiento:        { titulo:"Descubrimientos recientes",   icono:"new_releases", textura:false },
+  cold_start:            { titulo:"Populares de la semana",      icono:"explore",       textura:false },
+  cercania:              { titulo:"Cerca de ti",                 icono:"near_me",       textura:false },
 };
 
 let _favoritosSet = new Set();
@@ -35,8 +38,18 @@ let _favoritosSet = new Set();
 // Utilidades para el Feed se han movido a scripts/components/
 
 // Sección con carrusel en móvil
-function _seccionFeed(cat, items, favoritosSet) {
-  const cfg   = _SECCIONES[cat] || { titulo: cat, icono:'restaurant', textura:false };
+function _resolverSeccion(cat, section) {
+  const base = _SECCIONES[cat] || { titulo: cat, icono:'restaurant', textura:false };
+  if (!section) return base;
+  return {
+    titulo: section.title || base.titulo,
+    icono: section.kind === 'categoria' ? 'category' : base.icono,
+    textura: base.textura,
+  };
+}
+
+function _seccionFeed(cat, items, favoritosSet, section = null) {
+  const cfg   = _resolverSeccion(cat, section);
   const cards = items.map((r, i) => {
     const idEstab = r.id_establecimiento || r.establecimiento?.id_establecimiento;
     const isFav = favoritosSet?.has(idEstab);
@@ -56,16 +69,23 @@ function _seccionFeed(cat, items, favoritosSet) {
         <span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px;">arrow_forward</span>
       </a>
     </div>
-    <!-- MÓVIL: carrusel horizontal snap -->
-    <div class="eki-carousel md:hidden" role="list" aria-label="Recomendaciones: ${cfg.titulo}">
-      ${cards}
+    <div class="eki-carousel-wrap">
+      <button class="eki-carousel-btn hidden md:flex" type="button"
+              aria-label="Desplazar a la izquierda en ${cfg.titulo}"
+              onclick="window._scrollCarousel(this, -1)">
+        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+      </button>
+      <!-- Carrusel horizontal (movil + escritorio) -->
+      <div class="eki-carousel" role="list" aria-label="Recomendaciones: ${cfg.titulo}">
+        ${cards}
+      </div>
+      <button class="eki-carousel-btn hidden md:flex" type="button"
+              aria-label="Desplazar a la derecha en ${cfg.titulo}"
+              onclick="window._scrollCarousel(this, 1)">
+        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+      </button>
     </div>
-
-    <!-- MD+: grid 2/3 columnas -->
-    <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-5"
-         role="list" aria-label="Recomendaciones: ${cfg.titulo}">
-      ${cards}
-    </div>`;
+    `;
 
   if (cfg.textura) {
     return `
@@ -74,6 +94,34 @@ function _seccionFeed(cat, items, favoritosSet) {
       </section>`;
   }
   return `<section class="mb-14">${inner}</section>`;
+}
+
+// Scroll de carrusel en escritorio
+window._scrollCarousel = (btn, dir) => {
+  const wrap = btn?.closest('.eki-carousel-wrap');
+  const track = wrap?.querySelector('.eki-carousel');
+  if (!track) return;
+  const delta = Math.round(track.clientWidth * 0.9) * dir;
+  track.scrollBy({ left: delta, behavior: 'smooth' });
+};
+
+function _updateCarouselArrows() {
+  setTimeout(() => {
+    document.querySelectorAll('.eki-carousel-wrap').forEach((wrap) => {
+      const track = wrap.querySelector('.eki-carousel');
+      if (!track) return;
+      // Comprobar si realmente hay scroll disponible
+      const overflow = track.scrollWidth > track.clientWidth + 4;
+      wrap.classList.toggle('no-arrows', !overflow);
+    });
+  }, 100);
+}
+
+if (!window._carouselResizeBound) {
+  window.addEventListener('resize', () => {
+    if (window.location.hash.startsWith('#/feed')) _updateCarouselArrows();
+  });
+  window._carouselResizeBound = true;
 }
 
 // Acciones globales 
@@ -91,7 +139,12 @@ async function _irEstab(idEstab, idRec) {
 // Render del feed a partir de datos 
 function _renderFeedData(recs, favoritosSet) {
   let grupos = {};
-  if (Array.isArray(recs)) {
+  if (Array.isArray(recs) && recs.length && recs[0]?.items) {
+    return recs
+      .filter(s => Array.isArray(s.items) && s.items.length)
+      .map(s => _seccionFeed(s.key, s.items, favoritosSet, s))
+      .join('');
+  } else if (Array.isArray(recs)) {
     recs.forEach(r => {
       if (!grupos[r.categoria_recomendacion]) grupos[r.categoria_recomendacion] = [];
       grupos[r.categoria_recomendacion].push(r);
@@ -133,18 +186,15 @@ function _shellSkel() {
         <div class="skeleton w-6 h-6 rounded"></div>
         <div class="skeleton h-7 w-44 rounded"></div>
       </div>
-      <!-- móvil -->
-      <div class="eki-carousel md:hidden">${window.Skeletons.renderFeed(3)}</div>
-      <!-- desktop -->
-      <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-5">${window.Skeletons.renderFeed(3)}</div>
+      <!-- carrusel -->
+      <div class="eki-carousel">${window.Skeletons.renderFeed(3)}</div>
     </section>
     <section class="mb-14" aria-hidden="true">
       <div class="flex items-center gap-3 mb-5">
         <div class="skeleton w-6 h-6 rounded"></div>
         <div class="skeleton h-7 w-56 rounded"></div>
       </div>
-      <div class="eki-carousel md:hidden">${window.Skeletons.renderFeed(3)}</div>
-      <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-5">${window.Skeletons.renderFeed(3)}</div>
+      <div class="eki-carousel">${window.Skeletons.renderFeed(3)}</div>
     </section>`;
 }
 
@@ -211,7 +261,11 @@ async function _cargarConRetry(intento) {
     const recs = await api.getRecomendaciones();
     _cancelarRetry();
     const el = document.getElementById('feed-content');
-    if (el) el.innerHTML = (recs && Object.keys(recs).length) ? _renderFeedData(recs, _favoritosSet) : _feedEstadoVacio();
+    const hasData = Array.isArray(recs) ? recs.length : (recs && Object.keys(recs).length);
+    if (el) {
+      el.innerHTML = hasData ? _renderFeedData(recs, _favoritosSet) : _feedEstadoVacio();
+      _updateCarouselArrows();
+    }
   } catch(err) {
     // Si el error parece ser de red/servidor (no 4xx del negocio), reintentar
     const esRed = !err.status || err.status === 0 || err.status >= 500;
@@ -308,11 +362,18 @@ window.controllers.feed = async () => {
   try {
     const recs = await api.getRecomendaciones();
     const el   = document.getElementById('feed-content');
-    if (el) el.innerHTML = (recs && Object.keys(recs).length) ? _renderFeedData(recs, _favoritosSet) : _feedEstadoVacio();
+    const hasData = Array.isArray(recs) ? recs.length : (recs && Object.keys(recs).length);
+    if (el) {
+      el.innerHTML = hasData ? _renderFeedData(recs, _favoritosSet) : _feedEstadoVacio();
+      _updateCarouselArrows();
+    }
   } catch(err) {
     // Mostrar mock inmediatamente para que no haya pantalla en blanco
     const el = document.getElementById('feed-content');
-    if (el) el.innerHTML = _renderFeedData(_MOCK_RECS, _favoritosSet);
+    if (el) {
+      el.innerHTML = _renderFeedData(_MOCK_RECS, _favoritosSet);
+      _updateCarouselArrows();
+    }
 
     // Luego iniciar la secuencia de retry silenciosa en background
     // (si el backend responde durante el retry, reemplaza el mock)

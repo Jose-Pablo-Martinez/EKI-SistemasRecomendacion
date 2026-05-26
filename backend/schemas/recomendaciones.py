@@ -152,6 +152,14 @@ class RecomendacionResponse(BaseModel):
     establecimiento: Optional["EstablecimientoResponse"] = None
 
 
+class FeedSectionResponse(BaseModel):
+    """Sección/carrusel del feed con recomendaciones ya agrupadas."""
+    key: str
+    title: str
+    kind: Literal["algoritmo", "categoria"]
+    items: list[RecomendacionResponse]
+
+
 # ─── Gamificación ─────────────────────────────────────────────────────────────
 
 class ContribucionCreate(BaseModel):
