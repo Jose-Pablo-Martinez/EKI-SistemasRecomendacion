@@ -49,7 +49,10 @@ logger = logging.getLogger(__name__)
 # Constantes de Retención y Generación
 DIAS_EXPIRACION_NO_CLICK = 7
 DIAS_EXPIRACION_CLICK = 30
-MAX_RECOMENDACIONES_POR_CATEGORIA = 10
+# El carrusel Híbrido (top_picks) es más selectivo — solo muestra los mejores 10.
+# Los demás carruseles muestran hasta 20 items para dar más diversidad y serendipia.
+MAX_RECOMENDACIONES_HIBRIDO = 10
+MAX_RECOMENDACIONES_POR_CATEGORIA = 20
 
 
 def limpiar_recomendaciones_antiguas(db: Session) -> None:
@@ -186,7 +189,7 @@ def generar_para_usuario(
                 
             top_picks.sort(key=lambda x: x[1], reverse=True)
             # El híbrido se registra PRIMERO: sus establecimientos quedan en establecimientos_usados
-            agregar_recomendaciones(top_picks, "preferencia_contenido", "preferencia_categoria", "hibrido", "La mejor combinación entre tus gustos y los de tu comunidad")
+            agregar_recomendaciones(top_picks[:MAX_RECOMENDACIONES_HIBRIDO], "preferencia_contenido", "preferencia_categoria", "hibrido", "La mejor combinación entre tus gustos y los de tu comunidad")
 
         # Filtrado por Contenido — recibe los establecimientos que el híbrido no reclamó
         if estabs_content:
@@ -230,10 +233,13 @@ def procesar_generacion(db: Session) -> None:
         logger.warning("No hay usuarios activos en los últimos 30 días para generar recomendaciones.")
         return
         
-    # 3. Pre-cargar una lista general (Fallback de ranking)
+    # 3. Pre-cargar una lista general amplia como pool de candidatos para content/collab.
+    # Se usa un limit alto (40) para que el filtrado por contenido tenga suficiente variedad
+    # entre la que elegir, evitando que solo aparezcan puestos informales.
+    POOL_CANDIDATOS = 40
     top_establecimientos = []
     if get_top_establecimientos:
-        top_establecimientos = get_top_establecimientos(db, limit=MAX_RECOMENDACIONES_POR_CATEGORIA)
+        top_establecimientos = get_top_establecimientos(db, limit=POOL_CANDIDATOS)
         
     from backend.models.establecimientos import MetricaEstablecimiento
     
@@ -243,9 +249,17 @@ def procesar_generacion(db: Session) -> None:
         Establecimiento.es_informal == True
     ).order_by(MetricaEstablecimiento.popularidad_7d.desc()).limit(MAX_RECOMENDACIONES_POR_CATEGORIA).all()
     
+    # Descubrimiento / Serendipia: Lugares nuevos Y distintos a los gustos típicos.
+    # Para garantizar verdadera sorpresa, priorizamos establecimientos:
+    #   - Recién registrados (fecha_registro DESC → novedad)
+    #   - Formales (es_informal=False): los informales ya tienen su propio carrusel
+    #     de 'tendencia_informal', incluirlos aquí solo repetiría contenido.
+    # El resultado es un carrusel que Alejandro nunca esperaría, con restaurantes
+    # y locales comerciales nuevos que el motor aún no ha podido aprender a recomendar.
     estabs_descubrimiento = db.query(Establecimiento).filter(
         Establecimiento.es_activo == True,
-        Establecimiento.estado == "aprobado"
+        Establecimiento.estado == "aprobado",
+        Establecimiento.es_informal == False
     ).order_by(Establecimiento.fecha_registro.desc()).limit(MAX_RECOMENDACIONES_POR_CATEGORIA).all()
         
     total_generadas = 0
