@@ -20,7 +20,7 @@ from backend.engine.ranking import compute_haversine_km
 
 logger = logging.getLogger(__name__)
 
-MIN_RESULTADOS_POR_CATEGORIA = 5
+MIN_RESULTADOS_POR_CATEGORIA = 10
 
 
 def _obtener_radio_base(db: Session, id_usuario: int) -> int:

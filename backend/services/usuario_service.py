@@ -234,7 +234,7 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
             ).delete()
             db.commit()
             
-            estabs_cold_start = get_cold_start_recommendations(db, visitante, limit=10)
+            estabs_cold_start = get_cold_start_recommendations(db, visitante, limit=15)
             for i, estab in enumerate(estabs_cold_start):
                 nueva_rec = RecomendacionGenerada(
                     id_usuario=id_usuario,

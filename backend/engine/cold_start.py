@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Constantes para el Cold Start
-COLD_START_LIMIT: int = 10              # Resultados para usuarios nuevos
+COLD_START_LIMIT: int = 15              # Resultados para usuarios nuevos
 MIN_INTERACCIONES_COLABORATIVO: int = 5 # Umbral para activar componente colaborativo
 
 
