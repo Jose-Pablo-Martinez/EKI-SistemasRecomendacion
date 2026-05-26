@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.auth import get_current_user
 from backend.models import Usuario
-from backend.schemas.recomendaciones import RecomendacionResponse
+from backend.schemas.recomendaciones import RecomendacionResponse, FeedSectionResponse
 from backend.services import recomendacion_service
 
 router = APIRouter(
@@ -30,6 +30,15 @@ def get_recomendaciones(
     """
     resultados = recomendacion_service.obtener_recomendaciones(db, current_user.id_usuario)  # type: ignore
     return resultados
+
+
+@router.get("/sections", response_model=List[FeedSectionResponse])
+def get_recomendaciones_sections(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtiene el feed organizado en secciones/carruseles mixtos."""
+    return recomendacion_service.obtener_recomendaciones_secciones(db, current_user.id_usuario)  # type: ignore
 
 @router.post("/{id_recomendacion}/click", status_code=status.HTTP_204_NO_CONTENT)
 def registrar_click_recomendacion(

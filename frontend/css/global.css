@@ -45,6 +45,15 @@
     --border-default: 220 212 200;
     --border-strong: 201 191 183;
     --border-focus: 74 111 138;
+
+    /* Carrusel (controles) */
+    --carousel-btn-bg: var(--surface-raised);
+    --carousel-btn-bg-hover: var(--surface-overlay);
+    --carousel-btn-border: var(--border-strong);
+    --carousel-btn-border-hover: var(--primary-ghost);
+    --carousel-btn-color: var(--primary);
+    --carousel-btn-color-hover: var(--accent);
+    --carousel-btn-shadow: 0 10px 22px rgba(30, 27, 24, 0.22);
   }
 
   /* Accesibilidad: Focus visible siempre presente — DESIGN.md §Accesibilidad */
@@ -172,6 +181,51 @@
     scrollbar-width: none;    /* Firefox */
     -ms-overflow-style: none; /* IE/Edge */
   }
+
+  .eki-carousel-wrap {
+    display: block;
+    position: relative;
+  }
+
+  @media (min-width: 768px) {
+    .eki-carousel-wrap {
+      display: grid;
+      grid-template-columns: 46px minmax(0, 1fr) 46px;
+      align-items: center;
+      gap: 12px;
+    }
+    .eki-carousel-wrap.no-arrows {
+      display: block;
+    }
+  }
+
+  .eki-carousel-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 9999px;
+    align-items: center;
+    justify-content: center;
+    background: rgb(var(--carousel-btn-bg));
+    border: 1px solid rgb(var(--carousel-btn-border));
+    box-shadow: var(--carousel-btn-shadow);
+    color: rgb(var(--carousel-btn-color));
+    z-index: 2;
+  }
+
+  .eki-carousel-btn:hover {
+    color: rgb(var(--carousel-btn-color-hover));
+    border-color: rgb(var(--carousel-btn-border-hover));
+    background: rgb(var(--carousel-btn-bg-hover));
+  }
+
+  .eki-carousel-btn:focus-visible {
+    outline: 2px solid rgb(var(--border-focus));
+    outline-offset: 2px;
+  }
+
+  .eki-carousel-wrap.no-arrows .eki-carousel-btn {
+    display: none !important;
+  }
   .eki-carousel::-webkit-scrollbar {
     display: none; /* Chrome/Safari */
   }
@@ -182,6 +236,14 @@
     /* 85vw en móvil pequeño, máx 300px — así se ve la siguiente tarjeta */
     width: 85vw;
     max-width: 300px;
+  }
+
+  @media (min-width: 768px) {
+    .eki-carousel > article,
+    .eki-carousel > div {
+      width: 320px;
+      max-width: 320px;
+    }
   }
 }
 

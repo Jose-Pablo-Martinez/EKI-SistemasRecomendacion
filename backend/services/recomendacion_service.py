@@ -6,7 +6,7 @@ y gestionando estrategias de fallback (expansión de radio de búsqueda).
 """
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Iterable
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
@@ -21,6 +21,30 @@ from backend.engine.ranking import compute_haversine_km
 logger = logging.getLogger(__name__)
 
 MIN_RESULTADOS_POR_CATEGORIA = 10
+MAX_SECCIONES_FEED = 5
+MAX_ITEMS_POR_SECCION = 12
+
+_SECCIONES_ALGORITMO_ORDEN = [
+    "top_picks_hibrido",
+    "preferencia_contenido",
+    "colaborativo_cluster",
+    "popularidad_zona",
+    "tendencia_informal",
+    "descubrimiento",
+    "cold_start",
+    "cercania",
+]
+
+_SECCIONES_ALGORITMO_TITULO = {
+    "top_picks_hibrido": "Mejores selecciones para ti",
+    "preferencia_contenido": "Basado en tus gustos",
+    "colaborativo_cluster": "Personas como tu visitaron",
+    "popularidad_zona": "Populares cerca de ti",
+    "tendencia_informal": "Apoya el comercio local",
+    "descubrimiento": "Descubrimientos recientes",
+    "cold_start": "Populares de la semana",
+    "cercania": "Cerca de ti",
+}
 
 
 def _obtener_radio_base(db: Session, id_usuario: int) -> int:
@@ -42,7 +66,7 @@ def _obtener_ubicacion_reciente(db: Session, id_usuario: int) -> Optional[Ubicac
 
 def _obtener_recomendaciones_crudas(db: Session, id_usuario: int) -> List[RecomendacionGenerada]:
     """Consulta la base de datos por recomendaciones vigentes (últimos 7 días)."""
-    from backend.models.establecimientos import Establecimiento
+    from backend.models.establecimientos import Establecimiento, EstablecimientoCategoria
     from backend.models.interacciones import Resena
     from sqlalchemy.orm import selectinload
     
@@ -54,7 +78,10 @@ def _obtener_recomendaciones_crudas(db: Session, id_usuario: int) -> List[Recome
                 selectinload(Establecimiento.resenas).selectinload(Resena.usuario),
                 selectinload(Establecimiento.platillos),
                 selectinload(Establecimiento.horarios),
-                selectinload(Establecimiento.imagenes)
+                selectinload(Establecimiento.imagenes),
+                selectinload(Establecimiento.categorias).selectinload(
+                    EstablecimientoCategoria.categoria
+                ),
             )
         )
         .where(
@@ -137,6 +164,79 @@ def obtener_recomendaciones(db: Session, id_usuario: int) -> Dict[str, List[Any]
     # Nota: No hacemos db.commit() aquí para evitar N queries de UPDATE síncronas 
     # por cada petición GET, lo cual volvía inusable el feed.
     return resultados_finales
+
+
+def _flatten(recs_por_categoria: Dict[str, List[RecomendacionGenerada]]) -> Iterable[RecomendacionGenerada]:
+    for items in recs_por_categoria.values():
+        for r in items:
+            yield r
+
+
+def _secciones_por_categoria(
+    recs_por_categoria: Dict[str, List[RecomendacionGenerada]],
+    max_secciones: int,
+    max_items: int,
+) -> List[Dict[str, Any]]:
+    cat_map: Dict[str, List[RecomendacionGenerada]] = {}
+    for r in _flatten(recs_por_categoria):
+        estab = r.establecimiento
+        if not estab or not getattr(estab, "categorias", None):
+            continue
+        for ec in estab.categorias:
+            cat = ec.categoria.nombre if ec.categoria else None
+            if not cat:
+                continue
+            cat_map.setdefault(cat, []).append(r)
+
+    secciones: List[Dict[str, Any]] = []
+    for cat, items in sorted(cat_map.items(), key=lambda x: len(x[1]), reverse=True):
+        if len(secciones) >= max_secciones:
+            break
+        vistos = set()
+        filtrados: List[RecomendacionGenerada] = []
+        for r in items:
+            if r.id_recomendacion in vistos:
+                continue
+            vistos.add(r.id_recomendacion)
+            filtrados.append(r)
+            if len(filtrados) >= max_items:
+                break
+        if filtrados:
+            secciones.append({
+                "key": f"categoria:{cat}",
+                "title": cat,
+                "kind": "categoria",
+                "items": filtrados,
+            })
+    return secciones
+
+
+def obtener_recomendaciones_secciones(db: Session, id_usuario: int) -> List[Dict[str, Any]]:
+    """Devuelve el feed organizado en carruseles mixtos (algoritmo + categoria)."""
+    recs_por_categoria = obtener_recomendaciones(db, id_usuario)
+
+    secciones: List[Dict[str, Any]] = []
+    for key in _SECCIONES_ALGORITMO_ORDEN:
+        items = recs_por_categoria.get(key) or []
+        if not items:
+            continue
+        secciones.append({
+            "key": key,
+            "title": _SECCIONES_ALGORITMO_TITULO.get(key, key),
+            "kind": "algoritmo",
+            "items": items[:MAX_ITEMS_POR_SECCION],
+        })
+        if len(secciones) >= MAX_SECCIONES_FEED:
+            return secciones
+
+    restantes = MAX_SECCIONES_FEED - len(secciones)
+    if restantes <= 0:
+        return secciones
+
+    secciones.extend(
+        _secciones_por_categoria(recs_por_categoria, restantes, MAX_ITEMS_POR_SECCION)
+    )
+    return secciones
 
 
 def registrar_click(db: Session, id_recomendacion: int) -> bool:
