@@ -176,7 +176,7 @@ function _mostrarSpinDown(intento) {
       <!-- Barra de progreso del spin-down -->
       <div class="progress-track w-52 mb-6">
         <div class="progress-fill"
-             style="width:${Math.round((intento/_RETRY_MAX)*100)}%;animation:none;background-color:var(--secondary);">
+             style="width:${Math.round((intento/_RETRY_MAX)*100)}%;animation:none;background-color:rgb(var(--secondary));">
         </div>
       </div>
       <button onclick="_cancelarRetry(); _mostrarErrorConexion()"

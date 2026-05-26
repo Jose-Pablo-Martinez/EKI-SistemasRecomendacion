@@ -77,7 +77,7 @@ function _starsInteractivos() {
           aria-label="${n} estrella${n > 1 ? 's' : ''}"
           aria-pressed="false"
           class="text-3xl leading-none transition-transform hover:scale-110"
-          style="color:var(--border-default);">★</button>`).join('')}
+          style="color:rgb(var(--border-default));">★</button>`).join('')}
     </div>
     <input type="hidden" id="star-value" value="0" />`;
 }
@@ -86,7 +86,7 @@ function _selectStar(n) {
   document.getElementById('star-value').value = n;
   document.querySelectorAll('#star-selector button').forEach(btn => {
     const starVal = parseInt(btn.dataset.star);
-    btn.style.color = starVal <= n ? 'var(--warning-subtle)' : 'var(--border-default)';
+    btn.style.color = starVal <= n ? 'rgb(var(--warning-subtle))' : 'rgb(var(--border-default))';
     btn.setAttribute('aria-pressed', starVal <= n ? 'true' : 'false');
   });
 }
@@ -121,7 +121,11 @@ async function _enviarResena(idEstab) {
   try {
     await api.crearResena(idEstab, { id_establecimiento:idEstab, calificacion:cal, comentario:comentario||null });
     showToast('¡Reseña guardada!', 'success');
-    setTimeout(() => location.reload(), 1500); // Reload to show updated reviews
+    setTimeout(() => {
+      if (window.controllers && window.controllers.establecimiento) {
+        window.controllers.establecimiento(idEstab);
+      }
+    }, 1500); // Refresca solo la vista para mostrar la nueva reseña
   } catch(e) {
     showToast('No se pudo enviar la reseña.', 'warning');
     btn.disabled = false;

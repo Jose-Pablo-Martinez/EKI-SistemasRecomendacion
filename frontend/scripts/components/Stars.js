@@ -14,7 +14,7 @@ window.Stars = {
   render: (rating) => {
     const r = Math.round(rating || 0);
     return [1, 2, 3, 4, 5]
-      .map(i => `<span aria-hidden="true" style="color:${i <= r ? 'var(--warning-subtle)' : 'var(--border-default)'};">★</span>`)
+      .map(i => `<span aria-hidden="true" style="color:${i <= r ? 'rgb(var(--warning-subtle))' : 'rgb(var(--border-default))'};">★</span>`)
       .join('');
   }
 };
