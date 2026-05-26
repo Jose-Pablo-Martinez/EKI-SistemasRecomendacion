@@ -33,7 +33,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # ─── Constantes de Boosting ───────────────────────────────────────────────────
-BOOST_FACTOR_INFORMAL: float = 0.25    # Bonus fijo para puestos informales (es_informal=TRUE)
+# BOOST_FACTOR_INFORMAL: Bonus para puestos informales en el score final híbrido.
+# Deliberadamente bajo para que los formales también aparezcan en los carruseles.
+# Debe estar alineado con W_INFORMAL en jobs/metricas.py.
+BOOST_FACTOR_INFORMAL: float = 0.12    # Bonus fijo para puestos informales (es_informal=TRUE)
 RADIO_ZONA_KM: float = 2.0             # Radio en km para calcular popularidad_zona
 MAX_RESULTS: int = 20                  # Límite máximo de resultados en cualquier endpoint
 

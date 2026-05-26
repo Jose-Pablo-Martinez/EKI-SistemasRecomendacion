@@ -21,9 +21,12 @@ from backend.models.interacciones import InteraccionUsuario
 
 logger = logging.getLogger(__name__)
 
-#Constantes de ponderación
-W_INFORMAL = 0.25
-W_ZONA = 0.75
+# Constantes de ponderación del score_boost_combinado.
+# W_INFORMAL: Bonus fijo para puestos informales. Se mantiene bajo deliberadamente
+# para que los establecimientos formales compitan con sus métricas de popularidad.
+# Si se sube mucho, los carruseles solo mostrarán puestos informales.
+W_INFORMAL = 0.12
+W_ZONA = 0.88
 
 def calcular_popularidad_agregada(db: Session, dias_atras: int) -> Dict[int, int]:
     """

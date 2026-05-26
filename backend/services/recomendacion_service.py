@@ -21,8 +21,10 @@ from backend.engine.ranking import compute_haversine_km
 logger = logging.getLogger(__name__)
 
 MIN_RESULTADOS_POR_CATEGORIA = 10
-MAX_SECCIONES_FEED = 5
-MAX_ITEMS_POR_SECCION = 15
+# 7 secciones = top_picks_hibrido + preferencia_contenido + colaborativo_cluster
+#             + popularidad_zona + tendencia_informal + descubrimiento + (cold_start si aplica)
+MAX_SECCIONES_FEED = 7
+MAX_ITEMS_POR_SECCION = 20
 
 _SECCIONES_ALGORITMO_ORDEN = [
     "top_picks_hibrido",
