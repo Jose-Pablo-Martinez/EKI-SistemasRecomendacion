@@ -99,9 +99,7 @@ def generar_para_usuario(
     """
     nuevas_recomendaciones = []
     ahora = datetime.now(timezone.utc)
-    # Conjunto global para evitar que el mismo establecimiento aparezca en >1 categoria
-    establecimientos_usados: set = set()
-    
+
     def agregar_recomendaciones(estabs: Optional[List[Any]], categoria: str, razon: str, estrategia: str, detalle: str = "") -> None:
         """Función helper para evitar duplicación de código al instanciar el modelo."""
         if not estabs:
@@ -121,9 +119,6 @@ def generar_para_usuario(
                 estab = item
                 score_usado = 0.0
                 
-            if estab.id_establecimiento in establecimientos_usados:
-                continue
-            establecimientos_usados.add(estab.id_establecimiento)
             rec = RecomendacionGenerada(
                 id_usuario=usuario.id_usuario,
                 id_establecimiento=int(estab.id_establecimiento), # type: ignore
