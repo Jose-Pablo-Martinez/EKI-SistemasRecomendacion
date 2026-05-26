@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 MIN_RESULTADOS_POR_CATEGORIA = 10
 MAX_SECCIONES_FEED = 5
-MAX_ITEMS_POR_SECCION = 12
+MAX_ITEMS_POR_SECCION = 15
 
 _SECCIONES_ALGORITMO_ORDEN = [
     "top_picks_hibrido",
@@ -241,20 +241,16 @@ def obtener_recomendaciones_secciones(db: Session, id_usuario: int) -> List[Dict
     secciones: List[Dict[str, Any]] = []
 
     if solo_cold_start:
-        # Para cold_start: reagrupar por categoría de establecimiento (más útil para el usuario nuevo)
-        secciones.extend(
-            _secciones_por_categoria(recs_por_categoria, MAX_SECCIONES_FEED, MAX_ITEMS_POR_SECCION)
-        )
-        # Si no logró armar secciones por categoría, caer al bloque genérico cold_start
-        if not secciones:
-            items = recs_por_categoria.get("cold_start") or []
-            if items:
-                secciones.append({
-                    "key": "cold_start",
-                    "title": _SECCIONES_ALGORITMO_TITULO.get("cold_start", "Populares de la semana"),
-                    "kind": "algoritmo",
-                    "items": items[:MAX_ITEMS_POR_SECCION],
-                })
+        # Para usuarios 100% nuevos, no intentamos inventar carruseles por categoría.
+        # Simplemente mostramos las recomendaciones bajo un título amigable.
+        items = recs_por_categoria.get("cold_start") or []
+        if items:
+            secciones.append({
+                "key": "cold_start",
+                "title": "Selecciones para empezar",
+                "kind": "algoritmo",
+                "items": items[:MAX_ITEMS_POR_SECCION],
+            })
     else:
         # Para usuarios con ML: solo secciones de algoritmo, sin duplicar por categoría
         for key in _SECCIONES_ALGORITMO_ORDEN:
