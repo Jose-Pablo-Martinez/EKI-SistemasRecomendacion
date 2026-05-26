@@ -132,19 +132,17 @@ def seed_usuarios(db: Session):
                 db.add(uv)
                 db.commit()
 
-    # 4. Usuarios Propietarios (10)
-    propietarios_data = [
-        {"n": "Roberto", "a": "Díaz", "v": True},
-        {"n": "Carmen", "a": "Uc", "v": True},
-        {"n": "Miguel", "a": "Tzuc", "v": True},
-        {"n": "Patricia", "a": "Ceh", "v": False},
-        {"n": "Jorge", "a": "Medina", "v": True},
-        {"n": "Sofía", "a": "Canul", "v": True},
-        {"n": "Andrés", "a": "Balam", "v": True},
-        {"n": "Lucía", "a": "Mena", "v": True},
-        {"n": "Fernando", "a": "Dzul", "v": False},
-        {"n": "Verónica", "a": "Poot", "v": True}
-    ]
+    # 4. Usuarios Propietarios (30)
+    propietarios_data = []
+    nombres_prop = ["Roberto", "Carmen", "Miguel", "Patricia", "Jorge", "Sofía", "Andrés", "Lucía", "Fernando", "Verónica", "Alejandro", "Daniela", "Hugo", "Valeria", "Ricardo", "Camila", "Manuel", "Gabriela", "Javier", "Diana"]
+    apellidos_prop = ["Díaz", "Uc", "Tzuc", "Ceh", "Medina", "Canul", "Balam", "Mena", "Dzul", "Poot", "Pech", "Chan", "Cen", "May", "Ayala", "Canto", "Brito", "Cortes"]
+    
+    for i in range(30):
+        propietarios_data.append({
+            "n": random.choice(nombres_prop),
+            "a": random.choice(apellidos_prop),
+            "v": random.random() > 0.2  # 80% verificados
+        })
     
     for i, p in enumerate(propietarios_data):
         email = f"propietario_{i}@eki.test"

@@ -73,38 +73,35 @@ def seed_preferencia_usuario(db: Session):
 def seed_vinculos_propietario(db: Session):
     print("Sembrando vínculos de propietarios...")
     admin = db.query(Administrador).first()
-    vinculos = [
-        ("Roberto", "La Lupita"),
-        ("Carmen", "Puesto Xtabentún"),
-        ("Miguel", "Cocina Económica Marcelina"),
-        ("Miguel", "Jugos La Raza"),
-        ("Patricia", "El Carrito de los Tamales"),
-        ("Jorge", "La Chaya Maya"),
-        ("Sofía", "Taquería El Trompo"),
-        ("Sofía", "Antojitos Doña Rosa"),
-        ("Andrés", "Mariscos El Puerto"),
-        ("Lucía", "Panadería San Marcos"),
-        ("Fernando", "Lonchería Central"),
-        ("Verónica", "Café Mérida")
-    ]
+    
+    # Extraemos todos los propietarios y una lista de establecimientos aprobados
+    propietarios = db.query(UsuarioPropietario).all()
+    estabs = db.query(Establecimiento).filter_by(estado="aprobado").all()
+    
+    if not propietarios or not estabs:
+        return
+        
+    # Copiamos la lista para no asignar el mismo establecimiento a varios propietarios
+    estabs_disponibles = list(estabs)
+    random.shuffle(estabs_disponibles)
     
     data_vinculos = []
-    for n_prop, n_estab in vinculos:
-        # Buscar usuario por primer nombre
-        u = db.query(Usuario).filter(Usuario.nombre == n_prop, Usuario.tipo_usuario == "propietario").first()
-        e = db.query(Establecimiento).filter_by(nombre=n_estab).first()
-        
-        if u and e:
-            # Recuperar prop
-            prop = db.query(UsuarioPropietario).filter_by(id_usuario=u.id_usuario).first()
-            if prop:
-                data_vinculos.append({
-                    "id_propietario": prop.id_usuario,
-                    "id_establecimiento": e.id_establecimiento,
-                    "estado": "aprobado" if prop.verificado else "pendiente",  # type: ignore
-                    "fecha_aprobacion": datetime.now(timezone.utc) if prop.verificado else None,  # type: ignore
-                    "id_admin_aprobacion": admin.id_usuario if (prop.verificado and admin) else None  # type: ignore
-                })
+    
+    for prop in propietarios:
+        # Algunos propietarios tienen 1 local, otros 2
+        num_locales = random.choice([1, 1, 2])
+        for _ in range(num_locales):
+            if not estabs_disponibles:
+                break
+            e = estabs_disponibles.pop()
+            
+            data_vinculos.append({
+                "id_propietario": prop.id_usuario,
+                "id_establecimiento": e.id_establecimiento,
+                "estado": "aprobado" if prop.verificado else "pendiente",  # type: ignore
+                "fecha_aprobacion": datetime.now(timezone.utc) if prop.verificado else None,  # type: ignore
+                "id_admin_aprobacion": admin.id_usuario if (prop.verificado and admin) else None  # type: ignore
+            })
                 
     if data_vinculos:
         db.execute(insert(PropietarioEstablecimiento).prefix_with("IGNORE").values(data_vinculos))
