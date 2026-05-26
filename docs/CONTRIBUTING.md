@@ -35,7 +35,7 @@ ekiSystem/
 │       ├── check_connection.py ← Diagnóstico de conexión a Aiven
 │       ├── migrate.py          ← Aplica migraciones Alembic
 │       ├── init_db.py          ← Arranque rápido (solo fase inicial)
-│       └── seed.py             ← Población de datos iniciales (se crea cuando tablas sean definitivas)
+│       └── seed_orquestador.py             ← Población de datos iniciales (se crea cuando tablas sean definitivas)
 │
 ├── backend/
 │   ├── migrations/             ← Historial de cambios de BD (Alembic)
@@ -415,4 +415,4 @@ git push origin main
 ---
 
 *Mantenido por el equipo EKI — Facultad de Matemáticas, UADY*  
-*Actualizar este archivo cuando cambie el stack, la estructura o las convenciones del proyecto.*
+*Actualizar este archivo cuando cambie el stack, la estructura o las convenciones del proyecto.*

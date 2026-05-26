@@ -17,7 +17,7 @@ window.Card = {
    * @returns {string} String HTML de la tarjeta completa.
    */
   // Tarjeta grande para el Feed
-  renderFeed: (rec, delay = 0, onFavClick) => {
+  renderFeed: (rec, delay = 0, onFavClick, isFavorite = false) => {
     // Soporte para estructura plana (mock) y anidada (API)
     const estab = rec.establecimiento || rec;
     const nombre = estab.nombre || rec.nombre_establecimiento || 'Desconocido';
@@ -26,18 +26,34 @@ window.Card = {
     const cal_prom = parseFloat(estab.calificacion_promedio) || 0;
     const resenas = estab.total_resenas || 0;
 
-    const score  = Math.round((rec.score_total||0) * 100);
+    const score  = Math.min(100, Math.max(0, Math.round((rec.score_total||0) * 100)));
     const distVal = parseFloat(rec.distancia_km);
     const dist   = !isNaN(distVal) ? `${distVal.toFixed(1)} km` : null;
     const img    = `https://picsum.photos/seed/${rec.id_establecimiento}/600/360`;
-    const c      = Math.round((rec.score_contenido_usado||0) * 100);
-    const col    = Math.round((rec.score_colaborativo_usado||0) * 100);
+    const c      = Math.min(100, Math.max(0, Math.round((rec.score_contenido_usado||0) * 100)));
+    const col    = Math.min(100, Math.max(0, Math.round((rec.score_colaborativo_usado||0) * 100)));
     const calStr = cal_prom.toFixed(1);
+    const hasBreakdown = (c > 0 || col > 0);
     
+    const isColdStart = rec.categoria_recomendacion === 'cold_start' || rec.razon_principal === 'cold_start';
+    
+    const isFav = !!isFavorite;
+
     // onClick para el fav
     const favClick = onFavClick 
       ? `event.stopPropagation(); ${onFavClick}(${rec.id_establecimiento}, this)` 
       : `event.stopPropagation(); window.Favorite.toggle(${rec.id_establecimiento}, this)`;
+
+    const favClass = isFav
+      ? 'border-accent bg-accent-faint text-accent'
+      : 'border-border-default text-text-secondary';
+    const favPressed = isFav ? 'true' : 'false';
+    const favLabel = isFav
+      ? `Quitar ${nombre} de favoritos`
+      : `Guardar ${nombre} en favoritos`;
+    const favIconStyle = isFav
+      ? 'font-size:20px;font-variation-settings:"FILL" 1'
+      : 'font-size:20px;font-variation-settings:"FILL" 0';
 
     // onClick para la tarjeta completa
     const cardClick = `onclick="window.location.hash='#/establecimiento/${rec.id_establecimiento}'"`;
@@ -61,11 +77,13 @@ window.Card = {
                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                loading="lazy"
                onerror="this.src='https://picsum.photos/600/360?grayscale'" />
-          <div class="absolute top-3 right-3 bg-primary/70 backdrop-blur-sm text-white
-                      text-label-md px-2 py-0.5 rounded font-bold tabular-nums"
+          ${(isColdStart || score === 0) ? '' : `
+          <div class="absolute top-3 right-3 bg-secondary/90 backdrop-blur-sm text-white
+                      text-label-md px-2 py-0.5 rounded font-bold tabular-nums shadow-sm"
                aria-label="${score}% de compatibilidad">
             ${score}% match
           </div>
+          `}
           ${es_informal ? `
             <div class="absolute top-3 left-3 bg-accent text-white text-label-sm px-2 py-0.5 rounded flex items-center gap-1">
               <span class="material-symbols-outlined" aria-hidden="true" style="font-size:12px;line-height:1;">storefront</span>
@@ -81,11 +99,11 @@ window.Card = {
             </h3>
             <button
               onclick="${favClick}"
-              class="text-text-tertiary hover:text-accent transition-colors flex-shrink-0 mt-0.5
-                     w-10 h-10 flex items-center justify-center rounded"
-              aria-label="Guardar ${nombre} en favoritos"
-              aria-pressed="false">
-              <span class="material-symbols-outlined" aria-hidden="true" style="font-size:20px;">favorite</span>
+              class="hover:text-accent transition-colors flex-shrink-0 mt-0.5
+                     w-10 h-10 flex items-center justify-center rounded border ${favClass}"
+              aria-label="${favLabel}"
+              aria-pressed="${favPressed}">
+              <span class="material-symbols-outlined" aria-hidden="true" style="${favIconStyle}">favorite</span>
             </button>
           </div>
 
@@ -112,16 +130,30 @@ window.Card = {
                     aria-hidden="true"
                     style="font-size:15px;margin-top:2px;">shield</span>
               <div class="min-w-0">
-                <p class="text-body-sm font-semibold text-secondary leading-snug">${rec.razon_principal === 'cold_start' ? 'Sugerencia inicial' : (rec.razon_principal || 'Sugerencia Inicial')}</p>
+                <p class="text-body-sm font-semibold text-secondary leading-snug">
+                  ${({
+                    'preferencia_categoria': 'Perfecto para tus gustos',
+                    'historial_similar': 'Visitado frecuentemente',
+                    'popular_zona': 'Populares de la zona',
+                    'colaborativo': 'Muy popular en tu comunidad',
+                    'cluster_similar': 'Recomendado para tu perfil',
+                    'cercano': 'A pasos de ti',
+                    'cold_start': 'Sugerencia inicial',
+                    'descubrimiento': 'Algo nuevo para ti',
+                    'tendencia_informal': 'Joya informal'
+                  })[rec.razon_principal] || rec.razon_principal || 'Sugerencia Inicial'}
+                </p>
                 <p class="text-label-md text-text-tertiary mt-0.5 leading-relaxed">${rec.detalle_razon || 'Seleccionado para empezar'}</p>
+                ${(isColdStart || !hasBreakdown) ? '' : `
                 <div class="flex gap-4 mt-2">
                   <span class="text-label-md text-text-tertiary">
-                    <strong class="text-secondary font-semibold">${c}%</strong> contenido
+                    <strong class="text-secondary font-semibold">${c}%</strong> Tu gusto
                   </span>
                   <span class="text-label-md text-text-tertiary">
-                    <strong class="text-secondary font-semibold">${col}%</strong> colaborativo
+                    <strong class="text-secondary font-semibold">${col}%</strong> Tu tribu
                   </span>
                 </div>
+                `}
               </div>
             </div>
           </div>

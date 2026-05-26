@@ -66,7 +66,7 @@ const api = {
   }),
   
   // Recomendaciones
-  getRecomendaciones: () => apiRequest('/recomendaciones'),
+  getRecomendaciones: () => apiRequest('/recomendaciones/sections'),
   registrarClick: (id) => apiRequest(`/recomendaciones/${id}/click`, { method: 'POST' }),
   
   // Establecimientos

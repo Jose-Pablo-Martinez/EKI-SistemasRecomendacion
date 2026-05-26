@@ -59,6 +59,14 @@ def autenticar_usuario(db: Session, email: str, password: str) -> Usuario | None
         return None
     return usuario
 
+def marcar_actividad_usuario(db: Session, id_usuario: int):
+    """
+    Actualiza la fecha_ultima_actividad del usuario visitante a la fecha y hora actual.
+    """
+    db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).update(
+        {"fecha_ultima_actividad": datetime.now(timezone.utc)}
+    )
+
 def registrar_dispositivo_sesion(db: Session, id_usuario: int, user_agent_string: str) -> str:
     """
     Registra el dispositivo actual y genera una nueva sesión.
@@ -95,6 +103,10 @@ def registrar_dispositivo_sesion(db: Session, id_usuario: int, user_agent_string
         id_dispositivo=nuevo_disp.id_dispositivo
     )
     db.add(nueva_sesion)
+    
+    # Marcar actividad
+    marcar_actividad_usuario(db, id_usuario)
+    
     db.commit()
     
     return id_sesion
@@ -161,11 +173,22 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
     """
     visitante = db.query(UsuarioVisitante).filter(UsuarioVisitante.id_usuario == id_usuario).first()
     if visitante:
-        # Por simplicidad, guardaremos los arrays tal cual como seed del vector K-Means
-        visitante.vector_preferencias = {  # type: ignore[assignment]
-            "categorias_preferidas": categorias,
-            "precios_preferidos": precios
-        }
+        # Verificar si las preferencias realmente cambiaron
+        prefs_actuales = visitante.vector_preferencias
+        cambiaron_preferencias = True
+        
+        if isinstance(prefs_actuales, dict):
+            cats_actuales = prefs_actuales.get("categorias_preferidas", [])
+            precios_actuales = prefs_actuales.get("precios_preferidos", [])
+            if set(cats_actuales) == set(categorias) and set(precios_actuales) == set(precios):
+                cambiaron_preferencias = False
+                
+        if not cambiaron_preferencias and visitante.perfil_completado:
+            # Si no hubo cambios, no es necesario recalcular el cold_start
+            return
+            
+        # Guardamos el estado de perfil completado
+        # El vector de preferencias será guardado en el bloque try de abajo
         visitante.perfil_completado = True  # type: ignore[assignment]
         
         # Asignación provisional de ID al cluster de usuario
@@ -183,6 +206,13 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
                 for i in range(min(len(precios), max(0, dim - len(categorias)))):
                     vector_simulado[len(categorias) + i] = 0.5
                     
+                # Guardamos las preferencias junto al vector numérico para K-Means
+                visitante.vector_preferencias = {  # type: ignore[assignment]
+                    "categorias_preferidas": categorias,
+                    "precios_preferidos": precios,
+                    "numerico": vector_simulado
+                }
+                
                 id_cluster_prov = assign_cluster_provisional(vector_simulado, clusters)
                 if id_cluster_prov is not None:
                     visitante.id_cluster = id_cluster_prov # type: ignore
@@ -197,7 +227,14 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
             from backend.engine.cold_start import get_cold_start_recommendations
             from backend.models.interacciones import RecomendacionGenerada
             
-            estabs_cold_start = get_cold_start_recommendations(db, visitante, limit=10)
+            # Limpiar recomendaciones cold_start previas para evitar duplicados si se re-evalúa el perfil
+            db.query(RecomendacionGenerada).filter(
+                RecomendacionGenerada.id_usuario == id_usuario,
+                RecomendacionGenerada.categoria_recomendacion == "cold_start"
+            ).delete()
+            db.commit()
+            
+            estabs_cold_start = get_cold_start_recommendations(db, visitante, limit=30)
             for i, estab in enumerate(estabs_cold_start):
                 nueva_rec = RecomendacionGenerada(
                     id_usuario=id_usuario,

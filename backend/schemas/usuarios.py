@@ -58,10 +58,19 @@ class UsuarioResponse(BaseModel):
     apellido: str
     foto_perfil: Optional[str] = None
     tipo_usuario: str
+    total_resenas: int = 0
     activo: bool
     fecha_registro: datetime
     perfil_completado: bool = False
     visitante: Optional["UsuarioVisitanteResponse"] = None
+
+
+class UsuarioPerfilResponse(UsuarioResponse):
+    """Perfil extendido con totales de actividad del usuario."""
+    puntos_totales: int = 0
+    total_resenas: int = 0
+    total_favoritos: int = 0
+    total_contribuciones: int = 0
 
 
 class UsuarioVisitanteResponse(BaseModel):

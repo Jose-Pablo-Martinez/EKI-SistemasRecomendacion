@@ -1,8 +1,8 @@
 // frontend/js/app.js
 
 const routes = {
-  '':            () => window.controllers.home(),
-  '#/':          () => window.controllers.home(),
+  '':            () => { if (appState.isAuthenticated) window.location.hash = '#/feed'; else window.controllers.home() },
+  '#/':          () => { if (appState.isAuthenticated) window.location.hash = '#/feed'; else window.controllers.home() },
   '#/login':     () => window.controllers.login(),
   '#/registro':  () => window.controllers.register(),
   '#/onboarding':() => { if (requireAuth()) window.controllers.onboarding() },
@@ -72,6 +72,11 @@ async function handleRoute() {
 function updateHeader() {
   const navMenu = document.getElementById('nav-menu');
   const userActions = document.getElementById('user-actions');
+  const logoLink = document.getElementById('logo-link');
+
+  if (logoLink) {
+    logoLink.setAttribute('href', appState.isAuthenticated ? '#/feed' : '#/');
+  }
   
   if (appState.isAuthenticated) {
     navMenu.innerHTML = `

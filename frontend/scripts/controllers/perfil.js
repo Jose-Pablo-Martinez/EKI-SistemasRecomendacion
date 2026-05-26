@@ -5,11 +5,11 @@
 
 // Configuración de rangos 
 const _RANGOS = [
-  { nombre:'Explorador',     min:0,    max:99,         icon:'explore',             color:'var(--primary-ghost)' },
-  { nombre:'Catador',        min:100,  max:299,        icon:'restaurant',          color:'var(--secondary)' },
-  { nombre:'Conocedor',      min:300,  max:699,        icon:'star',                color:'var(--warning)' },
-  { nombre:'Gourmet',        min:700,  max:1499,       icon:'workspace_premium',   color:'var(--success)' },
-  { nombre:'Embajador EKI',  min:1500, max:Infinity,   icon:'verified',            color:'var(--accent)' },
+  { nombre:'Explorador',     min:0,    max:99,         icon:'explore',             color:'rgb(var(--primary-ghost))' },
+  { nombre:'Catador',        min:100,  max:299,        icon:'restaurant',          color:'rgb(var(--secondary))' },
+  { nombre:'Conocedor',      min:300,  max:699,        icon:'star',                color:'rgb(var(--warning))' },
+  { nombre:'Gourmet',        min:700,  max:1499,       icon:'workspace_premium',   color:'rgb(var(--success))' },
+  { nombre:'Embajador EKI',  min:1500, max:Infinity,   icon:'verified',            color:'rgb(var(--accent))' },
 ];
 
 function _getRango(pts) {
@@ -35,7 +35,7 @@ function _fechaCorta(str) {
 }
 function _historialIcon(motivo) {
   const m = (motivo||'').toLowerCase();
-  if (m.includes('reseña'))           return 'rate_review';
+  if (m.includes('reseña') || m.includes('resena')) return 'rate_review';
   if (m.includes('lugar') || m.includes('establecimiento')) return 'storefront';
   if (m.includes('foto'))             return 'photo_camera';
   if (m.includes('edici'))            return 'edit';

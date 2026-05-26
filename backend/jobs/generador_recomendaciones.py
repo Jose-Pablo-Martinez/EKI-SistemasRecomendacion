@@ -99,16 +99,22 @@ def generar_para_usuario(
     """
     nuevas_recomendaciones = []
     ahora = datetime.now(timezone.utc)
-    
-    def agregar_recomendaciones(estabs: Optional[List[Any]], categoria: str, razon: str, estrategia: str) -> None:
+
+    def agregar_recomendaciones(estabs: Optional[List[Any]], categoria: str, razon: str, estrategia: str, detalle: str = "") -> None:
         """Función helper para evitar duplicación de código al instanciar el modelo."""
         if not estabs:
             return
         for pos, item in enumerate(estabs[:MAX_RECOMENDACIONES_POR_CATEGORIA]):
             # Las funciones de colaborativo y contenido devuelven tuplas (Establecimiento, score)
+            sc_cont = 0.0
+            sc_col = 0.0
             if isinstance(item, tuple):
                 estab = item[0]
                 score_usado = item[1]
+                if len(item) > 2:
+                    sc_cont = item[2]
+                if len(item) > 3:
+                    sc_col = item[3]
             else:
                 estab = item
                 score_usado = 0.0
@@ -120,6 +126,7 @@ def generar_para_usuario(
                 posicion=pos + 1,
                 radio_usado_km=int(usuario.radio_busqueda_km), # type: ignore
                 razon_principal=razon,
+                detalle_razon=detalle,
                 estrategia_usada=estrategia,
                 fecha_generacion=ahora
             )
@@ -128,6 +135,10 @@ def generar_para_usuario(
                 rec.score_contenido_usado = score_usado # type: ignore
             elif estrategia == "cluster":
                 rec.score_colaborativo_usado = score_usado # type: ignore
+            elif estrategia == "hibrido":
+                rec.score_total = score_usado # type: ignore
+                rec.score_contenido_usado = sc_cont # type: ignore
+                rec.score_colaborativo_usado = sc_col # type: ignore
                 
             nuevas_recomendaciones.append(rec)
 
@@ -136,65 +147,66 @@ def generar_para_usuario(
     if not usuario.perfil_completado or usuario.puntos_experiencia < 50:
         if get_cold_start_recommendations:
             estabs_cold = get_cold_start_recommendations(db, usuario, limit=MAX_RECOMENDACIONES_POR_CATEGORIA)
-            agregar_recomendaciones(estabs_cold, "cold_start", "cold_start", "cold_start")
+            agregar_recomendaciones(estabs_cold, "cold_start", "cold_start", "cold_start", "Seleccionado para empezar")
     else:
-        # 2. Estrategias Híbridas (Usuarios experimentados)
+        # 2. Estrategias para Usuarios experimentados
         estabs_content = []
         estabs_collab = []
         
-        # Filtrado por Contenido
+        # Pre-calculamos los candidatos de cada algoritmo (sin registrar aún en establecimientos_usados)
         if get_content_based_recommendations and establecimientos_base:
             estabs_content = get_content_based_recommendations(db, usuario, establecimientos_base, limit=MAX_RECOMENDACIONES_POR_CATEGORIA)
-            agregar_recomendaciones(estabs_content, "preferencia_contenido", "preferencia_categoria", "contenido")
             
-        # Filtrado Colaborativo (Basado en Cluster)
         if get_collaborative_recommendations and establecimientos_base and usuario.id_cluster is not None:
             estabs_collab = get_collaborative_recommendations(db, int(usuario.id_usuario), int(usuario.id_cluster), establecimientos_base, limit=MAX_RECOMENDACIONES_POR_CATEGORIA) # type: ignore
-            agregar_recomendaciones(estabs_collab, "colaborativo_cluster", "colaborativo", "cluster")
 
-        # Filtrado Híbrido / Mejores Selecciones (Top Picks)
-        if get_content_based_recommendations and get_collaborative_recommendations and establecimientos_base and usuario.id_cluster is not None:
+        # Filtrado Híbrido / Mejores Selecciones (Top Picks) — PRIMERO para reclamar los mejores picks
+        if estabs_content and estabs_collab:
             from backend.engine.ranking import compute_score_final
             candidatos_dict = {}
             
             # Recolectamos candidatos y sus scores individuales
-            if estabs_content:
-                for estab, score in estabs_content:
-                    candidatos_dict[estab.id_establecimiento] = {"estab": estab, "sc_cont": score, "sc_col": 0.0}
-            if estabs_collab:
-                for estab, score in estabs_collab:
-                    if estab.id_establecimiento not in candidatos_dict:
-                        candidatos_dict[estab.id_establecimiento] = {"estab": estab, "sc_cont": 0.0, "sc_col": score}
-                    else:
-                        candidatos_dict[estab.id_establecimiento]["sc_col"] = score
+            for estab, score in estabs_content:
+                candidatos_dict[estab.id_establecimiento] = {"estab": estab, "sc_cont": score, "sc_col": 0.0}
+            for estab, score in estabs_collab:
+                if estab.id_establecimiento not in candidatos_dict:
+                    candidatos_dict[estab.id_establecimiento] = {"estab": estab, "sc_cont": 0.0, "sc_col": score}
+                else:
+                    candidatos_dict[estab.id_establecimiento]["sc_col"] = score
                         
             top_picks = []
             for d in candidatos_dict.values():
                 estab = d["estab"]
-                # Extraemos score_boost de la métrica (si existe)
                 score_boost = 0.0
                 if hasattr(estab, 'metrica') and estab.metrica and estab.metrica.score_boost_combinado:
                     score_boost = float(estab.metrica.score_boost_combinado)
-                    
                 score_final = compute_score_final(d["sc_cont"], d["sc_col"], score_boost)
-                top_picks.append((estab, score_final))
+                top_picks.append((estab, score_final, d["sc_cont"], d["sc_col"]))
                 
-            # Ordenar por el super-score de mayor a menor
             top_picks.sort(key=lambda x: x[1], reverse=True)
-            agregar_recomendaciones(top_picks, "top_picks_hibrido", "mejores_selecciones", "hibrido")
+            # El híbrido se registra PRIMERO: sus establecimientos quedan en establecimientos_usados
+            agregar_recomendaciones(top_picks, "preferencia_contenido", "preferencia_categoria", "hibrido", "La mejor combinación entre tus gustos y los de tu comunidad")
+
+        # Filtrado por Contenido — recibe los establecimientos que el híbrido no reclamó
+        if estabs_content:
+            agregar_recomendaciones(estabs_content, "preferencia_contenido", "preferencia_categoria", "contenido", "Alta similitud con tus categorías favoritas")
+            
+        # Filtrado Colaborativo — recibe los restantes
+        if estabs_collab:
+            agregar_recomendaciones(estabs_collab, "colaborativo_cluster", "colaborativo", "cluster", "Personas con gustos similares lo visitan frecuentemente")
 
     # 3. Estrategia Global / Fallback (Aplica para todos)
     # Recomendaciones populares por ranking base
     if establecimientos_base:
-        agregar_recomendaciones(establecimientos_base, "popularidad_zona", "popular_zona", "popularidad")
+        agregar_recomendaciones(establecimientos_base, "popularidad_zona", "popular_zona", "popularidad", "Lugares con altas calificaciones cerca de ti")
         
     # Tendencia Informal
     if estabs_informal:
-        agregar_recomendaciones(estabs_informal, "tendencia_informal", "popular_informal", "popularidad")
+        agregar_recomendaciones(estabs_informal, "tendencia_informal", "tendencia_informal", "popularidad", "Puestos populares para apoyar el comercio local")
         
     # Descubrimiento
     if estabs_descubrimiento:
-        agregar_recomendaciones(estabs_descubrimiento, "descubrimiento", "nuevo_lugar", "novedad")
+        agregar_recomendaciones(estabs_descubrimiento, "descubrimiento", "descubrimiento", "serendipia", "Aventúrate a probar opciones diferentes")
             
     return nuevas_recomendaciones
 
@@ -228,7 +240,7 @@ def procesar_generacion(db: Session) -> None:
         Establecimiento.es_activo == True,
         Establecimiento.estado == "aprobado",
         Establecimiento.es_informal == True
-    ).order_by(MetricaEstablecimiento.popularidad_7d.desc().nulls_last()).limit(MAX_RECOMENDACIONES_POR_CATEGORIA).all()
+    ).order_by(MetricaEstablecimiento.popularidad_7d.desc()).limit(MAX_RECOMENDACIONES_POR_CATEGORIA).all()
     
     estabs_descubrimiento = db.query(Establecimiento).filter(
         Establecimiento.es_activo == True,
@@ -244,6 +256,12 @@ def procesar_generacion(db: Session) -> None:
         )
         
         if recomendaciones_usuario:
+            # Antes de insertar, borrar recomendaciones vigentes del usuario para esta corrida
+            # (solo las no-clickeadas, para no perder el feedback del usuario)
+            db.query(RecomendacionGenerada).filter(
+                RecomendacionGenerada.id_usuario == usuario.id_usuario,
+                RecomendacionGenerada.fue_clickeada == False
+            ).delete(synchronize_session=False)
             # bulk_save_objects es altamente optimizado para insertar miles de filas sin hidratar IDs
             db.bulk_save_objects(recomendaciones_usuario)
             total_generadas += len(recomendaciones_usuario)

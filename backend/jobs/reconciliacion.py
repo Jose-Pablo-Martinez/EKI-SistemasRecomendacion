@@ -1,6 +1,7 @@
 """
 Script de reconciliación para recalcular los datos desnormalizados del sistema.
-Usar solo en caso de emergencia si se detecta desincronización de contadores.
+Usar solo en caso de emergencia si se detecta desincronización de contadores de 
+las tablas de las bases de datos.
 """
 
 import logging
