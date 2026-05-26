@@ -16,14 +16,23 @@ from backend.models import (
 def seed_historial_y_sesiones(db: Session):
     print("Sembrando historial de visitas y actualizando sesiones...")
     
-    # Obtener todas las interacciones de tipo 'vista_detalle'
-    vistas = db.query(InteraccionUsuario).filter_by(tipo_interaccion="vista_detalle").all()
+    # Obtener interacciones que lógicamente implican haber visitado el perfil del establecimiento
+    vistas = db.query(InteraccionUsuario).filter(
+        InteraccionUsuario.tipo_interaccion.in_(["vista_detalle", "resena_dejada", "compartido"])
+    ).all()
     
     # Revisar si ya existen historiales para evitar duplicidad de seed
     count_historial = db.query(HistorialVisita).count()
     if count_historial == 0 and vistas:
         historiales_a_insertar = []
+        # Evitar insertar la misma visita doble si en la misma sesión dio like y dejó reseña
+        vistos = set()
         for v in vistas:
+            key = (v.id_usuario, v.id_establecimiento, v.id_sesion)
+            if key in vistos:
+                continue
+            vistos.add(key)
+            
             historiales_a_insertar.append({
                 "id_usuario": v.id_usuario,
                 "id_establecimiento": v.id_establecimiento,

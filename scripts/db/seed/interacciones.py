@@ -98,17 +98,21 @@ def seed_interacciones_normales_y_resenas(db: Session):
     favoritos = []
     reportes = []
     
-    for u in usuarios:
-        # 5 a 10 interacciones por usuario para mayor volumen
-        num_int = random.randint(5, 10)
-        uv = db.query(UsuarioVisitante).filter_by(id_usuario=u.id_usuario).first()
-        # Sesión del usuario
-        sesion = db.query(SesionUsuario).filter_by(id_usuario=u.id_usuario).first()
-        sesion_id = sesion.id_sesion if sesion else None
+    # Garantizar que TODOS los establecimientos tengan reseñas e interacciones
+    for e in estabs_aprobados:
+        # Cada establecimiento recibe entre 2 y 5 reseñas/interacciones
+        num_int = random.randint(2, 5)
+        usuarios_muestra = random.sample(usuarios, num_int)
         
-        for _ in range(num_int):
-            e = random.choice(estabs_aprobados)
-            t = random.choice(list(PESOS_INTERACCION.keys()))
+        for u in usuarios_muestra:
+            # Forzamos que al menos el 70% de las interacciones sean reseñas para garantizar estrellas
+            if random.random() < 0.7:
+                t = "resena_dejada"
+            else:
+                t = random.choice(list(PESOS_INTERACCION.keys()))
+                
+            sesion = db.query(SesionUsuario).filter_by(id_usuario=u.id_usuario).first()
+            sesion_id = sesion.id_sesion if sesion else None
             
             # 40% de probabilidad de ser reciente (últimos 7 días) para nutrir métricas de tendencias
             if random.random() < 0.40:
@@ -128,9 +132,7 @@ def seed_interacciones_normales_y_resenas(db: Session):
             
             # Si es reseña_dejada, preparar reseña
             if t == "resena_dejada":
-                # Ahora todas las reseñas se aprueban automáticamente.
                 estado = "aprobado"
-                # 30% de las reseñas se quedan sin procesar para testing del NLP
                 procesado = (random.random() > 0.3)
                 
                 resenas.append({
@@ -154,15 +156,48 @@ def seed_interacciones_normales_y_resenas(db: Session):
                     "fecha_guardado": fecha
                 })
                 
-        # Reportes (10-15 en total aprox, probabilidad baja)
-        if random.random() < 0.15:
+        # Reportes (10% de probabilidad por establecimiento)
+        if random.random() < 0.10:
             reportes.append({
-                "id_usuario": u.id_usuario,
-                "id_establecimiento": random.choice(estabs_aprobados).id_establecimiento,
+                "id_usuario": random.choice(usuarios).id_usuario,
+                "id_establecimiento": e.id_establecimiento,
                 "tipo_reporte": "spam",
                 "descripcion": "Reporte de prueba",
                 "estado": "pendiente"
             })
+            
+    # Además de garantizar reseñas por lugar, añadimos volumen extra por usuario para engordar el historial
+    for u in usuarios:
+        # Entre 5 y 15 interacciones extra por usuario
+        num_extra = random.randint(5, 15)
+        sesion = db.query(SesionUsuario).filter_by(id_usuario=u.id_usuario).first()
+        sesion_id = sesion.id_sesion if sesion else None
+        
+        for _ in range(num_extra):
+            e = random.choice(estabs_aprobados)
+            # Evitamos reseña dejada aquí para no duplicar/saturar estrellas
+            tipos_extra = [t for t in PESOS_INTERACCION.keys() if t != "resena_dejada"]
+            t = random.choice(tipos_extra)
+            
+            dias_atras = random.randint(0, 45)
+            fecha = datetime.now(timezone.utc) - timedelta(days=dias_atras)
+            
+            interacciones.append({
+                "id_usuario": u.id_usuario,
+                "id_establecimiento": e.id_establecimiento,
+                "tipo_interaccion": t,
+                "peso_interaccion": PESOS_INTERACCION[t],
+                "id_sesion": sesion_id,
+                "fecha": fecha
+            })
+            
+            if t == "guardado_favorito":
+                favoritos.append({
+                    "id_usuario": u.id_usuario,
+                    "id_establecimiento": e.id_establecimiento,
+                    "fecha_guardado": fecha
+                })
+
             
     if interacciones:
         # No podemos usar INSERT IGNORE tan fácil porque la PK es autoincrement y
