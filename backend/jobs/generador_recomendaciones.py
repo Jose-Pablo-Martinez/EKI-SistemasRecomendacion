@@ -161,7 +161,8 @@ def generar_para_usuario(
             estabs_collab = get_collaborative_recommendations(db, int(usuario.id_usuario), int(usuario.id_cluster), establecimientos_base, limit=MAX_RECOMENDACIONES_POR_CATEGORIA) # type: ignore
 
         # Filtrado Híbrido / Mejores Selecciones (Top Picks) — PRIMERO para reclamar los mejores picks
-        if estabs_content and estabs_collab:
+        # Fix que permite que si uno de los dos filtrados es 0% se siga mostrando el filtrado híbrido.
+        if estabs_content or estabs_collab:
             from backend.engine.ranking import compute_score_final
             candidatos_dict = {}
             
