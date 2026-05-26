@@ -253,6 +253,45 @@ window.controllers.feed = async () => {
     contentEl.innerHTML = _shellSkel();
   }
 
+  // Cargar radio_busqueda_km del perfil actual
+  let perfil = null;
+  try {
+    perfil = await api.getPerfil();
+  } catch (_) {}
+  
+  const sliderEl = document.getElementById('feed-radio');
+  const sliderVal = document.getElementById('feed-radio-val');
+  if (sliderEl && sliderVal && perfil && perfil.visitante && perfil.visitante.radio_busqueda_km) {
+    sliderEl.value = perfil.visitante.radio_busqueda_km;
+    sliderVal.innerText = perfil.visitante.radio_busqueda_km + ' km';
+  }
+
+  // Escuchar cambios en el slider
+  if (sliderEl) {
+    sliderEl.onchange = async () => {
+      const newRadius = parseInt(sliderEl.value, 10);
+      try {
+        await api.actualizarPerfil({ radio_busqueda_km: newRadius });
+        // Mostrar loading overlay
+        const overlay = document.getElementById('feed-loading-overlay');
+        if (overlay) {
+          overlay.classList.remove('hidden');
+        }
+        
+        // Recargar recomendaciones
+        _cancelarRetry();
+        await _cargarConRetry(1);
+        
+        // Ocultar loading overlay
+        if (overlay) {
+          overlay.classList.add('hidden');
+        }
+      } catch (err) {
+        showToast('Error al actualizar el radio', 'error');
+      }
+    };
+  }
+
   let favoritos = [];
   try {
     favoritos = await api.getFavoritos();
