@@ -1,11 +1,44 @@
 <div class="w-full max-w-8xl mx-auto px-4 md:px-8 2xl:px-16 py-10">
     <div class="mb-10 fade-in">
-    <h1 class="font-heading text-display-md text-primary mb-1" id="feed-title">
-        ¡Bienvenido de vuelta!
-    </h1>
-    <p class="text-body-lg text-text-secondary">¿Qué se te antoja hoy?</p>
+        <h1 class="font-heading text-display-md text-primary mb-1" id="feed-title">
+            ¡Bienvenido de vuelta!
+        </h1>
+        <p class="text-body-lg text-text-secondary">¿Qué se te antoja hoy?</p>
     </div>
 
-    <div id="feed-content">
+    <!-- Feed Layout Grid -->
+    <div class="lg:grid lg:grid-cols-4 gap-8">
+        
+        <!-- Left Sidebar: Filters & Controls -->
+        <div class="lg:col-span-1 mb-8 lg:mb-0">
+            <div class="bg-surface-raised border border-border-default rounded-md p-6 sticky top-24">
+                <div class="flex items-center gap-2 mb-4 text-primary">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">tune</span>
+                    <h3 class="font-heading text-headline-sm">Tus Filtros</h3>
+                </div>
+                
+                <!-- Radio Slider -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="feed-radio" class="block text-label-md text-text-secondary uppercase tracking-wide">Radio de búsqueda</label>
+                        <span id="feed-radio-val" class="text-label-md text-text-primary font-semibold">5 km</span>
+                    </div>
+                    <input id="feed-radio" type="range" min="1" max="50" value="5" class="eki-slider mt-1 mb-2" oninput="document.getElementById('feed-radio-val').innerText = this.value + ' km'" />
+                    <p class="text-body-sm text-text-tertiary mt-2">Ajusta qué tan lejos quieres ver recomendaciones.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Content: Recommendations -->
+        <div class="lg:col-span-3 relative min-h-[50vh]">
+            <!-- Loading Overlay -->
+            <div id="feed-loading-overlay" class="hidden absolute inset-0 z-10 bg-surface/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-md">
+                <span class="material-symbols-outlined animate-spin text-accent mb-4" style="font-size: 48px;">progress_activity</span>
+                <p class="font-heading text-headline-sm text-primary">¡Buscando lo mejor para ti!</p>
+            </div>
+            
+            <div id="feed-content">
+            </div>
+        </div>
     </div>
 </div>

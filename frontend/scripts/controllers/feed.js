@@ -176,7 +176,7 @@ function _mostrarSpinDown(intento) {
       <!-- Barra de progreso del spin-down -->
       <div class="progress-track w-52 mb-6">
         <div class="progress-fill"
-             style="width:${Math.round((intento/_RETRY_MAX)*100)}%;animation:none;background-color:var(--secondary);">
+             style="width:${Math.round((intento/_RETRY_MAX)*100)}%;animation:none;background-color:rgb(var(--secondary));">
         </div>
       </div>
       <button onclick="_cancelarRetry(); _mostrarErrorConexion()"
@@ -251,6 +251,45 @@ window.controllers.feed = async () => {
   const contentEl = document.getElementById('feed-content');
   if (contentEl) {
     contentEl.innerHTML = _shellSkel();
+  }
+
+  // Cargar radio_busqueda_km del perfil actual
+  let perfil = null;
+  try {
+    perfil = await api.getPerfil();
+  } catch (_) {}
+  
+  const sliderEl = document.getElementById('feed-radio');
+  const sliderVal = document.getElementById('feed-radio-val');
+  if (sliderEl && sliderVal && perfil && perfil.visitante && perfil.visitante.radio_busqueda_km) {
+    sliderEl.value = perfil.visitante.radio_busqueda_km;
+    sliderVal.innerText = perfil.visitante.radio_busqueda_km + ' km';
+  }
+
+  // Escuchar cambios en el slider
+  if (sliderEl) {
+    sliderEl.onchange = async () => {
+      const newRadius = parseInt(sliderEl.value, 10);
+      try {
+        await api.actualizarPerfil({ radio_busqueda_km: newRadius });
+        // Mostrar loading overlay
+        const overlay = document.getElementById('feed-loading-overlay');
+        if (overlay) {
+          overlay.classList.remove('hidden');
+        }
+        
+        // Recargar recomendaciones
+        _cancelarRetry();
+        await _cargarConRetry(1);
+        
+        // Ocultar loading overlay
+        if (overlay) {
+          overlay.classList.add('hidden');
+        }
+      } catch (err) {
+        showToast('Error al actualizar el radio', 'error');
+      }
+    };
   }
 
   let favoritos = [];

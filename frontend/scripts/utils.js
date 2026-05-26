@@ -23,10 +23,10 @@ function solicitarUbicacion() {
 // aria-live="polite" en el container (puesto en index.html) garantiza accesibilidad.
 
 const _TOAST_CONFIG = {
-  info:    { icon: 'info',             title: 'Información', border: 'var(--secondary)',   bg: 'var(--secondary-faint)',  text: 'var(--secondary)' },
-  success: { icon: 'check_circle',     title: '¡Listo!',     border: 'var(--success)',     bg: 'var(--success-faint)',    text: 'var(--success)'   },
-  warning: { icon: 'warning',          title: 'Atención',    border: 'var(--warning)',     bg: 'var(--warning-faint)',    text: 'var(--warning)'   },
-  error:   { icon: 'error',            title: 'Error',       border: 'var(--accent)',      bg: 'var(--accent-faint)',     text: 'var(--accent)'    },
+  info:    { icon: 'info',             title: 'Información', border: 'rgb(var(--secondary))',   bg: 'rgb(var(--secondary-faint))',  text: 'rgb(var(--secondary))' },
+  success: { icon: 'check_circle',     title: '¡Listo!',     border: 'rgb(var(--success))',     bg: 'rgb(var(--success-faint))',    text: 'rgb(var(--success))'   },
+  warning: { icon: 'warning',          title: 'Atención',    border: 'rgb(var(--warning))',     bg: 'rgb(var(--warning-faint))',    text: 'rgb(var(--warning))'   },
+  error:   { icon: 'error',            title: 'Error',       border: 'rgb(var(--accent))',      bg: 'rgb(var(--accent-faint))',     text: 'rgb(var(--accent))'    },
 };
 
 function showToast(message, type = 'info', duration = 4000) {
@@ -44,10 +44,10 @@ function showToast(message, type = 'info', duration = 4000) {
     gap: 10px;
     padding: 12px 14px;
     border-radius: 8px;
-    border: 1px solid ${cfg.border}40;
+    border: 1px solid color-mix(in srgb, ${cfg.border} 25%, transparent);
     border-left: 3px solid ${cfg.border};
     background: ${cfg.bg};
-    box-shadow: 0 4px 24px color-mix(in srgb, var(--primary) 10%, transparent);
+    box-shadow: 0 4px 24px color-mix(in srgb, rgb(var(--primary)) 10%, transparent);
     max-width: 340px;
     width: 100%;
     transform: translateX(110%);
@@ -61,10 +61,10 @@ function showToast(message, type = 'info', duration = 4000) {
     <span class="material-symbols-outlined" style="font-size:18px;color:${cfg.text};flex-shrink:0;margin-top:1px;">${cfg.icon}</span>
     <div style="flex:1;min-width:0;">
       <p style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:${cfg.text};margin-bottom:1px;">${cfg.title}</p>
-      <p style="font-family:Montserrat,sans-serif;font-size:13px;color:var(--primary-muted);line-height:1.4;">${message}</p>
+      <p style="font-family:Montserrat,sans-serif;font-size:13px;color:rgb(var(--primary-muted));line-height:1.4;">${message}</p>
     </div>
     <button onclick="this.closest('[role=status]').remove()" aria-label="Cerrar notificación"
-      style="background:none;border:none;cursor:pointer;color:var(--primary-ghost);padding:0;margin-top:1px;flex-shrink:0;line-height:1;">
+      style="background:none;border:none;cursor:pointer;color:rgb(var(--primary-ghost));padding:0;margin-top:1px;flex-shrink:0;line-height:1;">
       <span class="material-symbols-outlined" style="font-size:16px;">close</span>
     </button>
     <div style="

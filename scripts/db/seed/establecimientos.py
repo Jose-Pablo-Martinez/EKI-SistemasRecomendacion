@@ -25,11 +25,30 @@ def seed_establecimientos(db: Session):
     categorias = db.query(Categoria).filter(Categoria.id_categoria_padre.isnot(None)).all()
     etiquetas = db.query(Etiqueta).all()
     
-    nombres_rest = ["La Lupita", "La Chaya Maya", "Mariscos El Puerto", "Pizzería Roma", "El Mesón", "Sushito", "Steak House", "Nuevo Restaurante XYZ"]
-    nombres_locales = ["Jugos La Raza", "Cocina Económica Marcelina", "Café Mérida", "Panadería San Marcos", "Lonchería Central", "Taquería Paco", "El Buen Sabor"]
-    nombres_puestos = ["Tacos El Camarón", "Sopa de Lima Doña Pati", "El Carrito de los Tamales", "Taquería El Trompo", "Antojitos Doña Rosa", "Puesto Xtabentún", "Helados La Flor", "Papas y Salchichas", "Elotes Don Pancho", "Marquesitas Yucatecas", "Esquites El Capi", "Tacos de Guisado", "Jugos Frescos", "Tortas de Cochinita", "Tamales Calientitos"]
+    prefijos_rest = ["Restaurante", "Pizzería", "Mariscos", "Asadero", "Bistro", "Cantina", "Steak House", "Casa", "Hacienda", "El Rincón de"]
+    sufijos_rest = ["Roma", "El Puerto", "La Chaya", "La Lupita", "El Mesón", "Los Arrayanes", "El Habanero", "La Pigua", "Kuuk", "San Juan", "Mérida"]
+    nombres_rest = list(set([f"{p} {s}" for p in prefijos_rest for s in sufijos_rest]))
     
-    estados = ["aprobado"] * 26 + ["pendiente"] * 2 + ["rechazado"] * 2
+    prefijos_locales = ["Jugos", "Cocina Económica", "Café", "Panadería", "Lonchería", "Fonda", "Taquería", "Cenaduría"]
+    sufijos_locales = ["La Raza", "San Marcos", "Central", "Paco", "El Buen Sabor", "Doña Flor", "El Retorno", "Los Abuelos"]
+    nombres_locales = list(set([f"{p} {s}" for p in prefijos_locales for s in sufijos_locales]))
+    
+    prefijos_puestos = ["Tacos", "Sopa de Lima", "El Carrito de", "Antojitos", "Puesto", "Helados", "Marquesitas", "Esquites", "Tortas de", "Tamales"]
+    sufijos_puestos = ["El Camarón", "Doña Pati", "Los Compadres", "El Trompo", "Doña Rosa", "Xtabentún", "La Flor", "El Capi", "Cochinita", "Calientitos", "El Paisa", "San Sebastián"]
+    nombres_puestos = list(set([f"{p} {s}" for p in prefijos_puestos for s in sufijos_puestos]))
+    
+    random.shuffle(nombres_rest)
+    random.shuffle(nombres_locales)
+    random.shuffle(nombres_puestos)
+    
+    nombres_rest = nombres_rest[:40]
+    nombres_locales = nombres_locales[:40]
+    nombres_puestos = nombres_puestos[:80]
+    
+    total = len(nombres_rest) + len(nombres_locales) + len(nombres_puestos)
+    estados = ["aprobado"] * int(total * 0.9) + ["pendiente"] * int(total * 0.05) + ["rechazado"] * int(total * 0.05)
+    while len(estados) < total:
+        estados.append("aprobado")
     random.shuffle(estados)
     
     def crear_establecimiento(nombres, tipo_enum, offset):

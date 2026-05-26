@@ -20,7 +20,7 @@ from backend.engine.ranking import compute_haversine_km
 
 logger = logging.getLogger(__name__)
 
-MIN_RESULTADOS_POR_CATEGORIA = 5
+MIN_RESULTADOS_POR_CATEGORIA = 10
 
 
 def _obtener_radio_base(db: Session, id_usuario: int) -> int:
@@ -100,31 +100,14 @@ def _aplicar_fallback_cascada(
     radio_base: int
 ) -> List[RecomendacionGenerada]:
     """
-    Filtra los resultados expandiendo el radio en cascada hasta cumplir 
-    con el mínimo de resultados por categoría.
+    Filtra los resultados estrictamente por el radio base configurado por el usuario.
+    Se eliminó la cascada para respetar la decisión del usuario en el frontend.
     """
-    # Nivel 0: Radio base
     recs_n0 = [r for r in recs if r.distancia_km is not None and r.distancia_km <= radio_base]
-    if len(recs_n0) >= MIN_RESULTADOS_POR_CATEGORIA:
-        for r in recs_n0:
-            r.fallback_nivel = 0  # type: ignore
-            r.radio_usado_km = radio_base  # type: ignore
-        return sorted(recs_n0, key=lambda x: x.posicion)
-
-    # Nivel 1: Radio doble
-    radio_doble = radio_base * 2
-    recs_n1 = [r for r in recs if r.distancia_km is not None and r.distancia_km <= radio_doble]
-    if len(recs_n1) >= MIN_RESULTADOS_POR_CATEGORIA:
-        for r in recs_n1:
-            r.fallback_nivel = 1  # type: ignore
-            r.radio_usado_km = radio_doble  # type: ignore
-        return sorted(recs_n1, key=lambda x: x.posicion)
-
-    # Nivel 2: Municipio completo
-    for r in recs:
-        r.fallback_nivel = 2  # type: ignore
-        r.radio_usado_km = 99  # type: ignore
-    return sorted(recs, key=lambda x: x.posicion)
+    for r in recs_n0:
+        r.fallback_nivel = 0  # type: ignore
+        r.radio_usado_km = radio_base  # type: ignore
+    return sorted(recs_n0, key=lambda x: x.posicion)
 
 
 def obtener_recomendaciones(db: Session, id_usuario: int) -> Dict[str, List[Any]]:
