@@ -304,8 +304,8 @@ class MetricaEstablecimiento(Base):
     id_establecimiento      = Column(
         Integer, ForeignKey("establecimiento.id_establecimiento"), primary_key=True
     )
-    score_contenido_base    = Column(DECIMAL(5, 4), nullable=True)
-    score_colaborativo_base = Column(DECIMAL(5, 4), nullable=True)
+    score_contenido_base    = Column(DECIMAL(6, 4), nullable=True)
+    score_colaborativo_base = Column(DECIMAL(6, 4), nullable=True)
     boost_proximidad_zona   = Column(DECIMAL(5, 4), nullable=True)
     boost_informal          = Column(DECIMAL(3, 2), nullable=True)
     score_boost_combinado   = Column(DECIMAL(5, 4), nullable=True)   # Desnormalizado §1.5

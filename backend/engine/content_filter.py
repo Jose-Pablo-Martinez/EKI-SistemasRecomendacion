@@ -53,8 +53,11 @@ def get_content_based_recommendations(
     Estrategia:
         1. Obtener vector_preferencias del usuario.
         2. Para cada establecimiento candidato, calcular similitud_coseno con
-           su vector_caracteristicas.
-        3. Retornar los N con mayor score, ordenados descendentemente.
+           su vector_caracteristicas. El resultado nativo de sklearn está en [-1.0, 1.0].
+        3. Filtrar candidatos con score < 0: un score negativo indica gustos
+           OPUESTOS al perfil del usuario — no se deben recomendar.
+        4. Retornar los N con mayor score entre los positivos, ordenados
+           descendentemente.
 
     Args:
         db: Sesión activa de SQLAlchemy.
@@ -64,6 +67,7 @@ def get_content_based_recommendations(
 
     Returns:
         Lista de tuplas (Establecimiento, score_contenido) ordenadas por score.
+        Solo incluye establecimientos con score_contenido >= 0.0.
     """
     logger.info(
         "content_filter: calculando similitud coseno para usuario_id=%d, candidatos=%d",
@@ -86,9 +90,18 @@ def get_content_based_recommendations(
     cand_vecs = np.array([c.vector_caracteristicas for c in valid_candidatos])
 
     scores = cosine_similarity(user_vec, cand_vecs).flatten()
-    top_indices = np.argsort(-scores)[:limit]
 
-    return [(valid_candidatos[i], float(scores[i])) for i in top_indices]
+    # Filtrar scores negativos: indican gustos opuestos al perfil del usuario.
+    # Un establecimiento con score coseno < 0 no debe aparecer como recomendación.
+    positive_mask = scores >= 0.0
+    positive_candidatos = [c for c, keep in zip(valid_candidatos, positive_mask) if keep]
+    positive_scores = scores[positive_mask]
+
+    if len(positive_scores) == 0:
+        return []
+
+    top_indices = np.argsort(-positive_scores)[:limit]
+    return [(positive_candidatos[i], float(positive_scores[i])) for i in top_indices]
 
 
 def compute_cosine_similarity(vector_a: list[float], vector_b: list[float]) -> float:
@@ -103,7 +116,10 @@ def compute_cosine_similarity(vector_a: list[float], vector_b: list[float]) -> f
         vector_b: Vector del establecimiento (vector_caracteristicas).
 
     Returns:
-        Similitud en [0.0, 1.0]. Retorna 0.0 si algún vector es nulo o vacío.
+        Similitud en [-1.0, 1.0]. Retorna 0.0 si algún vector es nulo o vacío.
+        Un valor negativo indica vectores opuestos (gustos contrarios al perfil).
+        Un valor de 0.0 indica ortogonalidad (sin correlación).
+        Un valor de 1.0 indica vectores idénticos (afinidad perfecta).
     """
     if not vector_a or not vector_b:
         return 0.0

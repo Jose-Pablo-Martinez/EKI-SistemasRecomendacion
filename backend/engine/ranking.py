@@ -89,23 +89,34 @@ def compute_score_final(
     """
     Calcula el score final ponderado del motor híbrido.
 
-    Decisión Arquitectónica (Sobre Normalización Min-Max):
-    Por diseño, no se realiza una normalización Min-Max sobre la lista final de scores 
-    para acotarlos estrictamente entre [0, 1]. 
+    Decisión Arquitectónica (Normalización del Score Coseno):
+    El `score_contenido` proviene de `sklearn.cosine_similarity` que devuelve
+    valores en el rango natural [-1.0, 1.0].
     
-    Razonamiento:
-    1. El `score_contenido` (Coseno) ya está acotado entre [-1.0, 1.0].
-    2. Los pesos (w1, w2, w3) suman 1.0.
-    3. El objetivo fundamental del motor es el *ordenamiento relativo* (Ranking), no 
-       un valor probabilístico absoluto. Añadir iteraciones O(N) adicionales para 
-       normalizar una lista de scores antes del ordenamiento impactaría el rendimiento
-       sin cambiar las posiciones relativas (el ranking final).
+    Para combinar correctamente con `score_colaborativo` y `score_boost` — que
+    están definidos en [0.0, 1.0] — se aplica la transformación:
 
-    score_final = w1 * score_contenido + w2 * score_colaborativo + w3 * score_boost
+        sc_norm = (score_contenido + 1.0) / 2.0
+
+    Esto mapea:
+        -1.0 → 0.0 (gustos completamente opuestos → mínima prioridad)
+         0.0 → 0.5 (sin correlación)
+        +1.0 → 1.0 (afinidad perfecta → máxima prioridad)
+
+    La normalización ocurre SOLO dentro del cálculo del score_final.
+    Los scores crudos persisten en las columnas de la BD para transparencia interna.
+
+    Sobre Normalización Min-Max del Ranking:
+    No se realiza normalización Min-Max sobre la lista final. El objetivo
+    fundamental del motor es el *ordenamiento relativo* (Ranking), no un valor
+    probabilístico absoluto. Iteraciones O(N) adicionales impactarían el
+    rendimiento sin cambiar las posiciones relativas.
+
+    score_final = w1 * sc_norm + w2 * score_colaborativo + w3 * score_boost
 
     Args:
-        score_contenido: Similitud coseno entre vector_preferencias del usuario
-                         y vector_caracteristicas del establecimiento.
+        score_contenido: Similitud coseno en [-1.0, 1.0] entre vector_preferencias
+                         del usuario y vector_caracteristicas del establecimiento.
         score_colaborativo: Frecuencia de aparición en listas de usuarios similares
                             dentro del cluster (item-to-item).
         score_boost: score_boost_combinado pre-calculado de metrica_establecimiento
@@ -113,9 +124,14 @@ def compute_score_final(
         w1, w2, w3: Pesos de cada componente (deben sumar 1.0).
 
     Returns:
-        Score final.
+        Score final normalizado.
     """
-    return w1 * score_contenido + w2 * score_colaborativo + w3 * score_boost
+    # Normalizar coseno [-1,1] → [0,1] para compatibilidad con pesos ponderados.
+    # score_contenido=-1 → 0.0 (mínima prioridad), score_contenido=+1 → 1.0 (máxima).
+    # El valor crudo se persiste en recomendacion_generada.score_contenido_usado para
+    # la caja blanca interna; la normalización solo ocurre aquí dentro del cálculo.
+    sc_norm = (score_contenido + 1.0) / 2.0
+    return w1 * sc_norm + w2 * score_colaborativo + w3 * score_boost
 
 
 def compute_haversine_km(
