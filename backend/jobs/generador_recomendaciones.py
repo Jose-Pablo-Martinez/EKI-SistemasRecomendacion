@@ -73,6 +73,13 @@ MAX_RECOMENDACIONES_POR_CATEGORIA = 20
 # popularidad en su zona), pero inundar 3-4 carruseles reduce la variedad percibida.
 MAX_APARICIONES_POR_ESTABLECIMIENTO: int = 2
 
+# ─── Componente 4 — Umbrales de transición Cold Start ────────────────────────
+# Cada interacción significativa otorga 10 puntos_experiencia (diseño §1.5).
+# Los umbrales están calibrados coherentemente con MIN_INTERACCIONES_COLABORATIVO
+# en cold_start.py (5 interacciones = 50 puntos = UMBRAL_FASE_1).
+UMBRAL_FASE_1: int = 50   # ≥5 interacciones → entrar en transición
+UMBRAL_FASE_2: int = 150  # ≥15 interacciones → ML completo
+
 
 def limpiar_recomendaciones_antiguas(db: Session) -> None:
     """
@@ -96,8 +103,40 @@ def limpiar_recomendaciones_antiguas(db: Session) -> None:
         RecomendacionGenerada.fecha_generacion < limite_click
     ).delete()
     
-    logger.info("Caché limpiado: %d ignoradas eliminadas, %d clickeadas eliminadas.", 
+    logger.info("Caché limpiado: %d ignoradas eliminadas, %d clickeadas eliminadas.",
                 borrados_no_click, borrados_click)
+
+
+def determinar_fase(usuario: UsuarioVisitante) -> int:
+    """
+    Componente 4 — Determina la fase de transición del usuario basándose en
+    sus puntos_experiencia y si completó el onboarding.
+
+    Fases:
+      0  →  Cold start puro (< 5 interacciones / < 50 puntos).
+             El usuario ve solo el carrusel 'Populares de la semana'.
+      1  →  Transición (5–15 interacciones / 50–150 puntos).
+             Blend: cold start reducido + primer carrusel de contenido.
+             El colaborativo aún no se activa (matriz dispersa insuficiente).
+      2  →  ML completo (> 15 interacciones / > 150 puntos).
+             Todos los carruseles activos: híbrido, contenido, colaborativo.
+
+    La relación 1 interacción = 10 puntos garantiza coherencia con
+    MIN_INTERACCIONES_COLABORATIVO = 5 en cold_start.py.
+
+    Args:
+        usuario: UsuarioVisitante con puntos_experiencia y perfil_completado.
+
+    Returns:
+        int: 0, 1 ó 2 según la fase.
+    """
+    puntos = int(usuario.puntos_experiencia or 0)  # type: ignore
+    if not usuario.perfil_completado or puntos < UMBRAL_FASE_1:
+        return 0
+    elif puntos < UMBRAL_FASE_2:
+        return 1
+    else:
+        return 2
 
 
 def obtener_candidatos_por_cluster(
@@ -394,13 +433,61 @@ def generar_para_usuario(
             nuevas_recomendaciones.append(rec)
             pos_efectiva += 1
 
-    # ── 1. Estrategia Cold Start (Usuarios nuevos) ────────────────────────────
-    if not usuario.perfil_completado or usuario.puntos_experiencia < 50:
+    # ── 1. Determinar fase de transición (Componente 4) ───────────────────────
+    # Se calcula ahora (en el job offline) y se persiste en BD para que el
+    # recomendacion_service online pueda consultarla sin recalcular.
+    fase = determinar_fase(usuario)
+    usuario.fase_transicion = fase  # type: ignore
+    logger.debug(
+        "generar_para_usuario: usuario_id=%d fase=%d puntos=%s",
+        usuario.id_usuario, fase, usuario.puntos_experiencia,
+    )
+
+    if fase == 0:
+        # ── FASE 0: Cold start puro ───────────────────────────────────────────
+        # Solo el carrusel 'Populares de la semana'. El usuario es muy nuevo y
+        # no tiene suficiente historial para ML ni para filtrado colaborativo.
         if get_cold_start_recommendations:
-            estabs_cold = get_cold_start_recommendations(db, usuario, limit=MAX_RECOMENDACIONES_POR_CATEGORIA)
-            agregar_recomendaciones(estabs_cold, "cold_start", "cold_start", "cold_start", "Seleccionado para empezar")
+            estabs_cold = get_cold_start_recommendations(
+                db, usuario, limit=MAX_RECOMENDACIONES_POR_CATEGORIA
+            )
+            agregar_recomendaciones(
+                estabs_cold, "cold_start", "cold_start", "cold_start",
+                "Seleccionado para empezar",
+            )
+
+    elif fase == 1:
+        # ── FASE 1: Blend cold start + contenido (sin colaborativo) ──────────
+        # El usuario ya acumuló entre 5 y 15 interacciones: tiene suficiente
+        # historial para el filtrado por contenido, pero la matriz dispersa del
+        # colaborativo aún no es significativa (< 15 interacciones).
+        # Efecto en el frontend: el usuario ve 2 carruseles —
+        #   «Populares de la semana» (familiar) + «Basado en tus gustos» (nuevo).
+        # El cold start usa un limit reducido para que el carrusel ML pueda
+        # "competir" visualmente sin desaparecer entre muchos resultados populares.
+        LIMIT_COLD_FASE1 = MAX_RECOMENDACIONES_POR_CATEGORIA // 2  # 10 items
+        LIMIT_CONTENT_FASE1 = MAX_RECOMENDACIONES_POR_CATEGORIA    # 20 items
+
+        if get_cold_start_recommendations:
+            estabs_cold = get_cold_start_recommendations(
+                db, usuario, limit=LIMIT_COLD_FASE1
+            )
+            agregar_recomendaciones(
+                estabs_cold, "cold_start", "cold_start", "cold_start",
+                "Seleccionado para empezar",
+            )
+
+        if get_content_based_recommendations and establecimientos_base:
+            estabs_content = get_content_based_recommendations(
+                db, usuario, establecimientos_base, limit=LIMIT_CONTENT_FASE1
+            )
+            agregar_recomendaciones(
+                estabs_content, "preferencia_contenido", "preferencia_categoria", "contenido",
+                "Alta similitud con tus categorías favoritas",
+            )
+
     else:
-        # ── 2. Estrategias para Usuarios experimentados ───────────────────────
+        # ── FASE 2: ML completo ───────────────────────────────────────────────
         estabs_content = []
         estabs_collab = []
 
