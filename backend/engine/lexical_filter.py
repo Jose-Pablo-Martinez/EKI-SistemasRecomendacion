@@ -6,9 +6,19 @@ Responsabilidad:
     Se utiliza principalmente para la corrección ortográfica (tolerancia a errores)
     en el motor de búsqueda, implementando la Distancia de Levenshtein.
 
+Componente 5 — Autocompletado y N-gramas:
+    Dos algoritmos complementarios al Levenshtein:
+    - prefix_match: autocompletado en tiempo real (O(P·log V) con lista ordenada).
+    - ngram_similarity: similitud basada en bigramas Jaccard, más rápido que
+      Levenshtein para pre-filtrar candidatos antes del refinamiento final.
+    - normalize_text: normaliza unicode/tildes para que 'Taqueria' == 'Taquería'.
+
 Este módulo cumple el Principio de Responsabilidad Única (SRP): no interactúa
 con la base de datos ni con SQLAlchemy, solo realiza cálculos matemáticos puros.
 """
+
+import unicodedata
+import bisect
 
 def levenshtein_distance(s1: str, s2: str) -> int:
     """
@@ -72,3 +82,96 @@ def levenshtein_similarity(s1: str, s2: str) -> float:
         return 1.0
         
     return 1.0 - (dist / max_len)
+
+
+# Nuevas funciones (N-gramas + Prefijos)
+
+def normalize_text(text: str) -> str:
+    """
+    Normaliza un texto a ASCII sin tildes ni caracteres especiales.
+    Esto permite que 'Taquería' == 'Taqueria' y 'é' == 'e' en búsquedas.
+
+    Usa NFD (descomposición canónica) para separar el carácter base del diacrítico,
+    luego filtra los diacríticos (categoría 'Mn' = Mark, Non-Spacing).
+
+    Args:
+        text: Texto a normalizar.
+
+    Returns:
+        Texto en minúsculas sin tildes, solo alfanumérico + espacios.
+    """
+    nfd = unicodedata.normalize("NFD", text.lower())
+    sin_tildes = "".join(c for c in nfd if unicodedata.category(c) != "Mn")
+    return "".join(c for c in sin_tildes if c.isalnum() or c == " ").strip()
+
+
+def ngram_similarity(s1: str, s2: str, n: int = 2) -> float:
+    """
+    Similitud basada en bigramas compartidos (Jaccard sobre n-gramas).
+
+    Más rápido que Levenshtein para pre-filtrar candidatos: O(L/n) por cadena
+    en lugar de O(L²). Se usa como primer filtro para reducir el conjunto de
+    candidatos antes del refinamiento con Levenshtein.
+
+    Ejemplo:
+        ngram_similarity('taco', 'taco') = 1.0
+        ngram_similarity('tacos', 'taco') = 0.75  (3 bigramas comunes de 4)
+        ngram_similarity('takos', 'tacos') = 0.5
+
+    Args:
+        s1: Primera cadena (ya normalizada).
+        s2: Segunda cadena (ya normalizada).
+        n:  Longitud de los n-gramas. 2 (bigramas) es el mejor balance.
+
+    Returns:
+        Flotante en [0.0, 1.0]. 1.0 = idéntico, 0.0 = sin n-gramas en común.
+    """
+    s1 = s1.lower().strip()
+    s2 = s2.lower().strip()
+    if not s1 or not s2:
+        return 0.0
+
+    # Cadenas muy cortas: caen fuera del rango de bigramas, usar similitud directa
+    if len(s1) < n or len(s2) < n:
+        return 1.0 if s1 == s2 else 0.0
+
+    grams1 = set(s1[i:i + n] for i in range(len(s1) - n + 1))
+    grams2 = set(s2[i:i + n] for i in range(len(s2) - n + 1))
+
+    intersection = grams1 & grams2
+    union = grams1 | grams2
+    return len(intersection) / len(union)  # Jaccard
+
+
+def prefix_match(prefix: str, vocabulario_ordenado: list[str], limit: int = 10) -> list[str]:
+    """
+    Retorna palabras del vocabulario que comienzan con el prefijo dado.
+
+    Usa búsqueda binaria (bisect) sobre la lista ordenada para localizar el punto
+    de inserción del prefijo en O(log V), luego avanza linealmente solo mientras
+    los elementos sigan teniendo ese prefijo: O(P·log V) total vs O(V) con un bucle.
+
+    Requisito: `vocabulario_ordenado` debe estar ORDENADO alfabéticamente.
+    El VocabularioCache en buscador_service.py garantiza este invariante.
+
+    Args:
+        prefix:              Prefijo ya normalizado (sin tildes, minúsculas).
+        vocabulario_ordenado: Lista de palabras ordenadas.
+        limit:               Máximo de sugerencias a retornar.
+
+    Returns:
+        Lista de hasta `limit` palabras que empiezan con el prefijo, en orden.
+    """
+    if not prefix or not vocabulario_ordenado:
+        return []
+
+    # bisect_left: encuentra el índice de inserción del prefijo
+    idx = bisect.bisect_left(vocabulario_ordenado, prefix)
+    resultados: list[str] = []
+    while idx < len(vocabulario_ordenado) and len(resultados) < limit:
+        palabra = vocabulario_ordenado[idx]
+        if not palabra.startswith(prefix):
+            break
+        resultados.append(palabra)
+        idx += 1
+    return resultados
