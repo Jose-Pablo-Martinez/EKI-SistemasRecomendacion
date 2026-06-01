@@ -110,10 +110,21 @@ def _construir_vocabulario(db: Session) -> None:
             if len(token) > 2:
                 vocabulario_raw.add(token)
 
-    # Fuente 2: categorías 
+    # Fuente 2: categorías — solo las que usan establecimientos activos y aprobados
     try:
         from backend.models.catalogo import Categoria
-        cats = db.scalars(select(Categoria.nombre)).all()
+        from backend.models.establecimientos import EstablecimientoCategoria
+        stmt_cats = (
+            select(Categoria.nombre)
+            .join(EstablecimientoCategoria, EstablecimientoCategoria.id_categoria == Categoria.id_categoria)
+            .join(Establecimiento, Establecimiento.id_establecimiento == EstablecimientoCategoria.id_establecimiento)
+            .where(
+                Establecimiento.es_activo == True,
+                Establecimiento.estado == "aprobado",
+            )
+            .distinct()
+        )
+        cats = db.scalars(stmt_cats).all()
         for nombre in cats:
             for token in normalize_text(nombre).split():
                 if len(token) > 2:
@@ -121,10 +132,21 @@ def _construir_vocabulario(db: Session) -> None:
     except Exception:
         logger.debug("buscador_service: categorías no disponibles para vocabulario")
 
-    # Fuente 3: etiquetas
+    # Fuente 3: etiquetas — solo las que usan establecimientos activos y aprobados
     try:
         from backend.models.catalogo import Etiqueta
-        etiqs = db.scalars(select(Etiqueta.nombre)).all()
+        from backend.models.establecimientos import EstablecimientoEtiqueta
+        stmt_etiqs = (
+            select(Etiqueta.nombre)
+            .join(EstablecimientoEtiqueta, EstablecimientoEtiqueta.id_etiqueta == Etiqueta.id_etiqueta)
+            .join(Establecimiento, Establecimiento.id_establecimiento == EstablecimientoEtiqueta.id_establecimiento)
+            .where(
+                Establecimiento.es_activo == True,
+                Establecimiento.estado == "aprobado",
+            )
+            .distinct()
+        )
+        etiqs = db.scalars(stmt_etiqs).all()
         for nombre in etiqs:
             for token in normalize_text(nombre).split():
                 if len(token) > 2:
@@ -201,7 +223,7 @@ def buscar_con_correccion(
             "sugerencia_correccion": "texto corregido" | None
         }
     """
-    # ── Capa 1: Búsqueda SQL exacta ────────────────────────────────────────
+    # Capa 1: Búsqueda SQL exacta 
     resultados = buscar_establecimientos(
         db=db,
         query=query,
@@ -221,7 +243,7 @@ def buscar_con_correccion(
     if not palabras_query:
         return {"resultados": [], "sugerencia_correccion": None}
 
-    # ── Capa 2: Prefijo (autocompletado) ───────────────────────────────────
+    # Capa 2: Prefijo (autocompletado)
     # Solo se activa para queries largas suficientes para evitar falsos positivos.
     if len(query_normalizada) >= MIN_PREFIJO_AUTOCOMPLETE:
         # Busca con el prefijo de la query completa normalizada (sin espacios)
@@ -245,7 +267,7 @@ def buscar_con_correccion(
                     "sugerencia_correccion": prefijos_candidatos[0],
                 }
 
-    # ── Capa 3: Fuzzy multicapa (N-grama → Levenshtein) ────────────────────
+    # Capa 3: Fuzzy multicapa (N-grama → Levenshtein) 
     # Estrategia: corregir cada palabra del query por separado y reensamblar.
     palabras_corregidas: list[str] = []
 

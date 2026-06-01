@@ -76,6 +76,7 @@ const api = {
     if (query) params.append('q', query);
     return apiRequest(`/establecimientos/buscar?${params.toString()}`);
   },
+  autocompletar: (query) => apiRequest(`/establecimientos/autocomplete?q=${encodeURIComponent(query)}`),
   crearResena: (id, data) => apiRequest(`/establecimientos/${id}/resena`, {
     method: 'POST', body: JSON.stringify(data)
   }),

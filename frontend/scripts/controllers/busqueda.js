@@ -8,6 +8,7 @@ const _FILTROS = [
 
 let _filtroActivo = '';
 let _searchTimeout = null;
+let _autocompleteTimeout = null;
 let _ultimaBusqueda = '';
 
 // Utilidades para la búsqueda se han unificado en scripts/components/
@@ -128,17 +129,101 @@ window.controllers.busqueda = async () => {
   _ejecutarBusqueda(_ultimaBusqueda || '');
 
   input.addEventListener('input', e => {
-    const q = e.target.value.trim();
-    clearBtn?.classList.toggle('hidden', !q);
+    const q = e.target.value;
+    const qTrimmed = q.trim();
+    clearBtn?.classList.toggle('hidden', !qTrimmed);
+    
+    // 1. Manejar autocompletado (rápido, 150ms debounce)
+    clearTimeout(_autocompleteTimeout);
+    if (qTrimmed.length >= 2) {
+      _autocompleteTimeout = setTimeout(() => _fetchAutocomplete(qTrimmed), 150);
+    } else {
+      _ocultarAutocomplete();
+    }
+
+    // 2. Manejar búsqueda principal (más lenta, 400ms debounce)
     clearTimeout(_searchTimeout);
-    _searchTimeout = setTimeout(() => _ejecutarBusqueda(q), 300);
+    _searchTimeout = setTimeout(() => {
+      _ejecutarBusqueda(qTrimmed);
+    }, 400);
   });
 
   input.addEventListener('keydown', e => {
-    if (e.key === 'Escape') _clearBusqueda();
+    if (e.key === 'Escape') {
+      _clearBusqueda();
+      _ocultarAutocomplete();
+    }
+  });
+  
+  // Cerrar dropdown al hacer click fuera
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('autocomplete-menu');
+    if (menu && !menu.contains(e.target) && e.target !== input) {
+      _ocultarAutocomplete();
+    }
   });
 
   input.focus();
+};
+
+// Lógica de Autocompletado
+
+async function _fetchAutocomplete(query) {
+  try {
+    const res = await api.autocompletar(query);
+    if (res && res.sugerencias && res.sugerencias.length > 0) {
+      _renderAutocomplete(res.sugerencias, query);
+    } else {
+      _ocultarAutocomplete();
+    }
+  } catch (e) {
+    console.error("Error cargando autocompletado:", e);
+    _ocultarAutocomplete();
+  }
+}
+
+function _renderAutocomplete(sugerencias, queryOriginal) {
+  const menu = document.getElementById('autocomplete-menu');
+  const lista = document.getElementById('autocomplete-list');
+  if (!menu || !lista) return;
+
+  // Renderizar cada opción
+  lista.innerHTML = sugerencias.map(s => {
+    // Resaltar la parte que coincide (simple)
+    const lowerS = s.toLowerCase();
+    const lowerQ = queryOriginal.toLowerCase();
+    let displayHtml = s;
+    if (lowerS.startsWith(lowerQ)) {
+      displayHtml = `<span class="font-bold text-primary">${s.substring(0, queryOriginal.length)}</span>${s.substring(queryOriginal.length)}`;
+    }
+    
+    return `
+      <li class="px-4 py-3 hover:bg-surface-raised cursor-pointer flex items-center gap-3 transition-colors text-body-md border-b border-border-default last:border-0"
+          onclick="window._seleccionarAutocomplete('${s.replace(/'/g, "\\'")}')">
+        <span class="material-symbols-outlined text-text-tertiary" style="font-size:18px;">search</span>
+        <span class="text-text-secondary">${displayHtml}</span>
+      </li>
+    `;
+  }).join('');
+  
+  menu.classList.remove('hidden');
+}
+
+function _ocultarAutocomplete() {
+  const menu = document.getElementById('autocomplete-menu');
+  if (menu) menu.classList.add('hidden');
+}
+
+window._seleccionarAutocomplete = (texto) => {
+  const input = document.getElementById('busq-input');
+  if (input) {
+    input.value = texto;
+    _ocultarAutocomplete();
+    
+    // Disparar búsqueda formal
+    clearTimeout(_searchTimeout);
+    _ejecutarBusqueda(texto);
+  }
 };
 
 // Cambiar filtro 
@@ -170,5 +255,6 @@ function _clearBusqueda() {
   if (input) { input.value = ''; input.focus(); }
   clearBtn?.classList.add('hidden');
   _ultimaBusqueda = '';
+  _ocultarAutocomplete();
   _ejecutarBusqueda('');
 }
