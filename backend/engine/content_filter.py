@@ -178,3 +178,84 @@ def calcular_diversity_score(candidato_vec: list[float], lista_vecs: list[list[f
         np.array(lista_vecs)
     )
     return 1.0 - float(np.mean(sims))
+
+
+def obtener_descubrimientos(
+    db: "Session",
+    usuario: "UsuarioVisitante",
+    candidatos_seleccionados: list["Establecimiento"],
+    limit: int = 10,
+) -> list[tuple["Establecimiento", float]]:
+    """
+    Mejora 3B — Serendipia real con diversity_score.
+
+    Reemplaza el ordenamiento por fecha_registro DESC por una selección basada en
+    diversity_score: qué tan DISTINTO es cada candidato respecto a los establecimientos
+    ya seleccionados para el usuario. Solo considera establecimientos de clusters
+    DISTINTOS al del usuario para garantizar verdadera sorpresa.
+
+    Args:
+        db: Sesión activa de SQLAlchemy.
+        usuario: UsuarioVisitante con id_cluster poblado.
+        candidatos_seleccionados: Establecimientos ya asignados a carruseles del usuario.
+        limit: Número máximo de descubrimientos a retornar.
+
+    Returns:
+        Lista de tuplas (Establecimiento, diversity_score) ordenadas por diversidad desc.
+    """
+    import logging as _logging
+    from typing import cast
+    from backend.models import Establecimiento
+
+    _log = _logging.getLogger(__name__)
+
+    filtros = [
+        Establecimiento.es_activo == True,
+        Establecimiento.estado == "aprobado",
+        Establecimiento.es_informal == False,
+    ]
+    if usuario.id_cluster is not None:
+        filtros.append(Establecimiento.id_cluster != usuario.id_cluster)
+
+    candidatos_otros = db.query(Establecimiento).filter(*filtros).all()
+
+    if not candidatos_otros:
+        _log.warning(
+            "content_filter: sin candidatos cross-cluster para descubrimiento (usuario_id=%d) — usando recientes",
+            usuario.id_usuario,
+        )
+        return [
+            (e, 0.5)
+            for e in db.query(Establecimiento)
+            .filter(
+                Establecimiento.es_activo == True,
+                Establecimiento.estado == "aprobado",
+                Establecimiento.es_informal == False,
+            )
+            .order_by(Establecimiento.fecha_registro.desc())
+            .limit(limit)
+            .all()
+        ]
+
+    vecs_seleccionados = cast(list[list[float]], [
+        e.vector_caracteristicas
+        for e in candidatos_seleccionados
+        if e.vector_caracteristicas
+    ])
+
+    scored = []
+    for estab in candidatos_otros:
+        if not estab.vector_caracteristicas:
+            continue
+        div_score = (
+            calcular_diversity_score(
+                cast(list[float], estab.vector_caracteristicas),
+                vecs_seleccionados,
+            )
+            if vecs_seleccionados
+            else 0.5
+        )
+        scored.append((estab, div_score))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return scored[:limit]

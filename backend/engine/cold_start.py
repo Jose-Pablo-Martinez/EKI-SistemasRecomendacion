@@ -160,3 +160,43 @@ def handle_new_establecimiento(id_establecimiento: int, db: "Session") -> dict:
     db.commit()
 
     return {"id_establecimiento": id_establecimiento, "status": "cold_start_applied"}
+
+
+# Componente 4 — Transición Suave del Cold Start 
+# Cada interacción significativa otorga 10 puntos_experiencia (diseño §1.5).
+# Los umbrales están calibrados coherentemente con MIN_INTERACCIONES_COLABORATIVO
+# (5 interacciones = 50 puntos = UMBRAL_FASE_1).
+UMBRAL_FASE_1: int = 50   # ≥5 interacciones → entrar en transición
+UMBRAL_FASE_2: int = 150  # ≥15 interacciones → ML completo
+
+
+def determinar_fase(usuario: "UsuarioVisitante") -> int:
+    """
+    Determina la fase de transición del usuario basándose en sus
+    puntos_experiencia y si completó el onboarding.
+
+    Fases:
+      0  →  Cold start puro (< 5 interacciones / < 50 puntos).
+             El usuario ve solo el carrusel 'Populares de la semana'.
+      1  →  Transición (5–15 interacciones / 50–150 puntos).
+             Blend: cold start reducido + primer carrusel de contenido.
+             El colaborativo aún no se activa (matriz dispersa insuficiente).
+      2  →  ML completo (> 15 interacciones / > 150 puntos).
+             Todos los carruseles activos: híbrido, contenido, colaborativo.
+
+    La relación 1 interacción = 10 puntos garantiza coherencia con
+    MIN_INTERACCIONES_COLABORATIVO = 5 en este mismo módulo.
+
+    Args:
+        usuario: UsuarioVisitante con puntos_experiencia y perfil_completado.
+
+    Returns:
+        int: 0, 1 ó 2 según la fase.
+    """
+    puntos = int(usuario.puntos_experiencia or 0)  # type: ignore
+    if not usuario.perfil_completado or puntos < UMBRAL_FASE_1:
+        return 0
+    elif puntos < UMBRAL_FASE_2:
+        return 1
+    else:
+        return 2

@@ -2,42 +2,42 @@
 Job Offline: Generador Masivo de Recomendaciones
 
 Responsabilidad:
-Pre-computar y persistir las listas de recomendaciones (cajas) para todos los usuarios
-activos. Limpia el caché antiguo y genera recomendaciones por cada categoría (estrategia)
-usando los algoritmos de filtrado (contenido, colaborativo, etc.) desarrollados en la Fase 2.
+    Orquestar los algoritmos de la Fase 2 (engine) para generar y persistir en bulk
+    las listas de recomendaciones para todos los usuarios activos. Se limita a:
+      1. Limpiar el caché de recomendaciones expiradas.
+      2. Coordinar las llamadas al engine (cold_start, content_filter, collab_filter).
+      3. Hacer el bulk insert de RecomendacionGenerada.
 
-Cumple con SRP al delegar los algoritmos matemáticos a la carpeta `backend.engine` y
-enfocarse exclusivamente en la orquestación masiva y persistencia (bulk inserts).
+    La lógica de negocio (umbrales, señales colaborativas, diversity_score) vive en
+    los módulos especializados de `backend.engine`, no aquí.
 
 Mejoras aplicadas para mayor personalización:
-  3A — Pool personalizado por cluster: en lugar del top-40 global, se construye un pool
-       exclusivo del cluster del usuario ordenado por señal colaborativa interna (cuánto
-       interactuaron otros usuarios del mismo cluster con cada establecimiento). Esto
-       maximiza la personalización sin duplicar la lógica del carrusel de descubrimiento.
-  3B — Serendipia real con diversity_score: el carrusel 'descubrimiento' selecciona
-       establecimientos de clusters DISTINTOS al del usuario y los ordena por diversity_score
-       contra los candidatos ya seleccionados, no por fecha_registro.
-  3C — Repeticiones cross-carrusel controladas: un establecimiento puede aparecer en
-       máximo 2 carruseles distintos por usuario. Si supera ese límite, se omite.
+  3A — Pool personalizado por cluster (collab_filter.obtener_candidatos_por_cluster).
+  3B — Serendipia real con diversity_score (content_filter.obtener_descubrimientos).
+  3C — Repeticiones cross-carrusel controladas (MAX_APARICIONES_POR_ESTABLECIMIENTO).
+  C4 — Transición suave del Cold Start (cold_start.determinar_fase).
 """
 
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Any, cast
 
-from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from backend.models.usuarios import UsuarioVisitante
 from backend.models.establecimientos import Establecimiento, MetricaEstablecimiento
-from backend.models.interacciones import RecomendacionGenerada, InteraccionUsuario
+from backend.models.interacciones import RecomendacionGenerada
 
 # Importaciones seguras de la Fase 2 (Engine)
 # Se usa try-except para evitar bloqueos si alguna función aún no está expuesta en su módulo
 try:
-    from backend.engine.cold_start import get_cold_start_recommendations
+    from backend.engine.cold_start import (
+        get_cold_start_recommendations,
+        determinar_fase,
+    )
 except ImportError:
     get_cold_start_recommendations = None
+    determinar_fase = None  # type: ignore
 
 try:
     from backend.engine.ranking import get_top_establecimientos
@@ -45,15 +45,22 @@ except ImportError:
     get_top_establecimientos = None
 
 try:
-    from backend.engine.content_filter import get_content_based_recommendations, calcular_diversity_score
+    from backend.engine.content_filter import (
+        get_content_based_recommendations,
+        obtener_descubrimientos,
+    )
 except ImportError:
     get_content_based_recommendations = None
-    calcular_diversity_score = None
+    obtener_descubrimientos = None  # type: ignore
 
 try:
-    from backend.engine.collab_filter import get_collaborative_recommendations
+    from backend.engine.collab_filter import (
+        get_collaborative_recommendations,
+        obtener_candidatos_por_cluster,
+    )
 except ImportError:
     get_collaborative_recommendations = None
+    obtener_candidatos_por_cluster = None  # type: ignore
 
 
 logger = logging.getLogger(__name__)
@@ -72,14 +79,6 @@ MAX_RECOMENDACIONES_POR_CATEGORIA = 20
 # puede legítimamente cumplir criterios de 2 carruseles (ej. alta puntuación +
 # popularidad en su zona), pero inundar 3-4 carruseles reduce la variedad percibida.
 MAX_APARICIONES_POR_ESTABLECIMIENTO: int = 2
-
-# ─── Componente 4 — Umbrales de transición Cold Start ────────────────────────
-# Cada interacción significativa otorga 10 puntos_experiencia (diseño §1.5).
-# Los umbrales están calibrados coherentemente con MIN_INTERACCIONES_COLABORATIVO
-# en cold_start.py (5 interacciones = 50 puntos = UMBRAL_FASE_1).
-UMBRAL_FASE_1: int = 50   # ≥5 interacciones → entrar en transición
-UMBRAL_FASE_2: int = 150  # ≥15 interacciones → ML completo
-
 
 def limpiar_recomendaciones_antiguas(db: Session) -> None:
     """
@@ -105,228 +104,6 @@ def limpiar_recomendaciones_antiguas(db: Session) -> None:
     
     logger.info("Caché limpiado: %d ignoradas eliminadas, %d clickeadas eliminadas.",
                 borrados_no_click, borrados_click)
-
-
-def determinar_fase(usuario: UsuarioVisitante) -> int:
-    """
-    Componente 4 — Determina la fase de transición del usuario basándose en
-    sus puntos_experiencia y si completó el onboarding.
-
-    Fases:
-      0  →  Cold start puro (< 5 interacciones / < 50 puntos).
-             El usuario ve solo el carrusel 'Populares de la semana'.
-      1  →  Transición (5–15 interacciones / 50–150 puntos).
-             Blend: cold start reducido + primer carrusel de contenido.
-             El colaborativo aún no se activa (matriz dispersa insuficiente).
-      2  →  ML completo (> 15 interacciones / > 150 puntos).
-             Todos los carruseles activos: híbrido, contenido, colaborativo.
-
-    La relación 1 interacción = 10 puntos garantiza coherencia con
-    MIN_INTERACCIONES_COLABORATIVO = 5 en cold_start.py.
-
-    Args:
-        usuario: UsuarioVisitante con puntos_experiencia y perfil_completado.
-
-    Returns:
-        int: 0, 1 ó 2 según la fase.
-    """
-    puntos = int(usuario.puntos_experiencia or 0)  # type: ignore
-    if not usuario.perfil_completado or puntos < UMBRAL_FASE_1:
-        return 0
-    elif puntos < UMBRAL_FASE_2:
-        return 1
-    else:
-        return 2
-
-
-def obtener_candidatos_por_cluster(
-    db: Session,
-    usuario: UsuarioVisitante,
-    limit: int = 40,
-) -> List[Establecimiento]:
-    """
-    Mejora 3A — Pool personalizado 100% por cluster con señal colaborativa interna.
-
-    En lugar del top-40 global (ordenado por score_boost_combinado sin distinguir
-    entre usuarios), este pool se construye exclusivamente con establecimientos del
-    cluster del usuario y los ordena por la señal colaborativa interna del cluster:
-    cuánto peso acumulado de interacciones generaron otros usuarios del mismo cluster
-    en los últimos 90 días.
-
-    Se usa el pool 100% dentro del cluster y ordenarlo por señal colaborativa interna
-    maximiza la personalización en los carruseles de preferencia sin duplicar la
-    lógica de serendipia.
-
-    Fallback: si el usuario no tiene id_cluster asignado o el cluster no tiene
-    suficientes candidatos, se complementa con el top global por score_boost_combinado.
-
-    Args:
-        db: Sesión activa de SQLAlchemy.
-        usuario: UsuarioVisitante con id_cluster poblado.
-        limit: Tamaño máximo del pool.
-
-    Returns:
-        Lista de Establecimiento ordenada por señal colaborativa interna del cluster.
-    """
-    if not usuario.id_cluster:
-        # Fallback: sin cluster asignado, usar ranking global
-        if get_top_establecimientos:
-            return get_top_establecimientos(db, limit=limit)
-        return []
-
-    fecha_limite_collab = datetime.now(timezone.utc) - timedelta(days=90)
-
-    # Calcular la señal colaborativa interna del cluster:
-    # suma de peso_interaccion de todos los usuarios del mismo cluster en 90 días
-    stmt_scores = (
-        select(
-            InteraccionUsuario.id_establecimiento,
-            func.sum(InteraccionUsuario.peso_interaccion).label("score_cluster")
-        )
-        .join(UsuarioVisitante, InteraccionUsuario.id_usuario == UsuarioVisitante.id_usuario)
-        .where(
-            UsuarioVisitante.id_cluster == usuario.id_cluster,
-            InteraccionUsuario.fecha >= fecha_limite_collab,
-        )
-        .group_by(InteraccionUsuario.id_establecimiento)
-        .order_by(func.sum(InteraccionUsuario.peso_interaccion).desc())
-        .limit(limit)
-    )
-    rows = db.execute(stmt_scores).all()
-    ids_ordenados = [r.id_establecimiento for r in rows]
-
-    if ids_ordenados:
-        # Traer los establecimientos en el orden calculado, filtrados por cluster y activos
-        estabs_map = {
-            e.id_establecimiento: e
-            for e in db.query(Establecimiento)
-            .filter(
-                Establecimiento.id_establecimiento.in_(ids_ordenados),
-                Establecimiento.id_cluster == usuario.id_cluster,
-                Establecimiento.es_activo == True,
-                Establecimiento.estado == "aprobado",
-            )
-            .all()
-        }
-        # Preservar el orden por señal colaborativa
-        candidatos = [estabs_map[eid] for eid in ids_ordenados if eid in estabs_map]
-    else:
-        candidatos = []
-
-    # Si el cluster tiene pocos establecimientos con interacciones, complementar
-    # con los mejor rankeados del mismo cluster por score_boost_combinado
-    if len(candidatos) < limit:
-        ids_ya_incluidos = {e.id_establecimiento for e in candidatos}
-        faltantes = limit - len(candidatos)
-        complemento = (
-            db.query(Establecimiento)
-            .join(MetricaEstablecimiento)
-            .filter(
-                Establecimiento.id_cluster == usuario.id_cluster,
-                Establecimiento.es_activo == True,
-                Establecimiento.estado == "aprobado",
-                Establecimiento.id_establecimiento.notin_(ids_ya_incluidos),
-            )
-            .order_by(MetricaEstablecimiento.score_boost_combinado.desc())
-            .limit(faltantes)
-            .all()
-        )
-        candidatos.extend(complemento)
-
-    # Fallback final: si el cluster no tiene nada, usar top global
-    if not candidatos and get_top_establecimientos:
-        logger.warning(
-            "Cluster %d sin candidatos — usando top global para usuario_id=%d",
-            usuario.id_cluster,
-            usuario.id_usuario,
-        )
-        return get_top_establecimientos(db, limit=limit)
-
-    return candidatos
-
-
-def obtener_descubrimientos(
-    db: Session,
-    usuario: UsuarioVisitante,
-    candidatos_seleccionados: List[Establecimiento],
-    limit: int = 10,
-) -> List[tuple]:
-    """
-    Mejora 3B — Serendipia real con diversity_score.
-
-    Reemplaza el ordenamiento por fecha_registro DESC por una selección basada en
-    diversity_score: qué tan DISTINTO es cada candidato respecto a los establecimientos
-    ya seleccionados para el usuario. Solo considera establecimientos de clusters
-    DISTINTOS al del usuario para garantizar verdadera sorpresa.
-
-    Args:
-        db: Sesión activa de SQLAlchemy.
-        usuario: UsuarioVisitante con id_cluster poblado.
-        candidatos_seleccionados: Establecimientos ya asignados a carruseles del usuario.
-        limit: Número máximo de descubrimientos a retornar.
-
-    Returns:
-        Lista de tuplas (Establecimiento, diversity_score) ordenadas por diversidad desc.
-    """
-    # Filtro base: clusters distintos al del usuario, activos y aprobados.
-    # Los informales tienen su propio carrusel (tendencia_informal), se excluyen aquí.
-    filtros = [
-        Establecimiento.es_activo == True,
-        Establecimiento.estado == "aprobado",
-        Establecimiento.es_informal == False,
-    ]
-    if usuario.id_cluster is not None:
-        filtros.append(Establecimiento.id_cluster != usuario.id_cluster)
-
-    candidatos_otros = db.query(Establecimiento).filter(*filtros).all()
-
-    if not candidatos_otros:
-        # Fallback sin cluster: establecimientos recientes para no devolver vacío
-        logger.warning(
-            "Sin candidatos cross-cluster para descubrimiento (usuario_id=%d) — usando recientes",
-            usuario.id_usuario,
-        )
-        return [
-            (e, 0.5)
-            for e in db.query(Establecimiento)
-            .filter(
-                Establecimiento.es_activo == True,
-                Establecimiento.estado == "aprobado",
-                Establecimiento.es_informal == False,
-            )
-            .order_by(Establecimiento.fecha_registro.desc())
-            .limit(limit)
-            .all()
-        ]
-
-    # Vectores de los candidatos ya seleccionados (para calcular qué tan distinto es cada candidato).
-    # cast() necesario: SQLAlchemy infiere Column(JSON) como Column[Any] a nivel de clase,
-    # pero en runtime la instancia retorna el valor Python real (list[float]).
-    # cast() es una no-operación en runtime — solo existe para el type checker.
-    vecs_seleccionados = cast(list[list[float]], [
-        e.vector_caracteristicas
-        for e in candidatos_seleccionados
-        if e.vector_caracteristicas
-    ])
-
-    scored = []
-    for estab in candidatos_otros:
-        if not estab.vector_caracteristicas:
-            continue
-        if calcular_diversity_score and vecs_seleccionados:
-            # casteamos vector_caracteristicas de Column[Any] a list[float] para el type checker
-            div_score = calcular_diversity_score(
-                cast(list[float], estab.vector_caracteristicas),
-                vecs_seleccionados
-            )
-        else:
-            # Sin vectores disponibles, asignar score neutro
-            div_score = 0.5
-        scored.append((estab, div_score))
-
-    # Ordenar por diversity_score DESC: el más distinto al perfil ya seleccionado va primero
-    scored.sort(key=lambda x: x[1], reverse=True)
-    return scored[:limit]
 
 
 def generar_para_usuario(
@@ -433,10 +210,10 @@ def generar_para_usuario(
             nuevas_recomendaciones.append(rec)
             pos_efectiva += 1
 
-    # ── 1. Determinar fase de transición (Componente 4) ───────────────────────
-    # Se calcula ahora (en el job offline) y se persiste en BD para que el
+    # ── 1. Determinar fase de transición — delegado a cold_start.determinar_fase ──
+    # Se calcula en el job offline y se persiste en BD para que el
     # recomendacion_service online pueda consultarla sin recalcular.
-    fase = determinar_fase(usuario)
+    fase = determinar_fase(usuario) if determinar_fase else 0
     usuario.fase_transicion = fase  # type: ignore
     logger.debug(
         "generar_para_usuario: usuario_id=%d fase=%d puntos=%s",
@@ -614,18 +391,24 @@ def procesar_generacion(db: Session) -> None:
 
     # 4. Generación por usuario e Inserción Masiva
     for usuario in usuarios_activos:
-        # Mejora 3A: pool personalizado por cluster con señal colaborativa interna.
-        # Cada usuario recibe candidatos de su propio cluster, no el mismo top-40 global.
+        # Mejora 3A — pool personalizado delegado a collab_filter.obtener_candidatos_por_cluster
         POOL_CANDIDATOS = 40
-        candidatos_usuario = obtener_candidatos_por_cluster(db, usuario, limit=POOL_CANDIDATOS)
+        candidatos_usuario = (
+            obtener_candidatos_por_cluster(db, usuario, limit=POOL_CANDIDATOS)
+            if obtener_candidatos_por_cluster
+            else []
+        )
 
-        # Mejora 3B: descubrimientos calculados por usuario con diversity_score.
-        # Se pasan los candidatos ya seleccionados para maximizar la distancia semántica.
-        estabs_descubrimiento = obtener_descubrimientos(
-            db,
-            usuario,
-            candidatos_seleccionados=candidatos_usuario,
-            limit=MAX_RECOMENDACIONES_POR_CATEGORIA,
+        # Mejora 3B — serendipia delegada a content_filter.obtener_descubrimientos
+        estabs_descubrimiento = (
+            obtener_descubrimientos(
+                db,
+                usuario,
+                candidatos_seleccionados=candidatos_usuario,
+                limit=MAX_RECOMENDACIONES_POR_CATEGORIA,
+            )
+            if obtener_descubrimientos
+            else []
         )
 
         recomendaciones_usuario = generar_para_usuario(
