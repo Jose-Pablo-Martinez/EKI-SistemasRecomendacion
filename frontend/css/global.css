@@ -186,9 +186,20 @@
     /* En movil: expandir más allá del padding de la pantalla para evitar corte abrupto */
     margin-left: -16px;
     margin-right: -16px;
-    /* Agregamos más padding para que no se vean pegadas a la pantalla (24px) */
-    padding-left: 24px;
-    padding-right: 24px;
+    /* Padding alineado con el contenedor principal (px-4 = 16px) */
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Para que los fondos con textura se expandan al borde en móvil */
+  @media (max-width: 767px) {
+    .eki-texture-bg {
+      margin-left: -16px;
+      margin-right: -16px;
+      border-radius: 0 !important;
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
   }
 
   .eki-carousel-wrap {
@@ -275,6 +286,15 @@
 .text-numeric-lg  { font-size: 32px; line-height: 36px;  font-weight: 700; font-variant-numeric: tabular-nums; }
 .text-numeric-md  { font-size: 20px; line-height: 24px;  font-weight: 600; font-variant-numeric: tabular-nums; }
 .text-numeric-sm  { font-size: 14px; line-height: 18px;  font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Ajustes tipográficos para carruseles en pantallas muy pequeñas (ej. iPhone 414px) para evitar sensación de encajonamiento */
+@media (max-width: 480px) {
+  .text-headline-lg { font-size: 22px; line-height: 28px; }
+  .eki-carousel .text-headline-sm { font-size: 16px; line-height: 22px; }
+  .eki-carousel .text-body-sm     { font-size: 13px; line-height: 18px; }
+  .eki-carousel .text-label-md    { font-size: 11px; line-height: 14px; }
+  .eki-carousel .text-numeric-sm  { font-size: 13px; line-height: 16px; }
+}
 
 @layer components {
   .eki-grid {

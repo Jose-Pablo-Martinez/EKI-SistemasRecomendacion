@@ -3,7 +3,15 @@
  * Función: Controlador de la vista de registro. 
  * Maneja la creación de nuevas cuentas y auto-login.
  */
-window.controllers.register = async () => {
+import { api } from '../api.js';
+import { initState } from '../state.js';
+import { saveToken } from '../auth.js';
+import { renderView } from '../app.js';
+import { errorHandler } from '../utils/errorHandler.js';
+import { validators } from '../utils/validators.js';
+import { Modal } from '../components/Modal.js';
+
+export default async function registerController() {
     // 1. Cargar Vista HTML
     const loaded = await renderView('register.html');
     if (!loaded) return;
@@ -26,6 +34,7 @@ window.controllers.register = async () => {
     const setupToggle = (btnId, inputElement, iconId) => {
         const btn = document.getElementById(btnId);
         const icon = document.getElementById(iconId);
+        if (!btn || !icon || !inputElement) return;
         btn.addEventListener('click', () => {
             if (inputElement.type === 'password') {
                 inputElement.type = 'text';
@@ -40,11 +49,16 @@ window.controllers.register = async () => {
     setupToggle('toggle-password-confirm', confirmInput, 'icon-password-confirm');
 
     const clearErrors = () => {
-        [errorDiv, nombreError, apellidoError, emailError, passError, confirmError].forEach(el => el.classList.add('hidden'));
-        [nombreInput, apellidoInput, emailInput, passInput, confirmInput].forEach(el => el.classList.remove('border-accent'));
+        [errorDiv, nombreError, apellidoError, emailError, passError, confirmError].forEach(el => {
+            if(el) el.classList.add('hidden')
+        });
+        [nombreInput, apellidoInput, emailInput, passInput, confirmInput].forEach(el => {
+            if(el) el.classList.remove('border-accent')
+        });
     };
 
     const showError = (element, message, input) => {
+        if (!element) return;
         element.textContent = message;
         element.classList.remove('hidden');
         if (input) input.classList.add('border-accent');
@@ -55,96 +69,101 @@ window.controllers.register = async () => {
         if (confirmInput.value && passInput.value !== confirmInput.value) {
             showError(confirmError, 'Las contraseñas no coinciden.', confirmInput);
         } else {
-            confirmError.classList.add('hidden');
-            confirmInput.classList.remove('border-accent');
+            if (confirmError) confirmError.classList.add('hidden');
+            if (confirmInput) confirmInput.classList.remove('border-accent');
         }
     };
 
-    passInput.addEventListener('input', validatePasswordsMatch);
-    confirmInput.addEventListener('input', validatePasswordsMatch);
+    if (passInput) passInput.addEventListener('input', validatePasswordsMatch);
+    if (confirmInput) confirmInput.addEventListener('input', validatePasswordsMatch);
 
     // Manejo de Formulario
-    document.getElementById('register-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const nombre = nombreInput.value.trim();
-        const apellido = apellidoInput.value.trim();
-        const email = emailInput.value.trim();
-        const password = passInput.value;
-        const passwordConfirm = confirmInput.value;
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        
-        clearErrors();
-        
-        let hasError = false;
-
-        if (!nombre) {
-            showError(nombreError, 'El nombre es requerido.', nombreInput);
-            hasError = true;
-        } else if (!window.validators.isValidName(nombre)) {
-            showError(nombreError, 'Nombre inválido.', nombreInput);
-            hasError = true;
-        }
-
-        if (!apellido) {
-            showError(apellidoError, 'El apellido es requerido.', apellidoInput);
-            hasError = true;
-        } else if (!window.validators.isValidName(apellido)) {
-            showError(apellidoError, 'Apellido inválido.', apellidoInput);
-            hasError = true;
-        }
-
-        if (!email) {
-            showError(emailError, 'El correo es requerido.', emailInput);
-            hasError = true;
-        } else if (!window.validators.isValidEmail(email)) {
-            showError(emailError, 'Por favor ingresa un correo válido.', emailInput);
-            hasError = true;
-        }
-
-        if (!password) {
-            showError(passError, 'La contraseña es requerida.', passInput);
-            hasError = true;
-        } else if (password.length < 8) {
-            showError(passError, 'La contraseña debe tener al menos 8 caracteres.', passInput);
-            hasError = true;
-        }
-
-        if (!passwordConfirm) {
-            showError(confirmError, 'Confirma tu contraseña.', confirmInput);
-            hasError = true;
-        } else if (password !== passwordConfirm) {
-            showError(confirmError, 'Las contraseñas no coinciden.', confirmInput);
-            hasError = true;
-        }
-
-        if (hasError) return;
-
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin">progress_activity</span> Creando cuenta...</div>';
-
-        try {
-            await api.registro({ nombre, apellido, email, password, tipo_usuario: 'visitante' });
+    const form = document.getElementById('register-form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nombre = nombreInput.value.trim();
+            const apellido = apellidoInput.value.trim();
+            const email = emailInput.value.trim();
+            const password = passInput.value;
+            const passwordConfirm = confirmInput.value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
             
-            // Autenticación automática
-            const loginData = await api.login(email, password);
-            saveToken(loginData.access_token);
-            await initState();
+            clearErrors();
+            
+            let hasError = false;
 
-            window.components.Modal.show({
-                title: '¡Registro Exitoso!',
-                message: 'Tu cuenta ha sido creada. Ahora vamos a personalizar tu experiencia.',
-                type: 'success',
-                onClose: () => {
-                    window.location.hash = '#/onboarding';
+            if (!nombre) {
+                showError(nombreError, 'El nombre es requerido.', nombreInput);
+                hasError = true;
+            } else if (!validators.isValidName(nombre)) {
+                showError(nombreError, 'Nombre inválido.', nombreInput);
+                hasError = true;
+            }
+
+            if (!apellido) {
+                showError(apellidoError, 'El apellido es requerido.', apellidoInput);
+                hasError = true;
+            } else if (!validators.isValidName(apellido)) {
+                showError(apellidoError, 'Apellido inválido.', apellidoInput);
+                hasError = true;
+            }
+
+            if (!email) {
+                showError(emailError, 'El correo es requerido.', emailInput);
+                hasError = true;
+            } else if (!validators.isValidEmail(email)) {
+                showError(emailError, 'Por favor ingresa un correo válido.', emailInput);
+                hasError = true;
+            }
+
+            if (!password) {
+                showError(passError, 'La contraseña es requerida.', passInput);
+                hasError = true;
+            } else if (password.length < 8) {
+                showError(passError, 'La contraseña debe tener al menos 8 caracteres.', passInput);
+                hasError = true;
+            }
+
+            if (!passwordConfirm) {
+                showError(confirmError, 'Confirma tu contraseña.', confirmInput);
+                hasError = true;
+            } else if (password !== passwordConfirm) {
+                showError(confirmError, 'Las contraseñas no coinciden.', confirmInput);
+                hasError = true;
+            }
+
+            if (hasError) return;
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin pointer-events-none">progress_activity</span> Creando cuenta...</div>';
+
+            try {
+                await api.registro({ nombre, apellido, email, password, tipo_usuario: 'visitante' });
+                
+                // Autenticación automática
+                const loginData = await api.login(email, password);
+                saveToken(loginData.access_token);
+                await initState();
+
+                Modal.show({
+                    title: '¡Registro Exitoso!',
+                    message: 'Tu cuenta ha sido creada. Ahora vamos a personalizar tu experiencia.',
+                    type: 'success',
+                    onClose: () => {
+                        window.location.hash = '#/onboarding';
+                    }
+                });
+
+            } catch (err) {
+                const userMsg = errorHandler.handle(err, 'Registro');
+                if (errorDiv) {
+                    errorDiv.textContent = userMsg;
+                    errorDiv.classList.remove('hidden');
                 }
-            });
-
-        } catch (err) {
-            const userMsg = window.errorHandler.handle(err, 'Registro');
-            errorDiv.textContent = userMsg;
-            errorDiv.classList.remove('hidden');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'CREAR CUENTA';
-        }
-    });
-};
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'CREAR CUENTA';
+            }
+        });
+    }
+}

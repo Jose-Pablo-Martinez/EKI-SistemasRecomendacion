@@ -1,20 +1,19 @@
-/**
- * Archivo modificado: 2026-05-23
- * Función: Controlador del flujo de bienvenida (Cold Start). 
- * Captura gustos, presupuesto y ubicación inicial.
- */
-window.controllers.onboarding = async () => {
+import { api } from '../api.js';
+import { appState } from '../state.js';
+import { renderView } from '../app.js';
+import { errorHandler } from '../utils/errorHandler.js';
+import { Modal } from '../components/Modal.js';
+
+export default async function onboardingController() {
     let step = 1;
     let categoriasSeleccionadas = appState.user?.visitante?.vector_preferencias?.categorias_preferidas || [];
     let preciosSeleccionados = appState.user?.visitante?.vector_preferencias?.precios_preferidos || [];
     let isEditing = !!appState.user?.perfil_completado;
     let categoriasData = [];
 
-    // 1. Cargar Vista HTML base
     const loaded = await renderView('onboarding.html');
     if (!loaded) return;
 
-    // Elementos DOM
     const stepContainer = document.getElementById('step-container');
     const progressBar = document.getElementById('progress-bar');
     const stepIndicator = document.getElementById('step-indicator');
@@ -34,7 +33,6 @@ window.controllers.onboarding = async () => {
             categoriasData = await api.getCategorias() || [];
         } catch (err) {
             console.error("Error cargando categorías:", err);
-            // Datos de prueba (mocks)
             categoriasData = [
                 { id_categoria: 1, nombre: "Yucateca" },
                 { id_categoria: 2, nombre: "Antojitos" },
@@ -96,18 +94,18 @@ window.controllers.onboarding = async () => {
             const priceIconsMap = {
                 "Popular": `
                     <div class="flex justify-center mb-2 text-3xl xl:text-4xl 2xl:text-5xl">
-                        <span class="material-symbols-outlined">payments</span>
+                        <span class="material-symbols-outlined pointer-events-none">payments</span>
                     </div>`,
                 "Casual": `
                     <div class="flex justify-center mb-2 text-3xl xl:text-4xl 2xl:text-5xl">
-                        <span class="material-symbols-outlined">payments</span>
-                        <span class="material-symbols-outlined">payments</span>
+                        <span class="material-symbols-outlined pointer-events-none">payments</span>
+                        <span class="material-symbols-outlined pointer-events-none">payments</span>
                     </div>`,
                 "Premium": `
                     <div class="flex justify-center mb-2 text-3xl xl:text-4xl 2xl:text-5xl">
-                        <span class="material-symbols-outlined">payments</span>
-                        <span class="material-symbols-outlined">payments</span>
-                        <span class="material-symbols-outlined">payments</span>
+                        <span class="material-symbols-outlined pointer-events-none">payments</span>
+                        <span class="material-symbols-outlined pointer-events-none">payments</span>
+                        <span class="material-symbols-outlined pointer-events-none">payments</span>
                     </div>`
             };
 
@@ -131,7 +129,7 @@ window.controllers.onboarding = async () => {
                 <p class="mb-6 xl:mb-10 text-text-secondary text-sm xl:text-lg 2xl:text-xl text-center">Para darte las mejores recomendaciones "cerca de ti", necesitamos conocer tu ubicación.</p>
                 <div class="flex flex-col gap-4 xl:gap-6 max-w-md xl:max-w-xl mx-auto mb-6">
                     <button id="btn-location" class="bg-secondary text-white font-bold py-3 xl:py-4 px-4 xl:px-6 rounded hover:bg-secondary-subtle active:scale-95 transition-all w-full flex justify-center items-center gap-2 text-sm xl:text-lg 2xl:text-xl">
-                        <svg class="w-5 h-5 xl:w-7 xl:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        <span class="material-symbols-outlined pointer-events-none">my_location</span>
                         Usar mi ubicación actual
                     </button>
                     <p id="location-status" class="text-sm xl:text-base text-center h-5 font-bold text-text-secondary"></p>
@@ -139,7 +137,6 @@ window.controllers.onboarding = async () => {
             `;
         }
 
-        // Inyectar estado en el DOM base
         stepContainer.innerHTML = stepHtml;
         progressBar.style.width = step === 1 ? '33.33%' : step === 2 ? '66.66%' : '100%';
         stepIndicator.textContent = `Paso ${step} de 3`;
@@ -150,7 +147,6 @@ window.controllers.onboarding = async () => {
         if (step === 3) nextBtn.textContent = 'FINALIZAR';
         else nextBtn.textContent = 'SIGUIENTE';
 
-        // Re-vincular eventos para contenido dinámico
         bindDynamicEvents();
     };
 
@@ -190,7 +186,7 @@ window.controllers.onboarding = async () => {
                 
                 const originalHtml = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin" style="font-size:20px;">progress_activity</span> Obteniendo...</div>`;
+                btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin pointer-events-none" style="font-size:20px;">progress_activity</span> Obteniendo...</div>`;
                 status.textContent = '';
                 status.className = 'text-sm xl:text-base text-center h-5 font-bold text-text-secondary';
                 
@@ -204,7 +200,7 @@ window.controllers.onboarding = async () => {
                     try {
                         await api.enviarUbicacion(lat, lon);
                     } catch (err) {
-                        window.errorHandler.handle(err, 'GeoLocation API');
+                        errorHandler.handle(err, 'GeoLocation API');
                         console.warn("Backend error o no disponible, ubicación local guardada", err);
                     }
                     
@@ -222,18 +218,17 @@ window.controllers.onboarding = async () => {
         }
     };
 
-    // Vincular eventos estáticos una vez
     prevBtn.addEventListener('click', () => {
         if (step > 1) { step--; renderCurrentStep(); }
     });
 
     nextBtn.addEventListener('click', async () => {
         if (step === 1 && categoriasSeleccionadas.length === 0) {
-            window.components.Modal.show({ title: 'Selección requerida', message: 'Por favor selecciona al menos una categoría.', type: 'error' });
+            Modal.show({ title: 'Selección requerida', message: 'Por favor selecciona al menos una categoría.', type: 'error' });
             return;
         }
         if (step === 2 && preciosSeleccionados.length === 0) {
-            window.components.Modal.show({ title: 'Selección requerida', message: 'Por favor selecciona al menos un rango de precio.', type: 'error' });
+            Modal.show({ title: 'Selección requerida', message: 'Por favor selecciona al menos un rango de precio.', type: 'error' });
             return;
         }
 
@@ -242,12 +237,29 @@ window.controllers.onboarding = async () => {
             renderCurrentStep();
         } else {
             nextBtn.disabled = true;
-            nextBtn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin" style="font-size:20px;">progress_activity</span> Guardando...</div>`;
+            nextBtn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin pointer-events-none" style="font-size:20px;">progress_activity</span> Guardando...</div>`;
             try {
                 const preferencias = {
                     categorias: categoriasSeleccionadas,
                     precios: preciosSeleccionados
                 };
+                
+                // Evitar update innecesario
+                if (appState.user && appState.user.visitante && appState.user.visitante.vector_preferencias) {
+                    const vector = appState.user.visitante.vector_preferencias;
+                    const catIguales = JSON.stringify([...categoriasSeleccionadas].sort()) === JSON.stringify([...(vector.categorias_preferidas || [])].sort());
+                    const preIguales = JSON.stringify([...preciosSeleccionados].sort()) === JSON.stringify([...(vector.precios_preferidos || [])].sort());
+                    if (catIguales && preIguales) {
+                        Modal.show({
+                            title: '¡Todo listo!',
+                            message: 'No hubo cambios en tus preferencias, todo sigue igual.',
+                            type: 'success',
+                            onClose: () => { window.location.hash = '#/feed'; }
+                        });
+                        return;
+                    }
+                }
+
                 await api.enviarOnboarding(preferencias);
                 if (appState.user) {
                     appState.user.perfil_completado = true;
@@ -258,21 +270,20 @@ window.controllers.onboarding = async () => {
                     };
                 }
                 
-                window.components.Modal.show({
+                Modal.show({
                     title: '¡Todo listo!',
                     message: 'Tus preferencias han sido guardadas con éxito.',
                     type: 'success',
                     onClose: () => { window.location.hash = '#/feed'; }
                 });
             } catch (err) {
-                const userMsg = window.errorHandler.handle(err, 'Onboarding');
-                window.components.Modal.show({ title: 'Ocurrió un problema', message: userMsg, type: 'error' });
+                const userMsg = errorHandler.handle(err, 'Onboarding');
+                Modal.show({ title: 'Ocurrió un problema', message: userMsg, type: 'error' });
                 nextBtn.disabled = false;
                 nextBtn.innerHTML = 'FINALIZAR';
             }
         }
     });
 
-    // Iniciar
     loadCategorias();
-};
+}

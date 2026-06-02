@@ -6,7 +6,7 @@
  * la percepción de velocidad (UX) evitando pantallas vacías.
  */
 
-window.Skeletons = {
+export const Skeletons = {
   /**
    * Genera los skeletons grandes tipo "Feed" con imagen superior 16:9.
    * @param {number} n - Cantidad de skeletons a generar.

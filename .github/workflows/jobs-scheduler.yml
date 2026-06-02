@@ -1,0 +1,127 @@
+name: EKI — Jobs Offline Scheduler
+
+# Ejecuta los jobs offline de EkiSystem en secuencia cada 8 horas.
+# El orden importa: NLP y Métricas deben correr ANTES que Clustering,
+# y Clustering ANTES que Recomendaciones (dependencias de datos).
+#
+# También disponible en modo manual desde la pestaña Actions de GitHub.
+
+on:
+  schedule:
+    # Ejecutar cada 8 horas: 00:00, 08:00, 16:00 UTC
+    # Equivale a: 18:00, 02:00, 10:00 hora CDMX-Mérida (UTC-6)
+    - cron: '0 */8 * * *'
+  workflow_dispatch: # Permite ejecución manual sin esperar el cron
+
+jobs:
+  run-offline-jobs:
+    name: Disparar Jobs Offline (NLP → Métricas → Clustering → Recomendaciones)
+    runs-on: ubuntu-latest
+    environment: ekiEnvironment # Mismo Environment que database-migrations.yml
+
+    steps:
+      # ── 1. Despertar el servicio Render ──────────────────────────────────────
+      # Render Free Tier duerme tras 15 min de inactividad.
+      # El primer curl al /health lo despierta (puede tardar ~30-50s en arrancar).
+      - name: Despertar servicio Render
+        run: |
+          echo "Haciendo ping al servicio para despertar Render..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 60 \
+            "${{ secrets.RENDER_API_URL }}/health")
+          echo "HTTP status del /health: $HTTP_CODE"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Advertencia: /health respondió $HTTP_CODE. El servicio puede estar arrancando aún."
+          fi
+
+      # ── 2. Esperar warmup completo ────────────────────────────────────────────
+      - name: Esperar warmup del servicio (30s)
+        run: sleep 30
+
+      # ── 3. Job NLP ───────────────────────────────────────────────────────────
+      # Analiza polaridad/subjetividad de reseñas y actualiza metrica_establecimiento.
+      # No depende de clustering — puede correr primero.
+      - name: Ejecutar Job NLP
+        run: |
+          echo "Disparando job: nlp..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "${{ secrets.RENDER_API_URL }}/admin/jobs/nlp" \
+            -H "Authorization: Bearer ${{ secrets.ADMIN_JWT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --max-time 30)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          echo "Respuesta: $BODY (HTTP $HTTP_CODE)"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Error al disparar job nlp (HTTP $HTTP_CODE). Abortando pipeline."
+            exit 1
+          fi
+
+      # ── 4. Job Métricas ──────────────────────────────────────────────────────
+      # Recalcula score_boost_combinado, popularidad_7d/30d, score_contenido_base.
+      # Debe correr antes de Clustering para que los vectores estén actualizados.
+      - name: Ejecutar Job Métricas
+        run: |
+          echo "Disparando job: metricas..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "${{ secrets.RENDER_API_URL }}/admin/jobs/metricas" \
+            -H "Authorization: Bearer ${{ secrets.ADMIN_JWT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --max-time 30)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          echo "Respuesta: $BODY (HTTP $HTTP_CODE)"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Error al disparar job metricas (HTTP $HTTP_CODE). Abortando pipeline."
+            exit 1
+          fi
+
+      # ── 5. Esperar procesamiento de NLP y Métricas ───────────────────────────
+      # Los jobs son asíncronos (daemon threads). Se espera para darles tiempo
+      # de completarse antes de lanzar Clustering, que depende de sus resultados.
+      - name: Esperar procesamiento de NLP y Métricas (90s)
+        run: sleep 90
+
+      # ── 6. Job Clustering ────────────────────────────────────────────────────
+      # Ejecuta K-Means sobre establecimientos y asigna id_cluster.
+      # Depende de que vector_caracteristicas y métricas estén actualizadas.
+      - name: Ejecutar Job Clustering
+        run: |
+          echo "Disparando job: clustering..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "${{ secrets.RENDER_API_URL }}/admin/jobs/clustering" \
+            -H "Authorization: Bearer ${{ secrets.ADMIN_JWT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --max-time 30)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          echo "Respuesta: $BODY (HTTP $HTTP_CODE)"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Error al disparar job clustering (HTTP $HTTP_CODE). Abortando pipeline."
+            exit 1
+          fi
+
+      # ── 7. Esperar Clustering ────────────────────────────────────────────────
+      # K-Means puede tardar dependiendo del volumen de establecimientos.
+      - name: Esperar finalización de Clustering (90s)
+        run: sleep 90
+
+      # ── 8. Job Recomendaciones ───────────────────────────────────────────────
+      # Genera recomendacion_generada para todos los usuarios activos.
+      # Es el job más pesado — depende de clusters y métricas actualizadas.
+      - name: Ejecutar Job Recomendaciones
+        run: |
+          echo "Disparando job: recomendaciones..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "${{ secrets.RENDER_API_URL }}/admin/jobs/recomendaciones" \
+            -H "Authorization: Bearer ${{ secrets.ADMIN_JWT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --max-time 30)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          echo "Respuesta: $BODY (HTTP $HTTP_CODE)"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Error al disparar job recomendaciones (HTTP $HTTP_CODE). Abortando pipeline."
+            exit 1
+          fi
+          echo "Pipeline de jobs completado exitosamente."

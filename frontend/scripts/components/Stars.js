@@ -5,7 +5,7 @@
  * basándose en un rating promedio. Utilizado en Feed, Búsqueda y Detalles.
  */
 
-window.Stars = {
+export const Stars = {
   /**
    * Genera el HTML de 5 estrellas llenas o vacías según el rating.
    * @param {number} rating - El promedio de calificación (ej. 4.5)

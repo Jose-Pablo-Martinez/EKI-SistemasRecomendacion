@@ -49,8 +49,8 @@ def get_cold_start_recommendations(
 
     Estrategia:
         1. Asignar cluster provisional por distancia euclidiana a centroides.
-        2. Retornar establecimientos populares (popularidad_7d) dentro del cluster.
-        3. Aplicar filtrado por contenido desde vector_preferencias del onboarding.
+        2. Filtrar establecimientos populares (popularidad_7d) cruzados con vector_preferencias.
+        3. Si no hay suficientes resultados, rellenar usando el top de populares global.
         4. No usar componente colaborativo (perfil_completado=FALSE).
 
     Args:
@@ -67,17 +67,48 @@ def get_cold_start_recommendations(
         usuario.id_usuario,
         usuario.perfil_completado,
     )
-    stmt = (
+    from backend.models.establecimientos import EstablecimientoCategoria
+    from backend.models.catalogo import Categoria
+
+    base_stmt = (
         select(Establecimiento)
         .outerjoin(MetricaEstablecimiento, Establecimiento.id_establecimiento == MetricaEstablecimiento.id_establecimiento)
         .where(
             Establecimiento.es_activo == True,
             Establecimiento.estado == "aprobado"
         )
-        .order_by(MetricaEstablecimiento.popularidad_7d.desc())
-        .limit(limit)
     )
-    return list(db.scalars(stmt).all())
+
+    resultados = []
+    ids_obtenidos = set()
+
+    # 1. Intentar obtener recomendaciones filtradas por preferencias
+    if usuario.vector_preferencias and isinstance(usuario.vector_preferencias, dict):
+        categorias_preferidas = usuario.vector_preferencias.get("categorias_preferidas", [])
+        if categorias_preferidas:
+            stmt_pref = base_stmt.where(
+                Establecimiento.categorias.any(
+                    EstablecimientoCategoria.categoria.has(
+                        Categoria.nombre.in_(categorias_preferidas)
+                    )
+                )
+            ).order_by(MetricaEstablecimiento.popularidad_7d.desc()).limit(limit)
+            
+            recs_pref = list(db.scalars(stmt_pref).all())
+            resultados.extend(recs_pref)
+            ids_obtenidos.update(r.id_establecimiento for r in recs_pref)
+
+    # 2. Rellenar con top globales si no hay suficientes
+    faltan = limit - len(resultados)
+    if faltan > 0:
+        stmt_top = base_stmt
+        if ids_obtenidos:
+            stmt_top = stmt_top.where(Establecimiento.id_establecimiento.not_in(ids_obtenidos))
+        
+        stmt_top = stmt_top.order_by(MetricaEstablecimiento.popularidad_7d.desc()).limit(faltan)
+        resultados.extend(list(db.scalars(stmt_top).all()))
+
+    return resultados
 
 
 def assign_cluster_provisional(
@@ -160,3 +191,43 @@ def handle_new_establecimiento(id_establecimiento: int, db: "Session") -> dict:
     db.commit()
 
     return {"id_establecimiento": id_establecimiento, "status": "cold_start_applied"}
+
+
+# Componente 4 — Transición Suave del Cold Start 
+# Cada interacción significativa otorga 10 puntos_experiencia (diseño §1.5).
+# Los umbrales están calibrados coherentemente con MIN_INTERACCIONES_COLABORATIVO
+# (5 interacciones = 50 puntos = UMBRAL_FASE_1).
+UMBRAL_FASE_1: int = 50   # ≥5 interacciones → entrar en transición
+UMBRAL_FASE_2: int = 150  # ≥15 interacciones → ML completo
+
+
+def determinar_fase(usuario: "UsuarioVisitante") -> int:
+    """
+    Determina la fase de transición del usuario basándose en sus
+    puntos_experiencia y si completó el onboarding.
+
+    Fases:
+      0  →  Cold start puro (< 5 interacciones / < 50 puntos).
+             El usuario ve solo el carrusel 'Populares de la semana'.
+      1  →  Transición (5–15 interacciones / 50–150 puntos).
+             Blend: cold start reducido + primer carrusel de contenido.
+             El colaborativo aún no se activa (matriz dispersa insuficiente).
+      2  →  ML completo (> 15 interacciones / > 150 puntos).
+             Todos los carruseles activos: híbrido, contenido, colaborativo.
+
+    La relación 1 interacción = 10 puntos garantiza coherencia con
+    MIN_INTERACCIONES_COLABORATIVO = 5 en este mismo módulo.
+
+    Args:
+        usuario: UsuarioVisitante con puntos_experiencia y perfil_completado.
+
+    Returns:
+        int: 0, 1 ó 2 según la fase.
+    """
+    puntos = int(usuario.puntos_experiencia or 0)  # type: ignore
+    if not usuario.perfil_completado or puntos < UMBRAL_FASE_1:
+        return 0
+    elif puntos < UMBRAL_FASE_2:
+        return 1
+    else:
+        return 2

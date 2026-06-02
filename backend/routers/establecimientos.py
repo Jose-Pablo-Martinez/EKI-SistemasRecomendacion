@@ -15,10 +15,20 @@ from backend.schemas.recomendaciones import InteraccionUsuarioCreate, ResenaCrea
 
 router = APIRouter(prefix="/establecimientos", tags=["Establecimientos"])
 
+@router.get("/autocomplete")
+def autocomplete_establecimientos(q: str = "", db: Session = Depends(get_db)):
+    """
+    Sugerencias de autocompletado en tiempo real mientras el usuario escribe.
+    Usa el vocabulario enriquecido en caché (nombres + categorías + etiquetas).
+    No requiere autenticación — se usa antes de que el usuario haga la búsqueda formal.
+    """
+    return {"sugerencias": buscador_service.autocompletar(db, prefijo=q, limit=5)}
+
 @router.get("/buscar", response_model=BusquedaResponse)
-def buscar_establecimientos(q: Optional[str] = None, tipo: Optional[str] = None, colonia: Optional[int] = None, db: Session = Depends(get_db)):
-    """Búsqueda de establecimientos por query de texto o colonia con tolerancia a errores (Levenshtein)."""
+def buscar_establecimientos_endpoint(q: Optional[str] = None, tipo: Optional[str] = None, colonia: Optional[int] = None, db: Session = Depends(get_db)):
+    """Búsqueda de establecimientos por query de texto o colonia con tolerancia a errores (pipeline: exacto → prefijo → N-grama + Levenshtein)."""
     return buscador_service.buscar_con_correccion(db, query=q, tipo_establecimiento=tipo, id_colonia=colonia)
+
 
 @router.get("/{id_establecimiento}", response_model=EstablecimientoResponse)
 def get_establecimiento(id_establecimiento: int, db: Session = Depends(get_db)):

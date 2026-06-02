@@ -3,6 +3,10 @@
  * EkiSystem — Fase 5 Frontend
  * Solo accesible para tipo_usuario === 'admin'
  */
+import { api, apiRequest } from '../api.js';
+import { appState } from '../state.js';
+import { renderView } from '../app.js';
+import { showToast } from '../utils.js';
 
 const _ADMIN_TABS = [
   { id:'establecimientos', label:'Establecimientos', icon:'storefront'  },
@@ -19,7 +23,7 @@ const _JOBS = [
   { id:'archivado',       label:'Archivar interacciones',  desc:'Mueve interacciones con más de 90 días a la tabla histórica en batches de 1 000 filas.',      icon:'archive',       tiempo:'~10 s'  },
 ];
 
-// Helpers 
+// Helpers
 function _fechaAdmin(str) {
   if (!str) return '—';
   return new Date(str).toLocaleDateString('es-MX', {
@@ -43,7 +47,6 @@ function _setAdminTab(id) {
   _ADMIN_TABS.forEach(t => {
     const btn = document.getElementById(`atab-${t.id}`);
     if (!btn) return;
-    // Reiniciar estilos
     btn.classList.remove('border-b-2','border-accent','text-primary','font-semibold','text-text-tertiary');
     if (t.id === id) {
       btn.classList.add('border-b-2','border-accent','text-primary','font-semibold');
@@ -68,7 +71,7 @@ async function _renderAdminTab(id) {
     if (!items || !items.length) {
       box.innerHTML = `
         <div class="flex flex-col items-center py-16 text-center">
-          <span class="material-symbols-outlined text-4xl text-[var(--success)] mb-3">check_circle</span>
+          <span class="material-symbols-outlined text-4xl text-[var(--success)] mb-3 pointer-events-none">check_circle</span>
           <p class="font-heading text-headline-sm text-primary mb-1">Todo al día</p>
           <p class="text-body-sm text-text-secondary">
             No hay ${id === 'establecimientos' ? 'establecimientos' : 'reseñas'} pendientes de revisión.
@@ -90,9 +93,9 @@ async function _renderAdminTab(id) {
   } catch(_) {
     box.innerHTML = `
       <div class="flex flex-col items-center py-12 text-center">
-        <span class="material-symbols-outlined text-4xl text-text-tertiary mb-3">wifi_off</span>
+        <span class="material-symbols-outlined text-4xl text-text-tertiary mb-3 pointer-events-none">wifi_off</span>
         <p class="text-body-sm text-text-secondary mb-4">No se pudieron cargar los pendientes.</p>
-        <button onclick="_renderAdminTab('${id}')"
+        <button data-action="reintentar-admin" data-tab-id="${id}"
           class="bg-accent text-white px-4 py-2 rounded font-semibold hover:bg-accent-hover transition-colors">
           Reintentar
         </button>
@@ -133,27 +136,27 @@ function _cardEstab(e, idx) {
 
       ${e.direccion_texto
         ? `<p class="flex items-center gap-1.5 text-body-sm text-text-tertiary mb-3">
-             <span class="material-symbols-outlined" style="font-size:15px;">location_on</span>
+             <span class="material-symbols-outlined pointer-events-none" style="font-size:15px;">location_on</span>
              ${e.direccion_texto}
            </p>`
         : ''}
 
       <div class="flex flex-wrap gap-2 pt-3 border-t border-border-subtle">
-        <button onclick="_moderar('establecimientos',${id},'aprobar','estab-${id}')"
+        <button data-action="moderar" data-tipo="establecimientos" data-id="${id}" data-moderar-accion="aprobar" data-card="estab-${id}"
           class="flex items-center gap-1.5 px-4 py-2 rounded bg-[var(--success)] text-white
                  font-semibold text-label-lg hover:opacity-90 active:scale-95 transition-all">
-          <span class="material-symbols-outlined" style="font-size:16px;">check</span> Aprobar
+          <span class="material-symbols-outlined pointer-events-none" style="font-size:16px;">check</span> Aprobar
         </button>
-        <button onclick="_moderar('establecimientos',${id},'rechazar','estab-${id}')"
+        <button data-action="moderar" data-tipo="establecimientos" data-id="${id}" data-moderar-accion="rechazar" data-card="estab-${id}"
           class="flex items-center gap-1.5 px-4 py-2 rounded border border-accent text-accent
                  font-semibold text-label-lg hover:bg-accent-faint active:scale-95 transition-all">
-          <span class="material-symbols-outlined" style="font-size:16px;">close</span> Rechazar
+          <span class="material-symbols-outlined pointer-events-none" style="font-size:16px;">close</span> Rechazar
         </button>
         ${e.latitud && e.longitud
           ? `<a href="https://www.google.com/maps?q=${e.latitud},${e.longitud}" target="_blank" rel="noopener"
                class="flex items-center gap-1 px-3 py-2 rounded border border-border-default text-text-secondary
                       text-label-lg hover:border-border-strong transition-all">
-               <span class="material-symbols-outlined" style="font-size:15px;">map</span> Ubicación
+               <span class="material-symbols-outlined pointer-events-none" style="font-size:15px;">map</span> Ubicación
              </a>`
           : ''}
       </div>
@@ -200,15 +203,15 @@ function _cardResena(r, idx) {
         : `<p class="text-body-sm text-text-tertiary italic mb-3">Sin comentario escrito.</p>`}
 
       <div class="flex gap-2 pt-3 border-t border-border-subtle">
-        <button onclick="_moderar('resenas',${id},'aprobar','resena-${id}')"
+        <button data-action="moderar" data-tipo="resenas" data-id="${id}" data-moderar-accion="aprobar" data-card="resena-${id}"
           class="flex items-center gap-1.5 px-4 py-2 rounded bg-[var(--success)] text-white
                  font-semibold text-label-lg hover:opacity-90 active:scale-95 transition-all">
-          <span class="material-symbols-outlined" style="font-size:16px;">check</span> Aprobar
+          <span class="material-symbols-outlined pointer-events-none" style="font-size:16px;">check</span> Aprobar
         </button>
-        <button onclick="_moderar('resenas',${id},'rechazar','resena-${id}')"
+        <button data-action="moderar" data-tipo="resenas" data-id="${id}" data-moderar-accion="rechazar" data-card="resena-${id}"
           class="flex items-center gap-1.5 px-4 py-2 rounded border border-accent text-accent
                  font-semibold text-label-lg hover:bg-accent-faint active:scale-95 transition-all">
-          <span class="material-symbols-outlined" style="font-size:16px;">close</span> Rechazar
+          <span class="material-symbols-outlined pointer-events-none" style="font-size:16px;">close</span> Rechazar
         </button>
       </div>
     </div>`;
@@ -243,7 +246,7 @@ async function _moderar(tipo, id, accion, cardId) {
           const tabLabel = tipo === 'establecimientos' ? 'establecimientos' : 'reseñas';
           body.innerHTML = `
             <div class="flex flex-col items-center py-16 text-center">
-              <span class="material-symbols-outlined text-4xl text-[var(--success)] mb-3">check_circle</span>
+              <span class="material-symbols-outlined text-4xl text-[var(--success)] mb-3 pointer-events-none">check_circle</span>
               <p class="font-heading text-headline-sm text-primary mb-1">Todo al día</p>
               <p class="text-body-sm text-text-secondary">No hay ${tabLabel} pendientes.</p>
             </div>`;
@@ -265,24 +268,24 @@ function _renderJobs(box) {
                     flex flex-col md:flex-row md:items-center gap-4">
           <div class="flex items-start gap-4 flex-1 min-w-0">
             <div class="w-10 h-10 rounded bg-secondary-faint flex items-center justify-center flex-shrink-0">
-              <span class="material-symbols-outlined text-secondary" style="font-size:20px;">${job.icon}</span>
+              <span class="material-symbols-outlined text-secondary pointer-events-none" style="font-size:20px;">${job.icon}</span>
             </div>
             <div class="flex-1 min-w-0">
-              <h3 class="font-heading text-headline-sm text-primary">${job.label}</h3>
-              <p class="text-body-sm text-text-secondary mt-0.5 leading-relaxed">${job.desc}</p>
-              <p class="text-label-md text-text-tertiary mt-1.5 flex items-center gap-1">
-                <span class="material-symbols-outlined" style="font-size:13px;line-height:1;">schedule</span>
+              <h3 class="font-heading text-headline-sm text-primary pointer-events-none">${job.label}</h3>
+              <p class="text-body-sm text-text-secondary mt-0.5 leading-relaxed pointer-events-none">${job.desc}</p>
+              <p class="text-label-md text-text-tertiary mt-1.5 flex items-center gap-1 pointer-events-none">
+                <span class="material-symbols-outlined pointer-events-none" style="font-size:13px;line-height:1;">schedule</span>
                 Duración aprox.: ${job.tiempo}
               </p>
             </div>
           </div>
           <div class="flex-shrink-0">
-            <button id="job-${job.id}" onclick="_dispararJob('${job.id}','${job.label}')"
+            <button id="job-${job.id}" data-action="disparar-job" data-job-id="${job.id}" data-job-label="${job.label}"
               aria-label="Ejecutar job ${job.label}"
               class="flex items-center gap-2 px-4 py-2.5 rounded bg-primary text-white
                      font-semibold text-label-lg hover:bg-primary-subtle active:scale-95 transition-all
                      disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
-              <span class="material-symbols-outlined" style="font-size:16px;">play_arrow</span>
+              <span class="material-symbols-outlined pointer-events-none" style="font-size:16px;">play_arrow</span>
               Ejecutar
             </button>
           </div>
@@ -293,19 +296,19 @@ function _renderJobs(box) {
                   flex flex-col md:flex-row md:items-center gap-4">
         <div class="flex items-start gap-4 flex-1 min-w-0">
           <div class="w-10 h-10 rounded bg-accent/10 flex items-center justify-center flex-shrink-0">
-            <span class="material-symbols-outlined text-accent" style="font-size:20px;">emergency</span>
+            <span class="material-symbols-outlined text-accent pointer-events-none" style="font-size:20px;">emergency</span>
           </div>
           <div>
-            <h3 class="font-heading text-headline-sm text-accent">Reconciliación de emergencia</h3>
-            <p class="text-body-sm text-text-secondary mt-0.5 leading-relaxed">
+            <h3 class="font-heading text-headline-sm text-accent pointer-events-none">Reconciliación de emergencia</h3>
+            <p class="text-body-sm text-text-secondary mt-0.5 leading-relaxed pointer-events-none">
               Restaura consistencia en la base de datos. Usar solo si hay anomalías detectadas.
             </p>
           </div>
         </div>
-        <button onclick="_dispararJob('reconciliacion','Reconciliación')"
+        <button data-action="disparar-job" data-job-id="reconciliacion" data-job-label="Reconciliación"
           class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded border border-accent text-accent
                  font-semibold text-label-lg hover:bg-accent hover:text-white active:scale-95 transition-all whitespace-nowrap">
-          <span class="material-symbols-outlined" style="font-size:16px;">emergency</span>
+          <span class="material-symbols-outlined pointer-events-none" style="font-size:16px;">emergency</span>
           Ejecutar
         </button>
       </div>
@@ -316,7 +319,7 @@ async function _dispararJob(jobId, label) {
   const btn = document.getElementById(`job-${jobId}`);
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;animation:_admSpin 1s linear infinite;">progress_activity</span>&nbsp;Encolando...`;
+    btn.innerHTML = `<span class="material-symbols-outlined pointer-events-none" style="font-size:16px;animation:_admSpin 1s linear infinite;">progress_activity</span>&nbsp;Encolando...`;
   }
   try {
     const res = await api.dispararJob(jobId);
@@ -330,13 +333,13 @@ async function _dispararJob(jobId, label) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">play_arrow</span>&nbsp;Ejecutar`;
+      btn.innerHTML = `<span class="material-symbols-outlined pointer-events-none" style="font-size:16px;">play_arrow</span>&nbsp;Ejecutar`;
     }
   }
 }
 
 // Controlador Principal
-window.controllers.admin = async () => {
+export default async function adminController() {
   const loaded = await renderView('admin.html');
   if (!loaded) return;
 
@@ -352,19 +355,38 @@ window.controllers.admin = async () => {
   const tabsContainer = document.getElementById('admin-tabs');
   if (tabsContainer) {
     tabsContainer.innerHTML = _ADMIN_TABS.map(t => `
-      <button id="atab-${t.id}" onclick="_setAdminTab('${t.id}')"
+      <button id="atab-${t.id}" data-action="set-admin-tab" data-tab-id="${t.id}"
         aria-selected="${t.id === _adminTab}"
         class="flex items-center gap-2 px-4 py-3 text-label-lg transition-colors whitespace-nowrap
               ${t.id === _adminTab
                 ? 'border-b-2 border-accent text-primary font-semibold'
                 : 'text-text-tertiary hover:text-primary'}">
-        <span class="material-symbols-outlined" style="font-size:17px;">${t.icon}</span>
+        <span class="material-symbols-outlined pointer-events-none" style="font-size:17px;">${t.icon}</span>
         ${t.label}
       </button>`).join('');
   }
 
   const adminBody = document.getElementById('admin-body');
   if (adminBody) adminBody.innerHTML = _skelAdmin(3);
+  
+  const adminContainer = document.getElementById('admin-content');
+  if (adminContainer) {
+    adminContainer.addEventListener('click', (e) => {
+      const actionEl = e.target.closest('[data-action]');
+      if (!actionEl) return;
+      const action = actionEl.dataset.action;
+      
+      if (action === 'set-admin-tab') {
+        _setAdminTab(actionEl.dataset.tabId);
+      } else if (action === 'reintentar-admin') {
+        _renderAdminTab(actionEl.dataset.tabId);
+      } else if (action === 'moderar') {
+        _moderar(actionEl.dataset.tipo, actionEl.dataset.id, actionEl.dataset.moderarAccion, actionEl.dataset.card);
+      } else if (action === 'disparar-job') {
+        _dispararJob(actionEl.dataset.jobId, actionEl.dataset.jobLabel);
+      }
+    });
+  }
 
   setTimeout(() => _renderAdminTab(_adminTab), 150);
-};
+}

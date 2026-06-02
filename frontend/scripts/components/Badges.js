@@ -6,7 +6,7 @@
  * "Puesto Informal". Se reutilizan en todo el frontend.
  */
 
-window.Badges = {
+export const Badges = {
   /**
    * Genera el badge naranja grande con icono para "Puesto Informal" en el Feed y Detalle.
    * @returns {string} String HTML

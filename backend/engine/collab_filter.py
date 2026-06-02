@@ -219,3 +219,110 @@ def compute_item_similarity(
     vec_b = np.array([usuarios_b.get(u, 0.0) for u in comunes]).reshape(1, -1)
 
     return float(cosine_similarity(vec_a, vec_b)[0, 0])
+
+
+def obtener_candidatos_por_cluster(
+    db: "Session",
+    usuario: "UsuarioVisitante",
+    limit: int = 40,
+) -> list["Establecimiento"]:
+    """
+    Mejora 3A — Pool personalizado 100% por cluster con señal colaborativa interna.
+
+    En lugar del top-40 global (ordenado por score_boost_combinado sin distinguir
+    entre usuarios), este pool se construye exclusivamente con establecimientos del
+    cluster del usuario y los ordena por la señal colaborativa interna del cluster:
+    cuánto peso acumulado de interacciones generaron otros usuarios del mismo cluster
+    en los últimos 90 días.
+
+    Fallback: si el usuario no tiene id_cluster asignado o el cluster no tiene
+    suficientes candidatos, se complementa con el top global por score_boost_combinado.
+
+    Args:
+        db: Sesión activa de SQLAlchemy.
+        usuario: UsuarioVisitante con id_cluster poblado.
+        limit: Tamaño máximo del pool.
+
+    Returns:
+        Lista de Establecimiento ordenada por señal colaborativa interna del cluster.
+    """
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import func, select
+    from backend.models import Establecimiento, MetricaEstablecimiento, InteraccionUsuario, UsuarioVisitante as UV
+
+    if not usuario.id_cluster:
+        # Fallback: sin cluster asignado, usar ranking global
+        try:
+            from backend.engine.ranking import get_top_establecimientos
+            return get_top_establecimientos(db, limit=limit)
+        except ImportError:
+            return []
+
+    fecha_limite_collab = datetime.now(timezone.utc) - timedelta(days=90)
+
+    stmt_scores = (
+        select(
+            InteraccionUsuario.id_establecimiento,
+            func.sum(InteraccionUsuario.peso_interaccion).label("score_cluster")
+        )
+        .join(UV, InteraccionUsuario.id_usuario == UV.id_usuario)
+        .where(
+            UV.id_cluster == usuario.id_cluster,
+            InteraccionUsuario.fecha >= fecha_limite_collab,
+        )
+        .group_by(InteraccionUsuario.id_establecimiento)
+        .order_by(func.sum(InteraccionUsuario.peso_interaccion).desc())
+        .limit(limit)
+    )
+    rows = db.execute(stmt_scores).all()
+    ids_ordenados = [r.id_establecimiento for r in rows]
+
+    if ids_ordenados:
+        estabs_map = {
+            e.id_establecimiento: e
+            for e in db.query(Establecimiento)
+            .filter(
+                Establecimiento.id_establecimiento.in_(ids_ordenados),
+                Establecimiento.id_cluster == usuario.id_cluster,
+                Establecimiento.es_activo == True,
+                Establecimiento.estado == "aprobado",
+            )
+            .all()
+        }
+        candidatos = [estabs_map[eid] for eid in ids_ordenados if eid in estabs_map]
+    else:
+        candidatos = []
+
+    # Complementar si el cluster tiene pocos establecimientos con interacciones
+    if len(candidatos) < limit:
+        ids_ya_incluidos = {e.id_establecimiento for e in candidatos}
+        faltantes = limit - len(candidatos)
+        complemento = (
+            db.query(Establecimiento)
+            .join(MetricaEstablecimiento)
+            .filter(
+                Establecimiento.id_cluster == usuario.id_cluster,
+                Establecimiento.es_activo == True,
+                Establecimiento.estado == "aprobado",
+                Establecimiento.id_establecimiento.notin_(ids_ya_incluidos),
+            )
+            .order_by(MetricaEstablecimiento.score_boost_combinado.desc())
+            .limit(faltantes)
+            .all()
+        )
+        candidatos.extend(complemento)
+
+    # Fallback final: si el cluster no tiene nada, usar top global
+    if not candidatos:
+        logger.warning(
+            "collab_filter: cluster %d sin candidatos — usando top global para usuario_id=%d",
+            usuario.id_cluster,
+            usuario.id_usuario,
+        )
+        try:
+            from backend.engine.ranking import get_top_establecimientos
+            return get_top_establecimientos(db, limit=limit)
+        except ImportError:
+            return []
+
+    return candidatos

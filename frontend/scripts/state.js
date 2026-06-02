@@ -1,6 +1,9 @@
-// frontend/js/state.js
+// frontend/scripts/state.js
 
-const appState = {
+import { api } from './api.js';
+import { clearToken, isTokenExpired } from './auth.js';
+
+export const appState = {
   user: null,           // Datos del usuario autenticado
   location: null,       // { lat, lon } — última ubicación del usuario
   isAuthenticated: false,
@@ -28,10 +31,8 @@ const appState = {
   }
 };
 
-window.appState = appState;
-
 // Al iniciar la app, verificar si hay token
-async function initState() {
+export async function initState() {
   const token = localStorage.getItem('eki_token');
   if (token && !isTokenExpired(token)) {
       try {
