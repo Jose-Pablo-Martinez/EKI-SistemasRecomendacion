@@ -74,7 +74,16 @@ async function _guardarPerfil() {
   const btn      = document.getElementById('btn-guardar-perfil');
   const nombre   = document.getElementById('edit-nombre')?.value?.trim();
   const apellido = document.getElementById('edit-apellido')?.value?.trim();
+  
   if (!nombre) { showToast('El nombre es requerido', 'warning'); return; }
+
+  // Evitar update innecesario si no hubo cambios reales
+  if (appState.user && appState.user.nombre === nombre && (appState.user.apellido || '') === apellido) {
+    showToast('No se detectaron cambios en tu perfil', 'warning');
+    _cerrarModal('modal-edicion');
+    return;
+  }
+
   btn.disabled = true;
   btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin pointer-events-none" style="font-size:18px;">progress_activity</span> Guardando...</div>`;
   try {

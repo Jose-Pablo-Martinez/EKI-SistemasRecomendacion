@@ -9,8 +9,8 @@ import { Stars } from '../components/Stars.js';
 import { Favorite } from '../components/Favorite.js';
 import { renderView } from '../app.js';
 
-const _DIAS = { lunes:'Lunes', martes:'Martes', miercoles:'Miércoles', jueves:'Jueves', viernes:'Viernes', sabado:'Sábado', domingo:'Domingo' };
-const _DIAS_ORDEN = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+const _DIAS = { 1:'Lunes', 2:'Martes', 3:'Miércoles', 4:'Jueves', 5:'Viernes', 6:'Sábado', 7:'Domingo', lunes:'Lunes', martes:'Martes', miercoles:'Miércoles', jueves:'Jueves', viernes:'Viernes', sabado:'Sábado', domingo:'Domingo' };
+const _DIAS_ORDEN = [1, 2, 3, 4, 5, 6, 7, 'lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
 
 // Utilidades
 function _fecha(str) {
@@ -27,7 +27,11 @@ function _sentimientoBadge(polaridad) {
 
 function _horarios(list) {
   if (!list || !list.length) return `<p class="text-body-sm text-text-tertiary italic">Sin horarios registrados.</p>`;
-  const sorted = [...list].sort((a,b) => _DIAS_ORDEN.indexOf(a.dia_semana) - _DIAS_ORDEN.indexOf(b.dia_semana));
+  const sorted = [...list].sort((a,b) => {
+    const idxA = _DIAS_ORDEN.findIndex(x => String(x) === String(a.dia_semana));
+    const idxB = _DIAS_ORDEN.findIndex(x => String(x) === String(b.dia_semana));
+    return (idxA > -1 ? idxA : 99) - (idxB > -1 ? idxB : 99);
+  });
   return `<div class="divide-y divide-border-subtle border border-border-default rounded-md overflow-hidden">
     ${sorted.map(h => `
       <div class="flex justify-between items-center px-4 py-2.5 bg-surface-raised hover:bg-surface-dim transition-colors">
@@ -128,21 +132,127 @@ function _handleStarKeydown(e, n) {
 async function _enviarResena(idEstab, btn) {
   const cal = parseInt(document.getElementById('star-value')?.value || '0');
   const comentario = document.getElementById('resena-comentario')?.value?.trim();
+  
   if (!cal) { showToast('Selecciona una calificación (1–5 estrellas)', 'warning'); return; }
+
+  // 1. Obtener valores originales guardados en el DOM
+  const formEl = document.getElementById('resena-comentario');
+  const origCal = parseInt(formEl?.dataset?.origCal || '0');
+  const origComent = (formEl?.dataset?.origComent || '').trim();
+
+  // 2. Validar si hubo cambios reales (solo si ya existía una reseña)
+  if (origCal > 0) {
+    if (cal === origCal && (comentario || '') === origComent) {
+      showToast('No has realizado cambios en tu reseña con respecto a la anterior.', 'warning');
+      return;
+    }
+    // 3. Confirmación modal nativa para actualizar
+    if (!window.confirm("Estás a punto de actualizar tu reseña. ¿Deseas continuar?")) {
+      return;
+    }
+  }
+
   btn.disabled = true;
   const originalText = btn.innerHTML;
   btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-base pointer-events-none" style="font-size:16px;">progress_activity</span> Enviando...`;
   try {
     await api.crearResena(idEstab, { id_establecimiento:idEstab, calificacion:cal, comentario:comentario||null });
-    showToast('¡Reseña guardada!', 'success');
+    showToast(origCal > 0 ? '¡Reseña actualizada!' : '¡Reseña guardada!', 'success');
     setTimeout(() => {
       establecimientoController(idEstab);
     }, 1500);
-  } catch(e) {
-    showToast('No se pudo enviar la reseña.', 'warning');
+  } catch(_) {
+    showToast('Error al enviar la reseña', 'error');
     btn.disabled = false;
     btn.innerHTML = originalText;
   }
+}
+
+// Lógica para el modal de paginación de reseñas
+let modalResenasPage = 1;
+const MODAL_RESENAS_PAGE_SIZE = 10;
+
+function _abrirModalResenas() {
+  modalResenasPage = 1;
+  let modalContainer = document.getElementById('modal-todas-resenas');
+  if (!modalContainer) {
+    modalContainer = document.createElement('div');
+    modalContainer.id = 'modal-todas-resenas';
+    modalContainer.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6';
+    modalContainer.style.background = 'rgba(30, 27, 24, 0.7)';
+    document.body.appendChild(modalContainer);
+    
+    // Delegar clicks en el document para el botón cerrar y backdrop no aplica porque interceptamos directo
+    modalContainer.addEventListener('click', (e) => {
+      if (e.target === modalContainer || e.target.closest('[data-action="cerrar-modal-resenas"]')) {
+        _cerrarModalResenas();
+      } else if (e.target.closest('[data-action="cargar-mas-resenas"]')) {
+        _cargarMasResenas();
+      }
+    });
+  }
+
+  const resenas = window._currentEstablecimientoResenas || [];
+  const visible = resenas.slice(0, MODAL_RESENAS_PAGE_SIZE);
+  
+  modalContainer.innerHTML = `
+    <div class="bg-surface-default w-full max-w-2xl max-h-[85vh] rounded-lg shadow-xl flex flex-col fade-in">
+      <div class="p-4 sm:p-6 border-b border-border-subtle flex justify-between items-center sticky top-0 bg-surface-default z-10 rounded-t-lg">
+        <h2 class="font-heading text-headline-sm text-primary">Todas las reseñas (${resenas.length})</h2>
+        <button data-action="cerrar-modal-resenas" class="text-text-tertiary hover:text-primary transition-colors p-1">
+          <span class="material-symbols-outlined" style="font-size:24px;">close</span>
+        </button>
+      </div>
+      <div class="p-4 sm:p-6 overflow-y-auto" id="modal-resenas-list">
+        <div class="space-y-6">
+          ${visible.map((r,i) => _resena(r,i)).join('')}
+        </div>
+        ${resenas.length > MODAL_RESENAS_PAGE_SIZE ? `
+          <div class="mt-8 text-center" id="modal-resenas-footer">
+            <button data-action="cargar-mas-resenas" 
+              class="px-5 py-2 border border-border-strong rounded-full text-label-md font-semibold text-primary hover:bg-surface-raised transition-colors">
+              Cargar más reseñas
+            </button>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+  modalContainer.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function _cargarMasResenas() {
+  const resenas = window._currentEstablecimientoResenas || [];
+  modalResenasPage++;
+  const visible = resenas.slice(0, modalResenasPage * MODAL_RESENAS_PAGE_SIZE);
+  
+  const listContainer = document.getElementById('modal-resenas-list');
+  if (!listContainer) return;
+
+  const contentHtml = `
+    <div class="space-y-6">
+      ${visible.map((r,i) => _resena(r,i)).join('')}
+    </div>
+  `;
+  
+  const footerEl = document.getElementById('modal-resenas-footer');
+  
+  // Reemplazar la lista preservando el footer si aplica
+  if (visible.length >= resenas.length) {
+    if (footerEl) footerEl.remove();
+    listContainer.innerHTML = contentHtml + `<p class="text-center text-body-sm text-text-tertiary italic mt-8 pb-4">No hay más reseñas por cargar.</p>`;
+  } else {
+    listContainer.querySelector('.space-y-6').outerHTML = contentHtml;
+  }
+}
+
+function _cerrarModalResenas() {
+  const modalContainer = document.getElementById('modal-todas-resenas');
+  if (modalContainer) {
+    modalContainer.classList.add('hidden');
+  }
+  document.body.style.overflow = '';
 }
 
 // Controlador Principal
@@ -288,9 +398,27 @@ export default async function establecimientoController(id) {
 
             ${(() => {
               const otrasResenas = resenas.filter(r => r.id_usuario !== appState.user?.id_usuario);
-              return otrasResenas.length
-                ? `<div class="space-y-5">${otrasResenas.map((r,i) => _resena(r,i)).join('')}</div>`
-                : `<p class="text-body-sm text-text-tertiary italic">Aún no hay reseñas aprobadas.</p>`;
+              if (!otrasResenas.length) {
+                return `<p class="text-body-sm text-text-tertiary italic">Aún no hay reseñas aprobadas.</p>`;
+              }
+              const maxVisible = 3;
+              const visibleResenas = otrasResenas.slice(0, maxVisible);
+              let html = `<div class="space-y-5">${visibleResenas.map((r,i) => _resena(r,i)).join('')}</div>`;
+              
+              if (otrasResenas.length > maxVisible) {
+                // Almacenar globalmente para el modal de paginación
+                window._currentEstablecimientoResenas = otrasResenas;
+                html += `
+                  <div class="mt-6 text-center">
+                    <button data-action="ver-todas-resenas" 
+                      class="inline-flex items-center gap-2 text-primary font-semibold text-label-lg px-6 py-2.5 rounded-full border border-border-strong hover:bg-surface-raised transition-colors">
+                      Ver las ${otrasResenas.length} reseñas
+                      <span class="material-symbols-outlined" style="font-size:18px;">open_in_new</span>
+                    </button>
+                  </div>
+                `;
+              }
+              return html;
             })()}
           </div>
 
@@ -306,6 +434,7 @@ export default async function establecimientoController(id) {
               <p class="text-label-md text-text-secondary mb-2 uppercase tracking-wide">Tu calificación</p>
               ${_starsInteractivos()}
               <textarea id="resena-comentario" placeholder="Comparte tu experiencia (opcional)..." maxlength="1000"
+                data-orig-cal="${calif}" data-orig-coment="${coment}"
                 class="w-full bg-surface-dim border border-border-default rounded p-3
                        text-body-sm text-text-primary placeholder:text-text-tertiary
                        focus:outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus/20
@@ -384,6 +513,12 @@ export default async function establecimientoController(id) {
     } else if (action === 'enviar-resena') {
       const id = actionEl.dataset.id;
       _enviarResena(id, actionEl);
+    } else if (action === 'ver-todas-resenas') {
+      _abrirModalResenas();
+    } else if (action === 'cargar-mas-resenas') {
+      _cargarMasResenas();
+    } else if (action === 'cerrar-modal-resenas') {
+      _cerrarModalResenas();
     } else if (action === 'abrir-maps') {
       const lat = actionEl.dataset.lat;
       const lng = actionEl.dataset.lng;

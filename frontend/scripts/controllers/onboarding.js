@@ -243,6 +243,23 @@ export default async function onboardingController() {
                     categorias: categoriasSeleccionadas,
                     precios: preciosSeleccionados
                 };
+                
+                // Evitar update innecesario
+                if (appState.user && appState.user.visitante && appState.user.visitante.vector_preferencias) {
+                    const vector = appState.user.visitante.vector_preferencias;
+                    const catIguales = JSON.stringify([...categoriasSeleccionadas].sort()) === JSON.stringify([...(vector.categorias_preferidas || [])].sort());
+                    const preIguales = JSON.stringify([...preciosSeleccionados].sort()) === JSON.stringify([...(vector.precios_preferidos || [])].sort());
+                    if (catIguales && preIguales) {
+                        Modal.show({
+                            title: '¡Todo listo!',
+                            message: 'No hubo cambios en tus preferencias, todo sigue igual.',
+                            type: 'success',
+                            onClose: () => { window.location.hash = '#/feed'; }
+                        });
+                        return;
+                    }
+                }
+
                 await api.enviarOnboarding(preferencias);
                 if (appState.user) {
                     appState.user.perfil_completado = true;
