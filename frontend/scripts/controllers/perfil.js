@@ -190,6 +190,8 @@ export default async function perfilController() {
     return;
   }
 
+  appState.setUser(usuario);
+
   const puntos    = rango_data?.puntos_totales ?? usuario?.puntos_totales ?? 0;
   const rango     = _getRango(puntos);
   const rangoSig  = _getRangoSig(puntos);
