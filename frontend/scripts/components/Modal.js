@@ -1,5 +1,4 @@
-window.components = window.components || {};
-window.components.Modal = {
+export const Modal = {
     show(options) {
         const { title, message, type = 'info', onClose } = options;
         

@@ -194,12 +194,15 @@ def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], pre
         # Asignación provisional de ID al cluster de usuario
         try:
             from backend.engine.cold_start import assign_cluster_provisional
-            clusters = db.query(ClusterUsuario).all()
+            # Ordenar por id_cluster para asegurar que obtenemos el Cluster 1 (el más confiable)
+            clusters = db.query(ClusterUsuario).order_by(ClusterUsuario.id_cluster).all()
             
             # Simulamos un vector numérico simplificado a partir del JSON
             # En producción esto sería un embedding semántico
+            dim = 22 # Dimensión base esperada por el modelo (22 características)
             if clusters and clusters[0].centroide:
-                dim = len(clusters[0].centroide)  # type: ignore
+                # Tomamos la dimensión del cluster activo, asegurando un fallback seguro
+                dim = max(len(clusters[0].centroide), dim)  # type: ignore
                 vector_simulado = [0.0] * dim
                 for i in range(min(len(categorias), dim)):
                     vector_simulado[i] = 1.0

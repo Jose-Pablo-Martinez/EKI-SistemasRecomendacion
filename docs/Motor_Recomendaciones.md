@@ -136,16 +136,16 @@ Donde `score_boost_combinado` incluye:
 ---
 
 ### H) Serendipia y Diversidad
-**Tecnología:** Lógica de selección aleatoria ponderada (implementación propia)  
-**Archivo:** [`backend/jobs/generador_recomendaciones.py`](../backend/jobs/generador_recomendaciones.py)
+**Tecnología:** Selección cross-cluster con `diversity_score` (implementación propia)  
+**Archivos:** [`backend/engine/content_filter.py`](../backend/engine/content_filter.py), [`backend/jobs/generador_recomendaciones.py`](../backend/jobs/generador_recomendaciones.py)
 
 **¿Qué hace?** Dos mecanismos evitan que el Feed se vuelva una "burbuja de filtro" donde el usuario siempre ve los mismos lugares:
 
-1. **Carrusel de Descubrimiento (`descubrimiento`):** Prioriza establecimientos nuevos (ordenados por `fecha_registro` ascendente). Son lugares que el motor no ha podido aprender a recomendar aún, pero que necesitan sus primeros clientes para acumular datos.
+1. **Carrusel de Descubrimiento (`descubrimiento`):** La función `obtener_descubrimientos` en `content_filter.py` selecciona establecimientos de **clusters diferentes al del usuario** (selección cross-cluster). Esto garantiza que se muestren lugares genuinamente fuera de su zona de confort habitual. A cada candidato se le calcula un `diversity_score` que se persiste en `RecomendacionGenerada` para auditoría de caja blanca. Además, el algoritmo **excluye estrictamente los establecimientos con los que el usuario ya ha interactuado** (reseñas, favoritos, visitas), consultando la tabla `interaccion_usuario` mediante subconsulta, para que los "descubrimientos" sean siempre lugares vírgenes para el usuario.
 
-2. **Carrusel de Comercio Local (`tendencia_informal`):** Filtra exclusivamente los establecimientos con `es_informal = True` (puestos callejeros, carritos, fondas de mercado) y les da visibilidad independientemente de si su score híbrido es alto o no.
+2. **Carrusel de Comercio Local (`tendencia_informal`):** Filtra exclusivamente los establecimientos con `es_informal = True` (puestos callejeros, carritos, fondas de mercado) y les da visibilidad independientemente de si su score híbrido es alto o no, ordenados por `popularidad_7d`.
 
-**¿Por qué importa la serendipia?** En teoría de recomendadores, el fenómeno de "overspecialization" ocurre cuando el sistema es demasiado preciso y siempre recomienda lo mismo. La serendipia controlada (introducir sorpresas calibradas) mejora la satisfacción del usuario a largo plazo.
+**¿Por qué importa la serendipia?** En teoría de recomendadores, el fenómeno de "overspecialization" ocurre cuando el sistema es demasiado preciso y siempre recomienda lo mismo. La serendipia controlada (introducir sorpresas calibradas a través de clusters distintos) mejora la satisfacción del usuario a largo plazo y garantiza que nuevos establecimientos reciban exposición aunque no hayan acumulado historial de interacciones.
 
 ---
 

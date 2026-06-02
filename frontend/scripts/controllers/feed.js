@@ -10,6 +10,13 @@
  *  • aria-pressed en botón de favorito
  */
 
+import { api } from '../api.js';
+import { appState } from '../state.js';
+import { showToast, solicitarUbicacion } from '../utils.js';
+import { Card } from '../components/Card.js';
+import { Skeletons } from '../components/Skeletons.js';
+import { renderView } from '../app.js';
+
 // Datos de prueba (Mock data) alineado con generador_recomendaciones.py
 const _MOCK_RECS = [
   { id_recomendacion:1,  id_establecimiento:101, nombre_establecimiento:"Los Tacos de la Abuela Chole", categoria_recomendacion:"tendencia_informal",    es_informal:true,  calificacion_promedio:4.8, total_resenas:47,  distancia_km:0.9, tipo_establecimiento:"puesto_informal",  razon_principal:"Joya muy popular en tu zona",         detalle_razon:"Visitado frecuentemente por personas con gustos similares a los tuyos", score_total:0.91, score_contenido_usado:0.88, score_colaborativo_usado:0.94, estrategia_usada:"tendencia_informal" },
@@ -21,7 +28,6 @@ const _MOCK_RECS = [
   { id_recomendacion:7,  id_establecimiento:107, nombre_establecimiento:"Café de Altura Mirador",      categoria_recomendacion:"preferencia_contenido", es_informal:false, calificacion_promedio:4.3, total_resenas:56,  distancia_km:1.5, tipo_establecimiento:"local_comercial",   razon_principal:"Coincide con tu amor por el café", detalle_razon:"Alta compatibilidad con tus categorías favoritas",            score_total:0.81, score_contenido_usado:0.90, score_colaborativo_usado:0.70, estrategia_usada:"content_filter"     },
 ];
 
-// Config de secciones (fallback local para iconos/estilo)
 const _SECCIONES = {
   top_picks_hibrido:     { titulo:"Mejores selecciones para ti", icono:"star",          textura:false },
   preferencia_contenido: { titulo:"Basado en tus gustos",        icono:"favorite",      textura:false },
@@ -35,9 +41,7 @@ const _SECCIONES = {
 
 let _favoritosSet = new Set();
 
-// Utilidades para el Feed se han movido a scripts/components/
-
-// Sección con carrusel en móvil
+// Lógica de resolución de secciones
 function _resolverSeccion(cat, section) {
   const base = _SECCIONES[cat] || { titulo: cat, icono:'restaurant', textura:false };
   if (!section) return base;
@@ -48,41 +52,41 @@ function _resolverSeccion(cat, section) {
   };
 }
 
+// Renderizado de cada fila del feed
 function _seccionFeed(cat, items, favoritosSet, section = null) {
   const cfg   = _resolverSeccion(cat, section);
   const cards = items.map((r, i) => {
     const idEstab = r.id_establecimiento || r.establecimiento?.id_establecimiento;
     const isFav = favoritosSet?.has(idEstab);
-    return window.Card.renderFeed(r, i * 70, 'window.Favorite.toggle', isFav);
+    return Card.renderFeed(r, i * 70, null, isFav); // Usa delegación global para toggle-fav
   }).join('');
 
   const inner = `
     <div class="flex items-center justify-between mb-5">
       <div class="flex items-center gap-2 text-accent">
-        <span class="material-symbols-outlined" aria-hidden="true">${cfg.icono}</span>
+        <span class="material-symbols-outlined pointer-events-none" aria-hidden="true">${cfg.icono}</span>
         <h2 class="font-heading text-headline-lg text-primary">${cfg.titulo}</h2>
       </div>
       <a href="#/buscar"
          class="flex items-center gap-1 text-label-lg text-secondary hover:text-secondary-subtle transition-colors"
          aria-label="Ver todo en ${cfg.titulo}">
         Ver todo
-        <span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px;">arrow_forward</span>
+        <span class="material-symbols-outlined pointer-events-none" aria-hidden="true" style="font-size:16px;">arrow_forward</span>
       </a>
     </div>
     <div class="eki-carousel-wrap">
       <button class="eki-carousel-btn hidden md:flex" type="button"
               aria-label="Desplazar a la izquierda en ${cfg.titulo}"
-              onclick="window._scrollCarousel(this, -1)">
-        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+              data-action="scroll-carousel" data-dir="-1">
+        <span class="material-symbols-outlined pointer-events-none" aria-hidden="true">chevron_left</span>
       </button>
-      <!-- Carrusel horizontal (movil + escritorio) -->
       <div class="eki-carousel" role="list" aria-label="Recomendaciones: ${cfg.titulo}">
         ${cards}
       </div>
       <button class="eki-carousel-btn hidden md:flex" type="button"
               aria-label="Desplazar a la derecha en ${cfg.titulo}"
-              onclick="window._scrollCarousel(this, 1)">
-        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+              data-action="scroll-carousel" data-dir="1">
+        <span class="material-symbols-outlined pointer-events-none" aria-hidden="true">chevron_right</span>
       </button>
     </div>
     `;
@@ -96,21 +100,21 @@ function _seccionFeed(cat, items, favoritosSet, section = null) {
   return `<section class="mb-14">${inner}</section>`;
 }
 
-// Scroll de carrusel en escritorio
-window._scrollCarousel = (btn, dir) => {
+// Interacción del carrusel
+export function scrollCarousel(btn, dir) {
   const wrap = btn?.closest('.eki-carousel-wrap');
   const track = wrap?.querySelector('.eki-carousel');
   if (!track) return;
   const delta = Math.round(track.clientWidth * 0.9) * dir;
   track.scrollBy({ left: delta, behavior: 'smooth' });
-};
+}
 
+// Ajuste automático de flechas de navegación
 function _updateCarouselArrows() {
   setTimeout(() => {
     document.querySelectorAll('.eki-carousel-wrap').forEach((wrap) => {
       const track = wrap.querySelector('.eki-carousel');
       if (!track) return;
-      // Comprobar si realmente hay scroll disponible
       const overflow = track.scrollWidth > track.clientWidth + 4;
       wrap.classList.toggle('no-arrows', !overflow);
     });
@@ -124,19 +128,7 @@ if (!window._carouselResizeBound) {
   window._carouselResizeBound = true;
 }
 
-// Acciones globales 
-async function _irEstab(idEstab, idRec) {
-  if (appState.isAuthenticated) {
-    try { await api.registrarClick(idRec); }          catch(_) {}
-    try { await api.registrarInteraccion(idEstab, 'vista_detalle'); } catch(_) {}
-  }
-  window.location.hash = `#/establecimiento/${idEstab}`;
-}
-
-// _favFeed eliminado porque ahora usamos window.Favorite.toggle
-
-
-// Render del feed a partir de datos 
+// Lógica de procesamiento de datos
 function _renderFeedData(recs, favoritosSet) {
   let grupos = {};
   if (Array.isArray(recs) && recs.length && recs[0]?.items) {
@@ -161,7 +153,7 @@ function _renderFeedData(recs, favoritosSet) {
     .join('');
 }
 
-// Estado vacío 
+// UI cuando no hay recomendaciones
 function _feedEstadoVacio() {
   return `
     <div class="flex flex-col items-center justify-center py-24 text-center">
@@ -178,7 +170,7 @@ function _feedEstadoVacio() {
     </div>`;
 }
 
-// Skeletons del shell inicial
+// Esqueleto de carga
 function _shellSkel() {
   return `
     <section class="mb-14" aria-hidden="true">
@@ -186,103 +178,19 @@ function _shellSkel() {
         <div class="skeleton w-6 h-6 rounded"></div>
         <div class="skeleton h-7 w-44 rounded"></div>
       </div>
-      <!-- carrusel -->
-      <div class="eki-carousel">${window.Skeletons.renderFeed(3)}</div>
+      <div class="eki-carousel">${Skeletons.renderFeed(3)}</div>
     </section>
     <section class="mb-14" aria-hidden="true">
       <div class="flex items-center gap-3 mb-5">
         <div class="skeleton w-6 h-6 rounded"></div>
         <div class="skeleton h-7 w-56 rounded"></div>
       </div>
-      <div class="eki-carousel">${window.Skeletons.renderFeed(3)}</div>
+      <div class="eki-carousel">${Skeletons.renderFeed(3)}</div>
     </section>`;
 }
 
-// Spin-down de Render: auto-retry
-const _RETRY_MAX      = 6;
-const _RETRY_INTERVAL = 5000; // 5 s
-let   _retryTimer     = null;
-
-function _cancelarRetry() {
-  if (_retryTimer) { clearTimeout(_retryTimer); _retryTimer = null; }
-}
-
-function _mostrarSpinDown(intento) {
-  const el = document.getElementById('feed-content');
-  if (!el) return;
-  const segsRestantes = Math.round((_RETRY_MAX - intento + 1) * _RETRY_INTERVAL / 1000);
-  el.innerHTML = `
-    <div class="flex flex-col items-center justify-center py-20 text-center"
-         role="status" aria-live="polite" aria-label="Servidor iniciando, reintentando...">
-      <span class="material-symbols-outlined text-5xl text-text-tertiary mb-4 animate-spin"
-            aria-hidden="true">autorenew</span>
-      <h3 class="font-heading text-headline-md text-primary mb-2">El servidor está despertando...</h3>
-      <p class="text-body-sm text-text-secondary max-w-xs mb-1">
-        El servidor estuvo inactivo y está iniciando. Esto puede tardar hasta ${segsRestantes} segundos.
-      </p>
-      <p class="text-label-md text-text-tertiary mb-6">
-        Intento ${intento} de ${_RETRY_MAX} — reintentando automáticamente
-      </p>
-      <!-- Barra de progreso del spin-down -->
-      <div class="progress-track w-52 mb-6">
-        <div class="progress-fill"
-             style="width:${Math.round((intento/_RETRY_MAX)*100)}%;animation:none;background-color:rgb(var(--secondary));">
-        </div>
-      </div>
-      <button onclick="_cancelarRetry(); _mostrarErrorConexion()"
-              class="text-label-lg text-text-tertiary hover:text-accent transition-colors">
-        Cancelar
-      </button>
-    </div>`;
-}
-
-function _mostrarErrorConexion() {
-  const el = document.getElementById('feed-content');
-  if (!el) return;
-  el.innerHTML = `
-    <div class="flex flex-col items-center justify-center py-20 text-center">
-      <span class="material-symbols-outlined text-5xl text-text-tertiary mb-4" aria-hidden="true">wifi_off</span>
-      <h3 class="font-heading text-headline-md text-primary mb-2">No pudimos conectar</h3>
-      <p class="text-body-sm text-text-secondary mb-6">Verifica tu conexión e intenta de nuevo.</p>
-      <button onclick="window.controllers.feed()"
-              class="bg-accent text-white px-5 py-2.5 rounded font-semibold text-label-lg
-                     hover:bg-accent-hover active:scale-95 transition-all">
-        Reintentar
-      </button>
-    </div>`;
-}
-
-async function _cargarConRetry(intento) {
-  if (intento > _RETRY_MAX) {
-    _mostrarErrorConexion();
-    return;
-  }
-  try {
-    const recs = await api.getRecomendaciones();
-    _cancelarRetry();
-    const el = document.getElementById('feed-content');
-    const hasData = Array.isArray(recs) ? recs.length : (recs && Object.keys(recs).length);
-    if (el) {
-      el.innerHTML = hasData ? _renderFeedData(recs, _favoritosSet) : _feedEstadoVacio();
-      _updateCarouselArrows();
-    }
-  } catch(err) {
-    // Si el error parece ser de red/servidor (no 4xx del negocio), reintentar
-    const esRed = !err.status || err.status === 0 || err.status >= 500;
-    if (esRed && intento <= _RETRY_MAX) {
-      _mostrarSpinDown(intento);
-      _retryTimer = setTimeout(() => _cargarConRetry(intento + 1), _RETRY_INTERVAL);
-    } else {
-      _mostrarErrorConexion();
-    }
-  }
-}
-
-// Main Controller
-window.controllers.feed = async () => {
-  _cancelarRetry(); // limpiar retry anterior si el usuario re-navega
-
-  // Ubicación en background
+// Controlador Principal
+export default async function feedController() {
   if (!appState.location) {
     solicitarUbicacion()
       .then(({ lat, lon }) => {
@@ -307,7 +215,6 @@ window.controllers.feed = async () => {
     contentEl.innerHTML = _shellSkel();
   }
 
-  // Cargar radio_busqueda_km del perfil actual
   let perfil = null;
   try {
     perfil = await api.getPerfil();
@@ -320,30 +227,24 @@ window.controllers.feed = async () => {
     sliderVal.innerText = perfil.visitante.radio_busqueda_km + ' km';
   }
 
-  // Escuchar cambios en el slider
   if (sliderEl) {
-    sliderEl.onchange = async () => {
+    sliderEl.addEventListener('input', () => {
+      if (sliderVal) sliderVal.innerText = sliderEl.value + ' km';
+    });
+    sliderEl.addEventListener('change', async () => {
       const newRadius = parseInt(sliderEl.value, 10);
       try {
         await api.actualizarPerfil({ radio_busqueda_km: newRadius });
-        // Mostrar loading overlay
         const overlay = document.getElementById('feed-loading-overlay');
-        if (overlay) {
-          overlay.classList.remove('hidden');
-        }
+        if (overlay) overlay.classList.remove('hidden');
         
-        // Recargar recomendaciones
-        _cancelarRetry();
-        await _cargarConRetry(1);
+        await fetchFeedData(); // Re-fetch
         
-        // Ocultar loading overlay
-        if (overlay) {
-          overlay.classList.add('hidden');
-        }
+        if (overlay) overlay.classList.add('hidden');
       } catch (err) {
         showToast('Error al actualizar el radio', 'error');
       }
-    };
+    });
   }
 
   let favoritos = [];
@@ -358,7 +259,11 @@ window.controllers.feed = async () => {
       .filter((id) => !!id)
   );
 
-  // Intentar cargar datos reales
+  await fetchFeedData();
+}
+
+// Carga del feed real
+async function fetchFeedData() {
   try {
     const recs = await api.getRecomendaciones();
     const el   = document.getElementById('feed-content');
@@ -368,24 +273,34 @@ window.controllers.feed = async () => {
       _updateCarouselArrows();
     }
   } catch(err) {
-    // Mostrar mock inmediatamente para que no haya pantalla en blanco
+    // apiRequest handles retries and spin down automatically.
+    // If it reaches here, all retries failed or server returned a permanent error.
     const el = document.getElementById('feed-content');
     if (el) {
-      el.innerHTML = _renderFeedData(_MOCK_RECS, _favoritosSet);
-      _updateCarouselArrows();
-    }
-
-    // Luego iniciar la secuencia de retry silenciosa en background
-    // (si el backend responde durante el retry, reemplaza el mock)
-    const esRed = !err.status || err.status === 0 || err.status >= 500;
-    if (esRed) {
-      _retryTimer = setTimeout(() => {
-        // Solo mostrar spinner si el usuario sigue en el feed
-        if (document.getElementById('feed-content')) {
-          _mostrarSpinDown(1);
-          _cargarConRetry(1);
-        }
-      }, 3000);
+      el.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-20 text-center">
+          <span class="material-symbols-outlined text-5xl text-text-tertiary mb-4" aria-hidden="true">wifi_off</span>
+          <h3 class="font-heading text-headline-md text-primary mb-2">No pudimos conectar</h3>
+          <p class="text-body-sm text-text-secondary mb-6">El servidor no responde o no tienes conexión.</p>
+          <button data-action="route" data-route="#/feed"
+                  class="bg-accent text-white px-5 py-2.5 rounded font-semibold text-label-lg hover:bg-accent-hover active:scale-95 transition-all">
+            Reintentar
+          </button>
+          
+          <div class="mt-8 border-t border-border-default pt-6 w-full max-w-md">
+            <p class="text-label-sm text-text-tertiary mb-4">¿Quieres ver cómo lucen las recomendaciones?</p>
+            <button data-action="load-mock-feed" class="text-accent underline text-sm">Cargar datos de prueba</button>
+          </div>
+        </div>`;
     }
   }
-};
+}
+
+// Carga del feed local (mock)
+export function loadMockFeed() {
+  const el = document.getElementById('feed-content');
+  if (el) {
+    el.innerHTML = _renderFeedData(_MOCK_RECS, _favoritosSet);
+    _updateCarouselArrows();
+  }
+}

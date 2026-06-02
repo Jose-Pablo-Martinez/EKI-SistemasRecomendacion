@@ -151,8 +151,23 @@ venv\Scripts\python.exe -c "from scripts.db.seed.vectores import seed_vectores; 
 Tras ver el mensaje `¡Éxito!`, vuelve a ejecutar el job de `clustering`.
 
 ### Error: `"Incompatible dimension for X and Y matrices"`
-Los vectores de los usuarios tienen una dimensión diferente a la de los establecimientos o los centroides de los clusters.
-**Solución:** El mismo que el anterior: corre el sembrador de vectores para alinear todas las dimensiones a 22.
+Los vectores de los usuarios tienen una dimensión diferente a la de los establecimientos o los centroides de los clusters. Hay dos causas posibles:
+
+**Causa A — Vectores no sembrados (la más común):** Los registros en tu base de datos no tienen vectores matemáticos asignados (`vector_preferencias` o `vector_caracteristicas` son NULL).
+
+**Solución para causa A:** Ejecuta el sembrador de vectores de forma quirúrgica:
+```powershell
+venv\Scripts\python.exe -c "from scripts.db.seed.vectores import seed_vectores; from backend.database import SessionLocal; db=SessionLocal(); seed_vectores(db); db.close()"
+```
+Tras ver el mensaje `¡Éxito!`, vuelve a ejecutar el job de `clustering`.
+
+**Causa B — Centroides legados (vectores de 5D) conviviendo con vectores nuevos de 22D):** Puede ocurrir si la base de datos fue sembrada con una versión anterior del modelo antes de que la dimensión de los vectores quedara fijada en 22. Los centroides obsoletos sobreviven en la tabla `cluster_usuario` y el `content_filter` los toma como referencia.
+
+**Solución para causa B:** Esta causa ya está protegida permanentemente por dos correcciones en el código:
+- **`backend/engine/content_filter.py`**: aplica padding/truncamiento automático para alinear cualquier vector de usuario a la dimensión correcta de 22 antes de calcular la similitud coseno.
+- **`backend/jobs/clustering.py`**: al recalcular los centroides, anula (`None`) los de clusters que quedan vacíos para evitar que retengan datos de dimensiones anteriores.
+
+Si el error persiste después de correr el job de clustering, ejecuta la solución de Causa A para realinear todos los vectores.
 
 ### Error de conexión a la base de datos
 Verifica que tu `.env` tiene los valores correctos y que el certificado `secrets/ca.pem` existe. Corre:

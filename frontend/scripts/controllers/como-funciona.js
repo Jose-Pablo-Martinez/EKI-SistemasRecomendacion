@@ -8,6 +8,8 @@
  * Enlazar desde el feed (#/feed) y desde el footer de la ficha de establecimiento.
  */
 
-window.controllers['como-funciona'] = async () => {
+import { renderView } from '../app.js';
+
+export default async function comoFuncionaController() {
   await renderView('como-funciona.html');
-};
+}

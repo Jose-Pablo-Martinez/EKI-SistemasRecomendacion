@@ -140,6 +140,12 @@ class UsuarioVisitante(Base):
     fecha_ultima_actividad = Column(DateTime, nullable=True)
     radio_busqueda_km      = Column(TINYINT, default=5)
     vector_preferencias    = Column(JSON, nullable=True)
+    # Fase de transición cold start (Componente 4 — backendUpdate_plan.md):
+    # 0 = Cold start puro  (< 5 interacciones / < 50 pts)
+    # 1 = Transición       (5–15 interacciones / 50–150 pts) → blend cold + ML
+    # 2 = ML completo      (> 15 interacciones / > 150 pts)
+    # NULL = aún no procesado por el job offline (se calcula en la primera corrida).
+    fase_transicion        = Column(TINYINT, nullable=True, default=None)
 
     # Relaciones
     usuario       = relationship("Usuario", back_populates="visitante")

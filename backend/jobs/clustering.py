@@ -148,6 +148,7 @@ def procesar_clustering_usuarios(db: Session) -> None:
         
     # 5. Resetear a cero los clusters que quedaron vacíos en esta corrida
     for i in range(k_final, len(clusters_db)):
+        clusters_db[i].centroide = None #type: ignore
         clusters_db[i].total_usuarios = 0 # type: ignore
         clusters_db[i].fecha_actualizacion = ahora # type: ignore
 
@@ -197,6 +198,7 @@ def procesar_clustering_establecimientos(db: Session) -> None:
         
     # 5. Resetear a cero los clusters sobrantes
     for i in range(k_final, len(clusters_db)):
+        clusters_db[i].centroide = None # type: ignore
         clusters_db[i].total_establecimientos = 0 # type: ignore
         clusters_db[i].fecha_actualizacion = ahora # type: ignore
 

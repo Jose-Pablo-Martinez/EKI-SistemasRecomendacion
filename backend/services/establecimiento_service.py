@@ -1,6 +1,7 @@
 from datetime import timezone
 from datetime import datetime
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from typing import Optional
 
@@ -150,10 +151,14 @@ def toggle_favorito(db: Session, id_usuario: int, datos: FavoritoCreate):
         db.commit()
         return {"status": "removido"}
     else:
-        nuevo_fav = FavoritoGuardado(id_usuario=id_usuario, id_establecimiento=datos.id_establecimiento, nota_personal=datos.nota_personal)
-        db.add(nuevo_fav)
-        db.commit()
-        return {"status": "agregado"}
+        try:
+            nuevo_fav = FavoritoGuardado(id_usuario=id_usuario, id_establecimiento=datos.id_establecimiento, nota_personal=datos.nota_personal)
+            db.add(nuevo_fav)
+            db.commit()
+            return {"status": "agregado"}
+        except IntegrityError:
+            db.rollback()
+            return {"status": "agregado"}
 
 def crear_reporte(db: Session, id_usuario: int, datos: ReporteCreate):
     reporte = Reporte(

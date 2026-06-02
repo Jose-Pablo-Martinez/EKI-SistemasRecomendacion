@@ -1,7 +1,7 @@
     <div class="w-full max-w-3xl mx-auto px-4 md:px-8 py-12 fade-in">
 
       <!-- Back -->
-      <a href="javascript:history.back()"
+      <a href="javascript:void(0)" onclick="if(window.history.length > 1) { window.history.back(); } else { window.location.hash = '#/feed'; }"
          class="inline-flex items-center gap-1 text-body-sm font-semibold text-text-tertiary
                 hover:text-secondary transition-colors mb-8 group">
         <span class="material-symbols-outlined group-hover:-translate-x-1 transition-transform"

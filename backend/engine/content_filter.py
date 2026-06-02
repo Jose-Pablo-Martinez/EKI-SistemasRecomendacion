@@ -53,8 +53,11 @@ def get_content_based_recommendations(
     Estrategia:
         1. Obtener vector_preferencias del usuario.
         2. Para cada establecimiento candidato, calcular similitud_coseno con
-           su vector_caracteristicas.
-        3. Retornar los N con mayor score, ordenados descendentemente.
+           su vector_caracteristicas. El resultado nativo de sklearn está en [-1.0, 1.0].
+        3. Filtrar candidatos con score < 0: un score negativo indica gustos
+           OPUESTOS al perfil del usuario — no se deben recomendar.
+        4. Retornar los N con mayor score entre los positivos, ordenados
+           descendentemente.
 
     Args:
         db: Sesión activa de SQLAlchemy.
@@ -64,6 +67,7 @@ def get_content_based_recommendations(
 
     Returns:
         Lista de tuplas (Establecimiento, score_contenido) ordenadas por score.
+        Solo incluye establecimientos con score_contenido >= 0.0.
     """
     logger.info(
         "content_filter: calculando similitud coseno para usuario_id=%d, candidatos=%d",
@@ -82,13 +86,33 @@ def get_content_based_recommendations(
     if isinstance(user_vec_raw, dict) and "numerico" in user_vec_raw:
         user_vec_raw = user_vec_raw["numerico"]
         
+    if not isinstance(user_vec_raw, list):
+        return []
+        
+    cand_dim = len(valid_candidatos[0].vector_caracteristicas) # type: ignore
+    
+    # Asegurar homogeneidad dimensional (en caso de vectores legados o corruptos)
+    if len(user_vec_raw) < cand_dim:
+        user_vec_raw = user_vec_raw + [0.0] * (cand_dim - len(user_vec_raw))
+    elif len(user_vec_raw) > cand_dim:
+        user_vec_raw = user_vec_raw[:cand_dim]
+        
     user_vec = np.array(user_vec_raw).reshape(1, -1)
     cand_vecs = np.array([c.vector_caracteristicas for c in valid_candidatos])
 
     scores = cosine_similarity(user_vec, cand_vecs).flatten()
-    top_indices = np.argsort(-scores)[:limit]
 
-    return [(valid_candidatos[i], float(scores[i])) for i in top_indices]
+    # Filtrar scores negativos: indican gustos opuestos al perfil del usuario.
+    # Un establecimiento con score coseno < 0 no debe aparecer como recomendación.
+    positive_mask = scores >= 0.0
+    positive_candidatos = [c for c, keep in zip(valid_candidatos, positive_mask) if keep]
+    positive_scores = scores[positive_mask]
+
+    if len(positive_scores) == 0:
+        return []
+
+    top_indices = np.argsort(-positive_scores)[:limit]
+    return [(positive_candidatos[i], float(positive_scores[i])) for i in top_indices]
 
 
 def compute_cosine_similarity(vector_a: list[float], vector_b: list[float]) -> float:
@@ -103,7 +127,10 @@ def compute_cosine_similarity(vector_a: list[float], vector_b: list[float]) -> f
         vector_b: Vector del establecimiento (vector_caracteristicas).
 
     Returns:
-        Similitud en [0.0, 1.0]. Retorna 0.0 si algún vector es nulo o vacío.
+        Similitud en [-1.0, 1.0]. Retorna 0.0 si algún vector es nulo o vacío.
+        Un valor negativo indica vectores opuestos (gustos contrarios al perfil).
+        Un valor de 0.0 indica ortogonalidad (sin correlación).
+        Un valor de 1.0 indica vectores idénticos (afinidad perfecta).
     """
     if not vector_a or not vector_b:
         return 0.0
@@ -162,3 +189,93 @@ def calcular_diversity_score(candidato_vec: list[float], lista_vecs: list[list[f
         np.array(lista_vecs)
     )
     return 1.0 - float(np.mean(sims))
+
+
+def obtener_descubrimientos(
+    db: "Session",
+    usuario: "UsuarioVisitante",
+    candidatos_seleccionados: list["Establecimiento"],
+    limit: int = 10,
+) -> list[tuple["Establecimiento", float]]:
+    """
+    Mejora 3B — Serendipia real con diversity_score.
+
+    Reemplaza el ordenamiento por fecha_registro DESC por una selección basada en
+    diversity_score: qué tan DISTINTO es cada candidato respecto a los establecimientos
+    ya seleccionados para el usuario. Solo considera establecimientos de clusters
+    DISTINTOS al del usuario para garantizar verdadera sorpresa.
+
+    Args:
+        db: Sesión activa de SQLAlchemy.
+        usuario: UsuarioVisitante con id_cluster poblado.
+        candidatos_seleccionados: Establecimientos ya asignados a carruseles del usuario.
+        limit: Número máximo de descubrimientos a retornar.
+
+    Returns:
+        Lista de tuplas (Establecimiento, diversity_score) ordenadas por diversidad desc.
+    """
+    import logging as _logging
+    from typing import cast
+    from backend.models import Establecimiento
+    from backend.models.interacciones import InteraccionUsuario
+    from sqlalchemy import select
+
+    _log = _logging.getLogger(__name__)
+
+    # Subquery para excluir establecimientos con los que el usuario ya ha interactuado (reseñas, favoritos, etc.)
+    stmt_interactuados = select(InteraccionUsuario.id_establecimiento).where(
+        InteraccionUsuario.id_usuario == usuario.id_usuario
+    )
+
+    filtros = [
+        Establecimiento.es_activo == True,
+        Establecimiento.estado == "aprobado",
+        Establecimiento.es_informal == False,
+        Establecimiento.id_establecimiento.notin_(stmt_interactuados),
+    ]
+    if usuario.id_cluster is not None:
+        filtros.append(Establecimiento.id_cluster != usuario.id_cluster)
+
+    candidatos_otros = db.query(Establecimiento).filter(*filtros).all()
+
+    if not candidatos_otros:
+        _log.warning(
+            "content_filter: sin candidatos cross-cluster para descubrimiento (usuario_id=%d) — usando recientes",
+            usuario.id_usuario,
+        )
+        return [
+            (e, 0.5)
+            for e in db.query(Establecimiento)
+            .filter(
+                Establecimiento.es_activo == True,
+                Establecimiento.estado == "aprobado",
+                Establecimiento.es_informal == False,
+                Establecimiento.id_establecimiento.notin_(stmt_interactuados),
+            )
+            .order_by(Establecimiento.fecha_registro.desc())
+            .limit(limit)
+            .all()
+        ]
+
+    vecs_seleccionados = cast(list[list[float]], [
+        e.vector_caracteristicas
+        for e in candidatos_seleccionados
+        if e.vector_caracteristicas
+    ])
+
+    scored = []
+    for estab in candidatos_otros:
+        if not estab.vector_caracteristicas:
+            continue
+        div_score = (
+            calcular_diversity_score(
+                cast(list[float], estab.vector_caracteristicas),
+                vecs_seleccionados,
+            )
+            if vecs_seleccionados
+            else 0.5
+        )
+        scored.append((estab, div_score))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return scored[:limit]
