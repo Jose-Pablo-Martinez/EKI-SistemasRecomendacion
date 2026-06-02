@@ -7,6 +7,7 @@ import { appState } from '../state.js';
 import { escapeHTML, showToast } from '../utils.js';
 import { Stars } from '../components/Stars.js';
 import { Favorite } from '../components/Favorite.js';
+import { reviewsModal, renderReviewItem as _resena } from '../components/ReviewsModal.js';
 import { renderView } from '../app.js';
 
 const _DIAS = { 1:'Lunes', 2:'Martes', 3:'Miércoles', 4:'Jueves', 5:'Viernes', 6:'Sábado', 7:'Domingo', lunes:'Lunes', martes:'Martes', miercoles:'Miércoles', jueves:'Jueves', viernes:'Viernes', sabado:'Sábado', domingo:'Domingo' };
@@ -62,29 +63,7 @@ function _platillos(list) {
   </div>`;
 }
 
-// Reseñas
-function _resena(r, idx) {
-  const nombreRaw = r.nombre_usuario || 'Usuario';
-  const nombre = escapeHTML(nombreRaw);
-  const inicial = nombreRaw[0].toUpperCase();
-  const comentario = escapeHTML(r.comentario || '');
-  const cal = r.calificacion || 0;
-  return `
-    <div class="flex gap-3 card-enter" style="animation-delay:${idx*60}ms">
-      <div class="w-9 h-9 rounded-full bg-primary-faint flex items-center justify-center text-primary-ghost font-bold text-sm flex-shrink-0">
-        ${inicial}
-      </div>
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 flex-wrap mb-1">
-          <span class="text-body-sm font-semibold text-primary">${nombre}</span>
-          <span class="text-warning-subtle" style="font-size:0.85rem;">${'★'.repeat(cal)}${'☆'.repeat(5-cal)}</span>
-          ${r.fecha_resena ? `<span class="text-label-md text-text-tertiary">${_fecha(r.fecha_resena)}</span>` : ''}
-          ${r.procesado_nlp ? _sentimientoBadge(r.polaridad) : ''}
-        </div>
-        ${comentario ? `<p class="text-body-sm text-text-secondary leading-relaxed">${comentario}</p>` : ''}
-      </div>
-    </div>`;
-}
+// _resena esta importado desde ReviewsModal.js
 
 function _starsInteractivos() {
   return `
@@ -168,92 +147,7 @@ async function _enviarResena(idEstab, btn) {
   }
 }
 
-// Lógica para el modal de paginación de reseñas
-let modalResenasPage = 1;
-const MODAL_RESENAS_PAGE_SIZE = 10;
-
-function _abrirModalResenas() {
-  modalResenasPage = 1;
-  let modalContainer = document.getElementById('modal-todas-resenas');
-  if (!modalContainer) {
-    modalContainer = document.createElement('div');
-    modalContainer.id = 'modal-todas-resenas';
-    modalContainer.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6';
-    modalContainer.style.background = 'rgba(30, 27, 24, 0.7)';
-    document.body.appendChild(modalContainer);
-    
-    // Delegar clicks en el document para el botón cerrar y backdrop no aplica porque interceptamos directo
-    modalContainer.addEventListener('click', (e) => {
-      if (e.target === modalContainer || e.target.closest('[data-action="cerrar-modal-resenas"]')) {
-        _cerrarModalResenas();
-      } else if (e.target.closest('[data-action="cargar-mas-resenas"]')) {
-        _cargarMasResenas();
-      }
-    });
-  }
-
-  const resenas = window._currentEstablecimientoResenas || [];
-  const visible = resenas.slice(0, MODAL_RESENAS_PAGE_SIZE);
-  
-  modalContainer.innerHTML = `
-    <div class="bg-surface-default w-full max-w-2xl max-h-[85vh] rounded-lg shadow-xl flex flex-col fade-in">
-      <div class="p-4 sm:p-6 border-b border-border-subtle flex justify-between items-center sticky top-0 bg-surface-default z-10 rounded-t-lg">
-        <h2 class="font-heading text-headline-sm text-primary">Todas las reseñas (${resenas.length})</h2>
-        <button data-action="cerrar-modal-resenas" class="text-text-tertiary hover:text-primary transition-colors p-1">
-          <span class="material-symbols-outlined" style="font-size:24px;">close</span>
-        </button>
-      </div>
-      <div class="p-4 sm:p-6 overflow-y-auto" id="modal-resenas-list">
-        <div class="space-y-6">
-          ${visible.map((r,i) => _resena(r,i)).join('')}
-        </div>
-        ${resenas.length > MODAL_RESENAS_PAGE_SIZE ? `
-          <div class="mt-8 text-center" id="modal-resenas-footer">
-            <button data-action="cargar-mas-resenas" 
-              class="px-5 py-2 border border-border-strong rounded-full text-label-md font-semibold text-primary hover:bg-surface-raised transition-colors">
-              Cargar más reseñas
-            </button>
-          </div>
-        ` : ''}
-      </div>
-    </div>
-  `;
-  modalContainer.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-}
-
-function _cargarMasResenas() {
-  const resenas = window._currentEstablecimientoResenas || [];
-  modalResenasPage++;
-  const visible = resenas.slice(0, modalResenasPage * MODAL_RESENAS_PAGE_SIZE);
-  
-  const listContainer = document.getElementById('modal-resenas-list');
-  if (!listContainer) return;
-
-  const contentHtml = `
-    <div class="space-y-6">
-      ${visible.map((r,i) => _resena(r,i)).join('')}
-    </div>
-  `;
-  
-  const footerEl = document.getElementById('modal-resenas-footer');
-  
-  // Reemplazar la lista preservando el footer si aplica
-  if (visible.length >= resenas.length) {
-    if (footerEl) footerEl.remove();
-    listContainer.innerHTML = contentHtml + `<p class="text-center text-body-sm text-text-tertiary italic mt-8 pb-4">No hay más reseñas por cargar.</p>`;
-  } else {
-    listContainer.querySelector('.space-y-6').outerHTML = contentHtml;
-  }
-}
-
-function _cerrarModalResenas() {
-  const modalContainer = document.getElementById('modal-todas-resenas');
-  if (modalContainer) {
-    modalContainer.classList.add('hidden');
-  }
-  document.body.style.overflow = '';
-}
+// _abrirModalResenas se extrajo para que ahora lo maneje ReviewsModal.js
 
 // Controlador Principal
 export default async function establecimientoController(id) {
@@ -514,11 +408,7 @@ export default async function establecimientoController(id) {
       const id = actionEl.dataset.id;
       _enviarResena(id, actionEl);
     } else if (action === 'ver-todas-resenas') {
-      _abrirModalResenas();
-    } else if (action === 'cargar-mas-resenas') {
-      _cargarMasResenas();
-    } else if (action === 'cerrar-modal-resenas') {
-      _cerrarModalResenas();
+      reviewsModal.show(window._currentEstablecimientoResenas);
     } else if (action === 'abrir-maps') {
       const lat = actionEl.dataset.lat;
       const lng = actionEl.dataset.lng;
