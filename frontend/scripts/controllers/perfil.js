@@ -5,6 +5,7 @@
 import { api, apiRequest } from '../api.js';
 import { showToast } from '../utils.js';
 import { renderView } from '../app.js';
+import { appState } from '../state.js';
 
 // Configuración de rangos 
 const _RANGOS = [

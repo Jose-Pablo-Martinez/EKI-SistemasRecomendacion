@@ -86,6 +86,17 @@ def get_content_based_recommendations(
     if isinstance(user_vec_raw, dict) and "numerico" in user_vec_raw:
         user_vec_raw = user_vec_raw["numerico"]
         
+    if not isinstance(user_vec_raw, list):
+        return []
+        
+    cand_dim = len(valid_candidatos[0].vector_caracteristicas) # type: ignore
+    
+    # Asegurar homogeneidad dimensional (en caso de vectores legados o corruptos)
+    if len(user_vec_raw) < cand_dim:
+        user_vec_raw = user_vec_raw + [0.0] * (cand_dim - len(user_vec_raw))
+    elif len(user_vec_raw) > cand_dim:
+        user_vec_raw = user_vec_raw[:cand_dim]
+        
     user_vec = np.array(user_vec_raw).reshape(1, -1)
     cand_vecs = np.array([c.vector_caracteristicas for c in valid_candidatos])
 
@@ -206,13 +217,21 @@ def obtener_descubrimientos(
     import logging as _logging
     from typing import cast
     from backend.models import Establecimiento
+    from backend.models.interacciones import InteraccionUsuario
+    from sqlalchemy import select
 
     _log = _logging.getLogger(__name__)
+
+    # Subquery para excluir establecimientos con los que el usuario ya ha interactuado (reseñas, favoritos, etc.)
+    stmt_interactuados = select(InteraccionUsuario.id_establecimiento).where(
+        InteraccionUsuario.id_usuario == usuario.id_usuario
+    )
 
     filtros = [
         Establecimiento.es_activo == True,
         Establecimiento.estado == "aprobado",
         Establecimiento.es_informal == False,
+        Establecimiento.id_establecimiento.notin_(stmt_interactuados),
     ]
     if usuario.id_cluster is not None:
         filtros.append(Establecimiento.id_cluster != usuario.id_cluster)
@@ -231,6 +250,7 @@ def obtener_descubrimientos(
                 Establecimiento.es_activo == True,
                 Establecimiento.estado == "aprobado",
                 Establecimiento.es_informal == False,
+                Establecimiento.id_establecimiento.notin_(stmt_interactuados),
             )
             .order_by(Establecimiento.fecha_registro.desc())
             .limit(limit)

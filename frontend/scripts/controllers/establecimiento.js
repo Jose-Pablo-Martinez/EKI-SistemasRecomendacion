@@ -14,18 +14,6 @@ const _DIAS = { 0:'Domingo', 1:'Lunes', 2:'Martes', 3:'Miércoles', 4:'Jueves', 
 const _DIAS_ORDEN = [1, 2, 3, 4, 5, 6, 0, 'lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
 
 // Utilidades
-function _fecha(str) {
-  if (!str) return '';
-  return new Date(str).toLocaleDateString('es-MX', { year:'numeric', month:'short', day:'numeric' });
-}
-
-function _sentimientoBadge(polaridad) {
-  if (polaridad === null || polaridad === undefined) return '';
-  if (polaridad >  0.1) return `<span class="text-label-sm text-success flex items-center gap-1"><span class="material-symbols-outlined pointer-events-none" style="font-size:13px;">sentiment_satisfied</span>Positiva</span>`;
-  if (polaridad < -0.1) return `<span class="text-label-sm text-accent flex items-center gap-1"><span class="material-symbols-outlined pointer-events-none" style="font-size:13px;">sentiment_dissatisfied</span>Negativa</span>`;
-  return `<span class="text-label-sm text-text-tertiary flex items-center gap-1"><span class="material-symbols-outlined pointer-events-none" style="font-size:13px;">sentiment_neutral</span>Neutral</span>`;
-}
-
 function _horarios(list) {
   if (!list || !list.length) return `<p class="text-body-sm text-text-tertiary italic">Sin horarios registrados.</p>`;
   const sorted = [...list].sort((a,b) => {
