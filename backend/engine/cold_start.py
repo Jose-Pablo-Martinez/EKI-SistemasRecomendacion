@@ -49,8 +49,8 @@ def get_cold_start_recommendations(
 
     Estrategia:
         1. Asignar cluster provisional por distancia euclidiana a centroides.
-        2. Retornar establecimientos populares (popularidad_7d) dentro del cluster.
-        3. Aplicar filtrado por contenido desde vector_preferencias del onboarding.
+        2. Filtrar establecimientos populares (popularidad_7d) cruzados con vector_preferencias.
+        3. Si no hay suficientes resultados, rellenar usando el top de populares global.
         4. No usar componente colaborativo (perfil_completado=FALSE).
 
     Args:
@@ -67,17 +67,48 @@ def get_cold_start_recommendations(
         usuario.id_usuario,
         usuario.perfil_completado,
     )
-    stmt = (
+    from backend.models.establecimientos import EstablecimientoCategoria
+    from backend.models.catalogo import Categoria
+
+    base_stmt = (
         select(Establecimiento)
         .outerjoin(MetricaEstablecimiento, Establecimiento.id_establecimiento == MetricaEstablecimiento.id_establecimiento)
         .where(
             Establecimiento.es_activo == True,
             Establecimiento.estado == "aprobado"
         )
-        .order_by(MetricaEstablecimiento.popularidad_7d.desc())
-        .limit(limit)
     )
-    return list(db.scalars(stmt).all())
+
+    resultados = []
+    ids_obtenidos = set()
+
+    # 1. Intentar obtener recomendaciones filtradas por preferencias
+    if usuario.vector_preferencias and isinstance(usuario.vector_preferencias, dict):
+        categorias_preferidas = usuario.vector_preferencias.get("categorias_preferidas", [])
+        if categorias_preferidas:
+            stmt_pref = base_stmt.where(
+                Establecimiento.categorias.any(
+                    EstablecimientoCategoria.categoria.has(
+                        Categoria.nombre.in_(categorias_preferidas)
+                    )
+                )
+            ).order_by(MetricaEstablecimiento.popularidad_7d.desc()).limit(limit)
+            
+            recs_pref = list(db.scalars(stmt_pref).all())
+            resultados.extend(recs_pref)
+            ids_obtenidos.update(r.id_establecimiento for r in recs_pref)
+
+    # 2. Rellenar con top globales si no hay suficientes
+    faltan = limit - len(resultados)
+    if faltan > 0:
+        stmt_top = base_stmt
+        if ids_obtenidos:
+            stmt_top = stmt_top.where(Establecimiento.id_establecimiento.not_in(ids_obtenidos))
+        
+        stmt_top = stmt_top.order_by(MetricaEstablecimiento.popularidad_7d.desc()).limit(faltan)
+        resultados.extend(list(db.scalars(stmt_top).all()))
+
+    return resultados
 
 
 def assign_cluster_provisional(
