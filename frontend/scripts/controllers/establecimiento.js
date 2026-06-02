@@ -6,12 +6,12 @@ import { api } from '../api.js';
 import { appState } from '../state.js';
 import { escapeHTML, showToast } from '../utils.js';
 import { Stars } from '../components/Stars.js';
-import { Favorite } from '../components/Favorite.js';
 import { reviewsModal, renderReviewItem as _resena } from '../components/ReviewsModal.js';
+import { Modal } from '../components/Modal.js';
 import { renderView } from '../app.js';
 
-const _DIAS = { 1:'Lunes', 2:'Martes', 3:'Miércoles', 4:'Jueves', 5:'Viernes', 6:'Sábado', 7:'Domingo', lunes:'Lunes', martes:'Martes', miercoles:'Miércoles', jueves:'Jueves', viernes:'Viernes', sabado:'Sábado', domingo:'Domingo' };
-const _DIAS_ORDEN = [1, 2, 3, 4, 5, 6, 7, 'lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+const _DIAS = { 0:'Domingo', 1:'Lunes', 2:'Martes', 3:'Miércoles', 4:'Jueves', 5:'Viernes', 6:'Sábado', lunes:'Lunes', martes:'Martes', miercoles:'Miércoles', jueves:'Jueves', viernes:'Viernes', sabado:'Sábado', domingo:'Domingo' };
+const _DIAS_ORDEN = [1, 2, 3, 4, 5, 6, 0, 'lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
 
 // Utilidades
 function _fecha(str) {
@@ -119,31 +119,43 @@ async function _enviarResena(idEstab, btn) {
   const origCal = parseInt(formEl?.dataset?.origCal || '0');
   const origComent = (formEl?.dataset?.origComent || '').trim();
 
-  // 2. Validar si hubo cambios reales (solo si ya existía una reseña)
+  // 2. Definir lógica de envío
+  const ejecutarEnvio = async () => {
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-base pointer-events-none" style="font-size:16px;">progress_activity</span> Enviando...`;
+    try {
+      await api.crearResena(idEstab, { id_establecimiento:idEstab, calificacion:cal, comentario:comentario||null });
+      showToast(origCal > 0 ? '¡Reseña actualizada!' : '¡Reseña guardada!', 'success');
+      setTimeout(() => {
+        establecimientoController(idEstab);
+      }, 1500);
+    } catch(_) {
+      showToast('Error al enviar la reseña', 'error');
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  };
+
+  // 3. Validar si hubo cambios reales y pedir confirmación si ya existía una reseña
   if (origCal > 0) {
     if (cal === origCal && (comentario || '') === origComent) {
       showToast('No has realizado cambios en tu reseña con respecto a la anterior.', 'warning');
       return;
     }
-    // 3. Confirmación modal nativa para actualizar
-    if (!window.confirm("Estás a punto de actualizar tu reseña. ¿Deseas continuar?")) {
-      return;
-    }
-  }
-
-  btn.disabled = true;
-  const originalText = btn.innerHTML;
-  btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-base pointer-events-none" style="font-size:16px;">progress_activity</span> Enviando...`;
-  try {
-    await api.crearResena(idEstab, { id_establecimiento:idEstab, calificacion:cal, comentario:comentario||null });
-    showToast(origCal > 0 ? '¡Reseña actualizada!' : '¡Reseña guardada!', 'success');
-    setTimeout(() => {
-      establecimientoController(idEstab);
-    }, 1500);
-  } catch(_) {
-    showToast('Error al enviar la reseña', 'error');
-    btn.disabled = false;
-    btn.innerHTML = originalText;
+    
+    Modal.showConfirm({
+      title: 'Actualizar reseña',
+      message: 'Estás a punto de actualizar tu reseña. ¿Deseas continuar?',
+      confirmText: 'Sí, actualizar',
+      cancelText: 'Cancelar',
+      onConfirm: async () => {
+        await ejecutarEnvio();
+      }
+    });
+  } else {
+    // Si es nueva reseña, se ejecuta directo
+    await ejecutarEnvio();
   }
 }
 

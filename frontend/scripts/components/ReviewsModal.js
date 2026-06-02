@@ -1,3 +1,9 @@
+/**
+ * Componente genérico que se usa para el modal de reseñas, cada que se quiera incluir
+ * el sistema reseñas de usuarios se debe reutilizar este modal. 
+ */
+
+
 import { escapeHTML } from '../utils.js';
 
 // Helper local para fechas
@@ -74,8 +80,8 @@ export class ReviewsModal {
     const visible = this.resenas.slice(0, this.pageSize);
     
     modalContainer.innerHTML = `
-      <div class="bg-surface-default w-full max-w-2xl max-h-[85vh] rounded-lg shadow-xl flex flex-col fade-in">
-        <div class="p-4 sm:p-6 border-b border-border-subtle flex justify-between items-center sticky top-0 bg-surface-default z-10 rounded-t-lg">
+      <div class="bg-surface-raised w-full max-w-2xl max-h-[85vh] rounded-lg shadow-xl flex flex-col fade-in">
+        <div class="p-4 sm:p-6 border-b border-border-subtle flex justify-between items-center sticky top-0 bg-surface-raised z-10 rounded-t-lg">
           <h2 class="font-heading text-headline-sm text-primary">Todas las reseñas (${this.resenas.length})</h2>
           <button data-action="cerrar-modal-resenas" class="text-text-tertiary hover:text-primary transition-colors p-1">
             <span class="material-symbols-outlined" style="font-size:24px;">close</span>
