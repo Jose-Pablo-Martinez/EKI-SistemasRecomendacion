@@ -18,6 +18,8 @@ from backend.models.usuarios import UbicacionUsuario
 from backend.models.interacciones import FavoritoGuardado
 from sqlalchemy.orm import joinedload
 from backend.models.interacciones import Resena, FavoritoGuardado, ContribucionInformacion
+from backend.models.establecimientos import Establecimiento
+from backend.schemas.establecimientos import EstablecimientoResponse
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
@@ -135,3 +137,11 @@ def eliminar_ubicacion(current_user: Usuario = Depends(get_current_user), db: Se
     """Elimina las ubicaciones del usuario (desactiva uso de ubicación)."""
     usuario_service.eliminar_ubicaciones(db, current_user.id_usuario)  # type: ignore[arg-type]
     return {"status": "ok", "message": "Ubicación desactivada."}
+
+@router.get("/me/contribuciones", response_model=list[EstablecimientoResponse])
+def get_mis_contribuciones(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Obtiene los establecimientos creados/aportados por el usuario."""
+    contribuciones = db.query(Establecimiento).filter(
+        Establecimiento.id_usuario_registro == current_user.id_usuario
+    ).order_by(Establecimiento.fecha_registro.desc()).all()
+    return contribuciones

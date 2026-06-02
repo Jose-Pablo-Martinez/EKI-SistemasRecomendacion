@@ -39,9 +39,13 @@ def actualizar_establecimiento(db: Session, id_establecimiento: int, id_usuario:
     if not est:
         return None
     
-    # Validación de auditoría: Solo el usuario que lo registró puede editar (simplificado para MVP)
+    # Validación de auditoría: Solo el usuario que lo registró puede editar
     if est.id_usuario_registro != id_usuario:  # type: ignore
         return None
+        
+    # Bloquear si ya tiene un propietario asignado
+    if est.propietarios and len(est.propietarios) > 0:
+        raise ValueError("Este establecimiento ya ha sido reclamado por su propietario.")
         
     data_dict = datos.model_dump(exclude_unset=True)
     for key, value in data_dict.items():

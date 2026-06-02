@@ -171,12 +171,13 @@ export default async function perfilController() {
   window._perfilClickListener = _handlePerfilClick;
   root.addEventListener('click', window._perfilClickListener);
 
-  let usuario, rango_data, historial;
+  let usuario, rango_data, historial, contribuciones;
   try {
-    [usuario, rango_data, historial] = await Promise.all([
+    [usuario, rango_data, historial, contribuciones] = await Promise.all([
       api.getPerfil(),
       api.getRango().catch(() => null),
       api.getHistorialPuntos().catch(() => []),
+      api.getMisContribuciones().catch(() => []),
     ]);
   } catch(_) {
     document.getElementById('perfil-skeleton')?.classList.add('hidden');
@@ -307,6 +308,40 @@ export default async function perfilController() {
         <p class="text-body-sm text-text-tertiary">Aún no tienes actividad registrada.</p>
         <p class="text-label-md text-text-tertiary mt-1">Deja reseñas o agrega lugares para ganar puntos.</p>
       </div>`;
+  }
+
+  // Mis Contribuciones
+  const contribContainer = document.getElementById('contribuciones-container');
+  if (contribContainer) {
+    if (contribuciones && contribuciones.length > 0) {
+      contribContainer.innerHTML = contribuciones.map(c => `
+        <div class="bg-surface border border-border-default rounded-lg p-4 flex flex-col justify-between hover:border-accent-muted transition-colors">
+          <div>
+            <div class="flex items-start justify-between mb-2">
+              <h3 class="font-heading font-semibold text-primary text-base truncate pr-2">${c.nombre}</h3>
+              <span class="text-xs px-2 py-0.5 rounded ${
+                c.estado === 'aprobado' ? 'bg-success-faint text-success border border-success/20' :
+                c.estado === 'pendiente' ? 'bg-warning-faint text-warning border border-warning/20' :
+                'bg-red-100 text-red-600 border border-red-200'
+              } capitalize whitespace-nowrap">${c.estado}</span>
+            </div>
+            <p class="text-sm text-text-tertiary mb-3 line-clamp-2">${c.direccion_texto || 'Sin dirección'}</p>
+          </div>
+          <div class="flex justify-between items-center mt-2 pt-3 border-t border-border-faint">
+            <span class="text-xs font-medium text-text-tertiary uppercase tracking-wider">${c.tipo_establecimiento.replace('_', ' ')}</span>
+            <button class="text-accent text-sm font-medium hover:text-accent-hover transition-colors" onclick="alert('Funcionalidad de edición en desarrollo')">Editar</button>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      contribContainer.innerHTML = `
+        <div class="col-span-1 md:col-span-2 flex flex-col items-center py-8 text-center bg-surface border border-border-default rounded-lg">
+          <span class="material-symbols-outlined text-4xl text-text-tertiary mb-2 pointer-events-none">storefront</span>
+          <p class="text-body-sm text-text-secondary">Aún no has agregado ningún lugar.</p>
+          <a href="#/contribucion" class="mt-3 text-sm font-semibold text-accent hover:text-accent-hover transition-colors">¡Haz tu primera contribución!</a>
+        </div>
+      `;
+    }
   }
 
   // Animar odómetro después del render

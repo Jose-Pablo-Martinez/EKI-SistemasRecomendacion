@@ -46,10 +46,13 @@ def create_establecimiento(datos: EstablecimientoCreate, current_user: UsuarioVi
 @router.patch("/{id_establecimiento}", response_model=EstablecimientoResponse)
 def update_establecimiento(id_establecimiento: int, datos: EstablecimientoUpdate, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
     """Actualiza datos de un establecimiento."""
-    est = establecimiento_service.actualizar_establecimiento(db, id_establecimiento, int(current_user.id_usuario), datos) # type: ignore
-    if not est:
-        raise HTTPException(status_code=404, detail="Establecimiento no encontrado")
-    return est
+    try:
+        est = establecimiento_service.actualizar_establecimiento(db, id_establecimiento, int(current_user.id_usuario), datos) # type: ignore
+        if not est:
+            raise HTTPException(status_code=404, detail="Establecimiento no encontrado")
+        return est
+    except ValueError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
 @router.put("/{id_establecimiento}/horarios")
 def update_horarios(id_establecimiento: int, horarios: list[HorarioCreate], current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):

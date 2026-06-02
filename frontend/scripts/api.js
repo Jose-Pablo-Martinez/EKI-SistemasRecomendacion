@@ -123,6 +123,9 @@ export const api = {
   
   // Establecimientos
   getEstablecimiento: (id) => apiRequest(`/establecimientos/${id}`),
+  crearEstablecimiento: (data) => apiRequest('/establecimientos/', {
+    method: 'POST', body: JSON.stringify(data)
+  }),
   buscar: (query, filtros) => {
     const params = new URLSearchParams(filtros);
     if (query) params.append('q', query);
@@ -150,6 +153,7 @@ export const api = {
   
   // Perfil
   getFavoritos: () => apiRequest('/usuarios/me/favoritos'),
+  getMisContribuciones: () => apiRequest('/usuarios/me/contribuciones'),
   getPerfil: () => apiRequest('/usuarios/me'),
   actualizarPerfil: (data) => apiRequest('/usuarios/me', {
     method: 'PATCH', body: JSON.stringify(data)
@@ -173,6 +177,7 @@ export const api = {
   // Contenido
   getCategorias: () => apiRequest('/contenido/categorias'),
   getEtiquetas: () => apiRequest('/contenido/etiquetas'),
+  getColonias: () => apiRequest('/contenido/geografia/colonias'),
   
   // Admin
   getPendientes: (tipo) => apiRequest(`/admin/${tipo}/pendientes`),
