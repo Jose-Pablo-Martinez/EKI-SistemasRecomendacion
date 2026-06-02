@@ -40,8 +40,12 @@ def crear_usuario(db: Session, user_data: UsuarioCreate) -> Usuario:
     if user_data.tipo_usuario == "visitante":
         visitante = UsuarioVisitante(id_usuario=nuevo_usuario.id_usuario)
         db.add(visitante)
+    elif user_data.tipo_usuario == "admin":
+        from backend.models.usuarios import Administrador
+        admin_record = Administrador(id_usuario=nuevo_usuario.id_usuario, nivel_admin=1)
+        db.add(admin_record)
         
-    # TODO: Implementar lógica para propietario/admin si se requiere en el futuro
+    # TODO: Implementar lógica para propietario si se requiere en el futuro
     
     db.commit()
     db.refresh(nuevo_usuario)

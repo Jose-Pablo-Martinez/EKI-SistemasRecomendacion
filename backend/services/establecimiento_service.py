@@ -90,15 +90,15 @@ def gestionar_horarios(db: Session, id_establecimiento: int, horarios: list[Hora
     db.commit()
     return nuevos
 
-def crear_platillo(db: Session, id_establecimiento: int, datos: PlatilloCreate):
-    platillo = Platillo(**datos.model_dump(), estado='pendiente')
+def crear_platillo(db: Session, id_establecimiento: int, datos: PlatilloCreate, id_usuario: int):
+    platillo = Platillo(**datos.model_dump(), estado='pendiente', id_usuario_registro=id_usuario)
     db.add(platillo)
     db.commit()
     db.refresh(platillo)
     return platillo
 
-def subir_imagen(db: Session, id_establecimiento: int, datos: ImagenCreate):
-    imagen = Imagen(**datos.model_dump(), estado='pendiente')
+def subir_imagen(db: Session, id_establecimiento: int, datos: ImagenCreate, id_usuario: int):
+    imagen = Imagen(**datos.model_dump(), estado='pendiente', id_usuario_upload=id_usuario)
     db.add(imagen)
     db.commit()
     db.refresh(imagen)

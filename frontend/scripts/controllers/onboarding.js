@@ -303,7 +303,7 @@ export default async function onboardingController() {
                             title: '¡Todo listo!',
                             message: 'Tu configuración está guardada y al día.',
                             type: 'success',
-                            onClose: () => { window.location.hash = '#/feed'; }
+                            onClose: () => { window.location.hash = appState.isAdmin ? '#/admin' : '#/feed'; }
                         });
                         return;
                     }
@@ -323,7 +323,7 @@ export default async function onboardingController() {
                     title: '¡Todo listo!',
                     message: 'Tus preferencias han sido guardadas con éxito.',
                     type: 'success',
-                    onClose: () => { window.location.hash = '#/feed'; }
+                    onClose: () => { window.location.hash = appState.isAdmin ? '#/admin' : '#/feed'; }
                 });
             } catch (err) {
                 const userMsg = errorHandler.handle(err, 'Onboarding');

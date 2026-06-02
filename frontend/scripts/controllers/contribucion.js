@@ -325,7 +325,7 @@ function validarCampo(el) {
 }
 
 function parseHorarios() {
-  const rows = document.querySelectorAll('#tabla-horarios tbody tr');
+  const rows = document.querySelectorAll('#tabla-horarios tbody tr:not(.error-row)');
   const horarios = [];
   let algunCerrado = false;
   let algunAbiertoConHora = false;

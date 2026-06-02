@@ -1,6 +1,7 @@
-from sqlalchemy.orm import Session
-from backend.models.establecimientos import Establecimiento
+from sqlalchemy.orm import Session, joinedload
+from backend.models.establecimientos import Establecimiento, PropietarioEstablecimiento
 from backend.models.interacciones import Resena
+from backend.models.usuarios import Usuario
 from backend.services.gamificacion_service import otorgar_puntos
 from sqlalchemy.sql import func
 
@@ -52,8 +53,48 @@ def aprobar_resena(db: Session, id_resena: int) -> bool:
     db.commit()
     return True
 
-def obtener_establecimientos_pendientes(db: Session):
-    return db.query(Establecimiento).filter(Establecimiento.estado == "pendiente").all()
+def obtener_altas_visitantes(db: Session):
+    return db.query(Establecimiento).join(Usuario, Establecimiento.id_usuario_registro == Usuario.id_usuario).filter(
+        Establecimiento.estado == "pendiente",
+        Usuario.tipo_usuario == "visitante"
+    ).options(
+        joinedload(Establecimiento.horarios),
+        joinedload(Establecimiento.platillos)
+    ).all()
+
+def obtener_altas_propietarios(db: Session):
+    return db.query(Establecimiento).join(Usuario, Establecimiento.id_usuario_registro == Usuario.id_usuario).filter(
+        Establecimiento.estado == "pendiente",
+        Usuario.tipo_usuario == "propietario"
+    ).options(
+        joinedload(Establecimiento.horarios),
+        joinedload(Establecimiento.platillos)
+    ).all()
+
+def obtener_reclamos_pendientes(db: Session):
+    # Trae los PropietarioEstablecimiento con estado pendiente
+    return db.query(PropietarioEstablecimiento).options(
+        joinedload(PropietarioEstablecimiento.establecimiento),
+        joinedload(PropietarioEstablecimiento.propietario)
+    ).filter(PropietarioEstablecimiento.estado == "pendiente").all()
+
+def aprobar_reclamo(db: Session, id_propietario: int, id_establecimiento: int) -> bool:
+    reclamo = db.query(PropietarioEstablecimiento).filter_by(
+        id_propietario=id_propietario, id_establecimiento=id_establecimiento, estado="pendiente"
+    ).first()
+    if not reclamo: return False
+    reclamo.estado = "aprobado" # type: ignore
+    db.commit()
+    return True
+
+def rechazar_reclamo(db: Session, id_propietario: int, id_establecimiento: int) -> bool:
+    reclamo = db.query(PropietarioEstablecimiento).filter_by(
+        id_propietario=id_propietario, id_establecimiento=id_establecimiento, estado="pendiente"
+    ).first()
+    if not reclamo: return False
+    reclamo.estado = "rechazado" # type: ignore
+    db.commit()
+    return True
 
 def obtener_resenas_pendientes(db: Session):
     return db.query(Resena).filter(Resena.estado == "pendiente").all()

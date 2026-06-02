@@ -180,7 +180,22 @@ export const api = {
   getColonias: () => apiRequest('/contenido/geografia/colonias'),
   
   // Admin
-  getPendientes: (tipo) => apiRequest(`/admin/${tipo}/pendientes`),
-  aprobar: (tipo, id) => apiRequest(`/admin/${tipo}/${id}/aprobar`, { method: 'POST' }),
+  getPendientes: (tipo) => {
+    if (tipo === 'establecimientos_vis') return apiRequest(`/admin/establecimientos/pendientes/visitantes`);
+    if (tipo === 'establecimientos_prop') return apiRequest(`/admin/establecimientos/pendientes/propietarios`);
+    if (tipo === 'reclamos') return apiRequest(`/admin/reclamos/pendientes`);
+    if (tipo === 'resenas') return apiRequest(`/admin/resenas/pendientes`);
+    return apiRequest(`/admin/${tipo}/pendientes`);
+  },
+  aprobar: (tipo, id, id2) => {
+    if (tipo === 'reclamos') return apiRequest(`/admin/reclamos/${id}/${id2}/aprobar`, { method: 'POST' });
+    const res = tipo.startsWith('establecimientos') ? 'establecimientos' : tipo;
+    return apiRequest(`/admin/${res}/${id}/aprobar`, { method: 'POST' });
+  },
+  rechazar: (tipo, id, id2) => {
+    if (tipo === 'reclamos') return apiRequest(`/admin/reclamos/${id}/${id2}/rechazar`, { method: 'POST' });
+    const res = tipo.startsWith('establecimientos') ? 'establecimientos' : tipo;
+    return apiRequest(`/admin/${res}/${id}/rechazar`, { method: 'POST' });
+  },
   dispararJob: (tipo) => apiRequest(`/admin/jobs/${tipo}`, { method: 'POST' }),
 };

@@ -64,14 +64,14 @@ def add_platillo(id_establecimiento: int, datos: PlatilloCreate, current_user: U
     """Sube un platillo para revisión."""
     if datos.id_establecimiento != id_establecimiento:
         raise HTTPException(status_code=400, detail="ID url no coincide con el body")
-    return establecimiento_service.crear_platillo(db, id_establecimiento, datos)
+    return establecimiento_service.crear_platillo(db, id_establecimiento, datos, current_user.id_usuario)  # type: ignore
 
 @router.post("/{id_establecimiento}/imagen")
 def add_imagen(id_establecimiento: int, datos: ImagenCreate, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
     """Sube una imagen para revisión."""
     if datos.id_establecimiento != id_establecimiento:
         raise HTTPException(status_code=400, detail="ID url no coincide con el body")
-    return establecimiento_service.subir_imagen(db, id_establecimiento, datos)
+    return establecimiento_service.subir_imagen(db, id_establecimiento, datos, current_user.id_usuario)  # type: ignore
 
 @router.post("/{id_establecimiento}/interaccion")
 def registrar_interaccion(id_establecimiento: int, datos: InteraccionUsuarioCreate, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
