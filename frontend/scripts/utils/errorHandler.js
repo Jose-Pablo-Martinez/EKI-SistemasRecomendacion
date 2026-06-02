@@ -5,7 +5,7 @@
  * emitiendo un log altamente técnico a la consola para debugging y
  * retornando un string amigable, claro y no ambiguo para el usuario final.
  */
-window.errorHandler = {
+export const errorHandler = {
     handle(error, context = 'Aplicación') {
         // 1. Log técnico para Debugging (Sin exponer el stack trace crudo como texto por seguridad)
         const errorStatus = error.status ? `(HTTP ${error.status})` : '(Sin status HTTP)';

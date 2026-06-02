@@ -6,7 +6,11 @@
  * y el manejo de errores (reversión de estado), mostrando notificaciones Toast.
  */
 
-window.Favorite = {
+import { api } from '../api.js';
+import { appState } from '../state.js';
+import { showToast } from '../utils.js';
+
+export const Favorite = {
   /**
    * Alterna el estado de guardado/no-guardado de un establecimiento.
    * Modifica el DOM del botón instantáneamente para mejorar la UX y realiza la llamada a la API en segundo plano.
@@ -14,7 +18,7 @@ window.Favorite = {
    * @param {HTMLElement} btnElement - El elemento <button> que disparó el evento.
    */
   toggle: async (idEstab, btnElement) => {
-    if (!window.appState || !window.appState.isAuthenticated) {
+    if (!appState || !appState.isAuthenticated) {
       window.location.hash = '#/login';
       return;
     }

@@ -2,6 +2,9 @@
  * perfil.js — Perfil de usuario, gamificación y flujo de agregar lugar
  * EkiSystem — Fase 4 Frontend
  */
+import { api, apiRequest } from '../api.js';
+import { showToast } from '../utils.js';
+import { renderView } from '../app.js';
 
 // Configuración de rangos 
 const _RANGOS = [
@@ -48,7 +51,7 @@ function _odometro(el, destino, ms) {
   const start = performance.now();
   const tick = (now) => {
     const p = Math.min((now - start) / ms, 1);
-    const ease = 1 - Math.pow(1 - p, 4); // ease-out quart
+    const ease = 1 - Math.pow(1 - p, 4);
     el.textContent = Math.round(ease * destino).toLocaleString('es-MX');
     if (p < 1) requestAnimationFrame(tick);
   };
@@ -61,7 +64,6 @@ function _odometro(el, destino, ms) {
 function _abrirModal(id)  { const m = document.getElementById(id); m?.classList.remove('hidden'); m?.classList.add('flex'); }
 function _cerrarModal(id) { const m = document.getElementById(id); m?.classList.add('hidden');    m?.classList.remove('flex'); }
 
-// Modal: Editar perfil 
 function _abrirEdicion(nombre, apellido) {
   document.getElementById('edit-nombre').value   = nombre  || '';
   document.getElementById('edit-apellido').value = apellido|| '';
@@ -74,12 +76,12 @@ async function _guardarPerfil() {
   const apellido = document.getElementById('edit-apellido')?.value?.trim();
   if (!nombre) { showToast('El nombre es requerido', 'warning'); return; }
   btn.disabled = true;
-  btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin" style="font-size:18px;">progress_activity</span> Guardando...</div>`;
+  btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin pointer-events-none" style="font-size:18px;">progress_activity</span> Guardando...</div>`;
   try {
     await api.actualizarPerfil({ nombre, apellido });
     showToast('Perfil actualizado', 'success');
     _cerrarModal('modal-edicion');
-    window.controllers.perfil();
+    perfilController();
   } catch(_) {
     showToast('No se pudo actualizar el perfil', 'error');
     btn.disabled = false;
@@ -102,7 +104,7 @@ async function _enviarLugar() {
   if (!nombre || !tipo) { showToast('Nombre y tipo son requeridos', 'warning'); return; }
 
   btn.disabled = true;
-  btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin" style="font-size:16px;">progress_activity</span> Enviando...</div>`;
+  btn.innerHTML = `<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin pointer-events-none" style="font-size:16px;">progress_activity</span> Enviando...</div>`;
 
   try {
     await apiRequest('/establecimientos', {
@@ -126,9 +128,38 @@ async function _enviarLugar() {
 }
 
 // Controlador principal 
-window.controllers.perfil = async () => {
+export default async function perfilController() {
   const loaded = await renderView('perfil.html');
   if (!loaded) return;
+
+  // Delegación de eventos para la vista completa
+  const root = document.getElementById('app-root');
+  const _handlePerfilClick = (e) => {
+    const actionEl = e.target.closest('[data-action]');
+    if (!actionEl) return;
+    const action = actionEl.dataset.action;
+    
+    if (action === 'reload-perfil') {
+      perfilController();
+    } else if (action === 'abrir-agregar-lugar') {
+      _abrirAgregarLugar();
+    } else if (action === 'cerrar-modal') {
+      _cerrarModal(actionEl.dataset.target);
+    } else if (action === 'cerrar-modal-backdrop') {
+      if (e.target === actionEl) _cerrarModal(actionEl.dataset.target);
+    } else if (action === 'guardar-perfil') {
+      _guardarPerfil();
+    } else if (action === 'enviar-lugar') {
+      _enviarLugar();
+    }
+  };
+  
+  // Limpiar eventos anteriores si se vuelve a renderizar
+  if (window._perfilClickListener) {
+    root.removeEventListener('click', window._perfilClickListener);
+  }
+  window._perfilClickListener = _handlePerfilClick;
+  root.addEventListener('click', window._perfilClickListener);
 
   let usuario, rango_data, historial;
   try {
@@ -141,6 +172,11 @@ window.controllers.perfil = async () => {
     document.getElementById('perfil-skeleton')?.classList.add('hidden');
     document.getElementById('perfil-error')?.classList.remove('hidden');
     document.getElementById('perfil-error')?.classList.add('flex');
+    
+    const reintentarBtn = document.getElementById('perfil-error')?.querySelector('button');
+    if (reintentarBtn) {
+      reintentarBtn.addEventListener('click', perfilController);
+    }
     return;
   }
 
@@ -177,7 +213,7 @@ window.controllers.perfil = async () => {
   // Acciones
   const btnEditar = document.getElementById('btn-editar-perfil');
   if (btnEditar) {
-    btnEditar.onclick = () => _abrirEdicion(usuario.nombre, usuario.apellido);
+    btnEditar.addEventListener('click', () => _abrirEdicion(usuario.nombre, usuario.apellido));
   }
   if (esProp) {
     const btnAgregar = document.getElementById('btn-agregar-lugar');
@@ -211,7 +247,7 @@ window.controllers.perfil = async () => {
         </p>
       </div>` : `
       <div class="bg-accent-faint border border-accent/20 rounded p-3 flex items-center gap-2">
-        <span class="material-symbols-outlined text-accent" style="font-size:18px;">verified</span>
+        <span class="material-symbols-outlined text-accent pointer-events-none" style="font-size:18px;">verified</span>
         <p class="text-body-sm text-accent font-semibold">¡Has alcanzado el rango máximo!</p>
       </div>`;
   }
@@ -221,7 +257,7 @@ window.controllers.perfil = async () => {
   if (statsContainer) {
     statsContainer.innerHTML = stats.map(s => `
       <div class="bg-surface-raised border border-border-default rounded-md p-4 text-center">
-        <span class="material-symbols-outlined text-text-tertiary mb-2 block" style="font-size:22px;">${s.icon}</span>
+        <span class="material-symbols-outlined text-text-tertiary mb-2 block pointer-events-none" style="font-size:22px;">${s.icon}</span>
         ${s.numerico
           ? `<p class="font-heading text-numeric-md text-primary tabular-nums">${(s.val||0).toLocaleString('es-MX')}</p>`
           : `<p class="text-body-sm text-primary font-semibold leading-snug">${s.val}</p>`}
@@ -242,7 +278,7 @@ window.controllers.perfil = async () => {
                  style="animation-delay:${i*35}ms">
               <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
                           ${pos ? 'bg-success-faint text-success' : 'bg-accent-faint text-accent'}">
-                <span class="material-symbols-outlined" style="font-size:15px;">${_historialIcon(h.motivo)}</span>
+                <span class="material-symbols-outlined pointer-events-none" style="font-size:15px;">${_historialIcon(h.motivo)}</span>
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-body-sm font-medium text-primary truncate">${h.motivo || 'Actividad'}</p>
@@ -255,7 +291,7 @@ window.controllers.perfil = async () => {
         }).join('')}
       </div>` : `
       <div class="flex flex-col items-center py-12 text-center">
-        <span class="material-symbols-outlined text-4xl text-text-tertiary mb-3">history</span>
+        <span class="material-symbols-outlined text-4xl text-text-tertiary mb-3 pointer-events-none">history</span>
         <p class="text-body-sm text-text-tertiary">Aún no tienes actividad registrada.</p>
         <p class="text-label-md text-text-tertiary mt-1">Deja reseñas o agrega lugares para ganar puntos.</p>
       </div>`;
@@ -266,4 +302,4 @@ window.controllers.perfil = async () => {
     const el = document.getElementById('pts-odometro');
     if (el) _odometro(el, puntos, 1400);
   }, 180);
-};
+}

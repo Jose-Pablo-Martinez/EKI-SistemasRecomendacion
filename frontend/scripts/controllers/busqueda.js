@@ -1,4 +1,16 @@
+/**
+ * busqueda.js — Buscador y explorador de establecimientos
+ * EkiSystem — Fase 4 Frontend
+ */
 
+import { api } from '../api.js';
+import { appState } from '../state.js';
+import { renderView } from '../app.js';
+import { Card } from '../components/Card.js';
+import { Skeletons } from '../components/Skeletons.js';
+import { escapeHTML } from '../utils.js';
+
+// Constantes de filtros
 const _FILTROS = [
   { valor:'',               label:'Todos',      icono:'apps'       },
   { valor:'puesto_informal',label:'Informales', icono:'storefront' },
@@ -6,46 +18,45 @@ const _FILTROS = [
   { valor:'local_comercial',label:'Locales',    icono:'shop'       },
 ];
 
+// Estado interno
 let _filtroActivo = '';
 let _searchTimeout = null;
 let _autocompleteTimeout = null;
 let _ultimaBusqueda = '';
 
-// Utilidades para la búsqueda se han unificado en scripts/components/
-
-// Renderizar resultados
+// Helper de renderizado HTML
 function _renderResultadosHTML(items, query) {
   if (!items || !items.length) {
+    const safeQuery = escapeHTML(query);
     return `
       <div class="flex flex-col items-center justify-center py-16 text-center col-span-full fade-in">
-        <span class="material-symbols-outlined text-4xl text-text-tertiary mb-3">search_off</span>
-        <p class="font-heading text-headline-sm text-primary mb-1">Sin resultados para "${query}"</p>
+        <span class="material-symbols-outlined text-4xl text-text-tertiary mb-3 pointer-events-none">search_off</span>
+        <p class="font-heading text-headline-sm text-primary mb-1">Sin resultados para "${safeQuery}"</p>
         <p class="text-body-sm text-text-secondary">Prueba con otro término o cambia los filtros.</p>
       </div>`;
   }
-  return items.map((e, i) => window.Card.renderCompact(e, i, false)).join('');
+  return items.map((e, i) => Card.renderCompact(e, i, false)).join('');
 }
 
-// Ejecutar búsqueda
+// Búsqueda principal
 async function _ejecutarBusqueda(query) {
   const el = document.getElementById('busq-resultados');
   if (!el) return;
 
   _ultimaBusqueda = query;
-  el.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 col-span-full" role="list">${window.Skeletons.renderCompact(4)}</div>`;
+  el.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 col-span-full" role="list">${Skeletons.renderCompact(4)}</div>`;
 
   try {
     const params = { tipo: _filtroActivo };
     const response = await api.buscar(query, params);
-    if (_ultimaBusqueda !== query) return; // busqueda obsoleta
+    if (_ultimaBusqueda !== query) return;
     
     let items = response.resultados || [];
     const sugerencia = response.sugerencia_correccion;
     const isInitialState = (!query || query.length < 2);
     
     if (isInitialState) {
-      // Tomamos de 15 resultados aleatorios si la búsqueda está vacía
-      items = items.sort(() => 0.5 - Math.random()).slice(0, 15);
+      items = items.sort(() => 0.5 - Math.random()).slice(0, 20);
     }
     
     let html = '';
@@ -53,19 +64,20 @@ async function _ejecutarBusqueda(query) {
     if (isInitialState) {
       html += `
         <div class="flex flex-col items-center justify-center py-8 px-4 text-center col-span-full mb-6 bg-surface-raised border border-border-default rounded-md shadow-sm fade-in">
-          <span class="material-symbols-outlined text-5xl text-text-tertiary mb-3">restaurant_menu</span>
+          <span class="material-symbols-outlined text-5xl text-text-tertiary mb-3 pointer-events-none">restaurant_menu</span>
           <p class="font-heading text-headline-sm text-primary mb-2">¿Qué se te antoja hoy?</p>
           <p class="text-body-sm text-text-secondary">Escribe al menos 2 letras para buscar opciones específicas, o explora estas sugerencias iniciales.</p>
         </div>`;
     }
     
-    // Renderizado del banner de Corrección Ortográfica (Levenshtein)
     if (sugerencia && !isInitialState) {
+      const safeSug = escapeHTML(sugerencia);
+      const safeQuery = escapeHTML(query);
       html += `
         <div class="col-span-full bg-accent-faint border border-accent/30 text-accent rounded-md p-4 mb-2 flex items-center gap-3 fade-in cursor-pointer hover:bg-accent/10 transition-colors shadow-sm" 
-             onclick="document.getElementById('busq-input').value='${sugerencia}'; _clearTimeout=_searchTimeout; _ultimaBusqueda='${sugerencia}'; _ejecutarBusqueda('${sugerencia}')">
-          <span class="material-symbols-outlined" style="font-size:24px;">spellcheck</span>
-          <p class="font-medium text-body-md">No encontramos "${query}". ¿Quizás quisiste decir <strong class="underline">${sugerencia}</strong>?</p>
+             data-action="aplicar-sugerencia" data-sugerencia="${safeSug}">
+          <span class="material-symbols-outlined pointer-events-none" style="font-size:24px;">spellcheck</span>
+          <p class="font-medium text-body-md pointer-events-none">No encontramos "${safeQuery}". ¿Quizás quisiste decir <strong class="underline">${safeSug}</strong>?</p>
         </div>
       `;
     }
@@ -73,11 +85,12 @@ async function _ejecutarBusqueda(query) {
     html += _renderResultadosHTML(items, query);
     el.innerHTML = html;
   } catch(e) {
+    const safeQuery = escapeHTML(query);
     el.innerHTML = `
       <div class="flex flex-col items-center justify-center py-12 text-center col-span-full">
-        <span class="material-symbols-outlined text-4xl text-text-tertiary mb-3">wifi_off</span>
+        <span class="material-symbols-outlined text-4xl text-text-tertiary mb-3 pointer-events-none">wifi_off</span>
         <p class="text-body-sm text-text-secondary mb-4">No se pudo conectar al servidor.</p>
-        <button onclick="_ejecutarBusqueda('${query}')"
+        <button data-action="reintentar-busqueda" data-query="${safeQuery}"
           class="bg-accent text-white px-4 py-2 rounded font-semibold text-label-lg hover:bg-accent-hover transition-colors">
           Reintentar
         </button>
@@ -85,9 +98,8 @@ async function _ejecutarBusqueda(query) {
   }
 }
 
-// Controlador Principal
-window.controllers.busqueda = async () => {
-
+// Controlador principal
+export default async function busquedaController() {
   const loaded = await renderView('busqueda.html');
   if (!loaded) return;
 
@@ -95,13 +107,13 @@ window.controllers.busqueda = async () => {
   if (chipsContainer) {
     chipsContainer.innerHTML = _FILTROS.map(f => `
       <button
+        data-action="set-filtro"
         data-tipo="${f.valor}"
-        onclick="_setFiltro('${f.valor}')"
         class="chip-filtro flex items-center gap-1.5 px-4 py-2 rounded-full border text-label-lg transition-all
               ${_filtroActivo === f.valor
                 ? 'bg-primary text-white border-primary'
                 : 'bg-surface-raised border-border-default text-text-secondary hover:border-border-strong hover:text-primary'}">
-        <span class="material-symbols-outlined" style="font-size:15px;line-height:1;">${f.icono}</span>
+        <span class="material-symbols-outlined pointer-events-none" style="font-size:15px;line-height:1;">${f.icono}</span>
         ${f.label}
       </button>`).join('');
   }
@@ -109,7 +121,6 @@ window.controllers.busqueda = async () => {
   const input = document.getElementById('busq-input');
   const clearBtn = document.getElementById('busq-clear');
   
-  // Mostrar banner promocional si no tiene sesión iniciada
   const guestBanner = document.getElementById('guest-banner');
   if (guestBanner) {
     if (!appState.isAuthenticated) {
@@ -121,7 +132,6 @@ window.controllers.busqueda = async () => {
 
   if (!input) return;
 
-  // Restaurar valor previo si lo había y ejecutar búsqueda inicial
   if (_ultimaBusqueda) {
     input.value = _ultimaBusqueda;
     clearBtn?.classList.remove('hidden');
@@ -133,7 +143,6 @@ window.controllers.busqueda = async () => {
     const qTrimmed = q.trim();
     clearBtn?.classList.toggle('hidden', !qTrimmed);
     
-    // 1. Manejar autocompletado (rápido, 150ms debounce)
     clearTimeout(_autocompleteTimeout);
     if (qTrimmed.length >= 2) {
       _autocompleteTimeout = setTimeout(() => _fetchAutocomplete(qTrimmed), 150);
@@ -141,7 +150,6 @@ window.controllers.busqueda = async () => {
       _ocultarAutocomplete();
     }
 
-    // 2. Manejar búsqueda principal (más lenta, 400ms debounce)
     clearTimeout(_searchTimeout);
     _searchTimeout = setTimeout(() => {
       _ejecutarBusqueda(qTrimmed);
@@ -155,19 +163,54 @@ window.controllers.busqueda = async () => {
     }
   });
   
-  // Cerrar dropdown al hacer click fuera
-  document.addEventListener('click', (e) => {
-    const menu = document.getElementById('autocomplete-menu');
-    if (menu && !menu.contains(e.target) && e.target !== input) {
-      _ocultarAutocomplete();
-    }
-  });
+  document.addEventListener('click', _handleClickFuera);
+
+  // Delegación de eventos de la vista
+  const viewContainer = document.getElementById('busqueda-view');
+  if (viewContainer) {
+    viewContainer.addEventListener('click', (e) => {
+      const actionEl = e.target.closest('[data-action]');
+      if (!actionEl) return;
+      
+      const action = actionEl.dataset.action;
+      if (action === 'set-filtro') {
+        const val = actionEl.dataset.tipo;
+        _setFiltro(val);
+      } else if (action === 'aplicar-sugerencia') {
+        const sug = actionEl.dataset.sugerencia;
+        const inpt = document.getElementById('busq-input');
+        if(inpt) inpt.value = sug;
+        clearTimeout(_searchTimeout);
+        _ultimaBusqueda = sug;
+        _ejecutarBusqueda(sug);
+      } else if (action === 'reintentar-busqueda') {
+        const q = actionEl.dataset.query;
+        _ejecutarBusqueda(q);
+      } else if (action === 'clear-busqueda') {
+        _clearBusqueda();
+      } else if (action === 'seleccionar-autocomplete') {
+        const sug = actionEl.dataset.sugerencia;
+        _seleccionarAutocomplete(sug);
+      } else if (action === 'close-guest-banner') {
+        const banner = document.getElementById('guest-banner');
+        if (banner) banner.classList.add('hidden');
+      }
+    });
+  }
 
   input.focus();
-};
+}
 
-// Lógica de Autocompletado
+// Ocultar al hacer click fuera
+function _handleClickFuera(e) {
+  const menu = document.getElementById('autocomplete-menu');
+  const input = document.getElementById('busq-input');
+  if (menu && !menu.contains(e.target) && e.target !== input) {
+    _ocultarAutocomplete();
+  }
+}
 
+// Autocompletado
 async function _fetchAutocomplete(query) {
   try {
     const res = await api.autocompletar(query);
@@ -187,21 +230,19 @@ function _renderAutocomplete(sugerencias, queryOriginal) {
   const lista = document.getElementById('autocomplete-list');
   if (!menu || !lista) return;
 
-  // Renderizar cada opción
   lista.innerHTML = sugerencias.map(s => {
-    // Resaltar la parte que coincide (simple)
     const lowerS = s.toLowerCase();
     const lowerQ = queryOriginal.toLowerCase();
-    let displayHtml = s;
+    let displayHtml = escapeHTML(s);
     if (lowerS.startsWith(lowerQ)) {
-      displayHtml = `<span class="font-bold text-primary">${s.substring(0, queryOriginal.length)}</span>${s.substring(queryOriginal.length)}`;
+      displayHtml = `<span class="font-bold text-primary">${escapeHTML(s.substring(0, queryOriginal.length))}</span>${escapeHTML(s.substring(queryOriginal.length))}`;
     }
     
     return `
       <li class="px-4 py-3 hover:bg-surface-raised cursor-pointer flex items-center gap-3 transition-colors text-body-md border-b border-border-default last:border-0"
-          onclick="window._seleccionarAutocomplete('${s.replace(/'/g, "\\'")}')">
-        <span class="material-symbols-outlined text-text-tertiary" style="font-size:18px;">search</span>
-        <span class="text-text-secondary">${displayHtml}</span>
+          data-action="seleccionar-autocomplete" data-sugerencia="${escapeHTML(s)}">
+        <span class="material-symbols-outlined text-text-tertiary pointer-events-none" style="font-size:18px;">search</span>
+        <span class="text-text-secondary pointer-events-none">${displayHtml}</span>
       </li>
     `;
   }).join('');
@@ -214,23 +255,21 @@ function _ocultarAutocomplete() {
   if (menu) menu.classList.add('hidden');
 }
 
-window._seleccionarAutocomplete = (texto) => {
+function _seleccionarAutocomplete(texto) {
   const input = document.getElementById('busq-input');
   if (input) {
     input.value = texto;
     _ocultarAutocomplete();
     
-    // Disparar búsqueda formal
     clearTimeout(_searchTimeout);
     _ejecutarBusqueda(texto);
   }
-};
+}
 
-// Cambiar filtro 
+// Filtros
 function _setFiltro(valor) {
   _filtroActivo = valor;
 
-  // Actualizar chips visualmente
   document.querySelectorAll('.chip-filtro').forEach(btn => {
     const activo = btn.dataset.tipo === valor;
     btn.className = btn.className
@@ -243,7 +282,6 @@ function _setFiltro(valor) {
     }
   });
 
-  // Relanzar búsqueda con el nuevo filtro
   const q = document.getElementById('busq-input')?.value?.trim() || '';
   _ejecutarBusqueda(q);
 }

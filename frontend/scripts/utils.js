@@ -1,10 +1,19 @@
 // frontend/scripts/utils.js
 // EkiSystem — Utilidades globales
 
-window.controllers = {}; // Namespace para controladores
+// Escape de HTML para prevenir inyecciones XSS
+export function escapeHTML(str) {
+  if (typeof str !== 'string') return str;
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 // Geolocalización
-function solicitarUbicacion() {
+export function solicitarUbicacion() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('Geolocalización no soportada'));
@@ -19,9 +28,6 @@ function solicitarUbicacion() {
 }
 
 // Toast notifications
-// Cada toast tiene: icono · título · mensaje · barra de progreso · botón cerrar
-// aria-live="polite" en el container (puesto en index.html) garantiza accesibilidad.
-
 const _TOAST_CONFIG = {
   info:    { icon: 'info',             title: 'Información', border: 'rgb(var(--secondary))',   bg: 'rgb(var(--secondary-faint))',  text: 'rgb(var(--secondary))' },
   success: { icon: 'check_circle',     title: '¡Listo!',     border: 'rgb(var(--success))',     bg: 'rgb(var(--success-faint))',    text: 'rgb(var(--success))'   },
@@ -29,11 +35,12 @@ const _TOAST_CONFIG = {
   error:   { icon: 'error',            title: 'Error',       border: 'rgb(var(--accent))',      bg: 'rgb(var(--accent-faint))',     text: 'rgb(var(--accent))'    },
 };
 
-function showToast(message, type = 'info', duration = 4000) {
+export function showToast(message, type = 'info', duration = 4000) {
   const container = document.getElementById('toast-container');
   if (!container) return;
 
   const cfg = _TOAST_CONFIG[type] || _TOAST_CONFIG.info;
+  const safeMessage = escapeHTML(message);
 
   const toast = document.createElement('div');
   toast.setAttribute('role', 'status');
@@ -61,9 +68,9 @@ function showToast(message, type = 'info', duration = 4000) {
     <span class="material-symbols-outlined" style="font-size:18px;color:${cfg.text};flex-shrink:0;margin-top:1px;">${cfg.icon}</span>
     <div style="flex:1;min-width:0;">
       <p style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:${cfg.text};margin-bottom:1px;">${cfg.title}</p>
-      <p style="font-family:Montserrat,sans-serif;font-size:13px;color:rgb(var(--primary-muted));line-height:1.4;">${message}</p>
+      <p style="font-family:Montserrat,sans-serif;font-size:13px;color:rgb(var(--primary-muted));line-height:1.4;">${safeMessage}</p>
     </div>
-    <button onclick="this.closest('[role=status]').remove()" aria-label="Cerrar notificación"
+    <button aria-label="Cerrar notificación"
       style="background:none;border:none;cursor:pointer;color:rgb(var(--primary-ghost));padding:0;margin-top:1px;flex-shrink:0;line-height:1;">
       <span class="material-symbols-outlined" style="font-size:16px;">close</span>
     </button>
@@ -72,6 +79,12 @@ function showToast(message, type = 'info', duration = 4000) {
       animation: _toastProgress ${duration}ms linear forwards;
     "></div>
   `;
+
+  // Attach event listener instead of inline onclick
+  const closeBtn = toast.querySelector('button');
+  closeBtn.addEventListener('click', () => {
+    toast.remove();
+  });
 
   // Inyectar keyframe si no existe
   if (!document.getElementById('_toast-style')) {

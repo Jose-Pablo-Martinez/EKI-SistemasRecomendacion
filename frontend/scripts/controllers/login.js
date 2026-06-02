@@ -1,21 +1,26 @@
 /**
- * Archivo modificado: 2026-05-23
+ * Archivo modificado: 2026-06-02
  * Función: Controlador de la vista de inicio de sesión. 
  * Maneja la validación de credenciales y la autenticación.
  */
-window.controllers.login = async () => {
-    // 1. Cargar Vista HTML mediante fetch
+
+import { api } from '../api.js';
+import { appState, initState } from '../state.js';
+import { saveToken } from '../auth.js';
+import { renderView } from '../app.js';
+import { errorHandler } from '../utils/errorHandler.js';
+import { validators } from '../utils/validators.js';
+
+export default async function loginController() {
     const loaded = await renderView('login.html');
     if (!loaded) return;
 
-    // 2. Controladores y Lógica de Eventos
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const errorDiv = document.getElementById('login-form-error');
     const emailError = document.getElementById('email-error');
     const passwordError = document.getElementById('password-error');
     
-    // Alternar visibilidad de contraseña
     const togglePasswordBtn = document.getElementById('toggle-password');
     const iconPassword = document.getElementById('icon-password');
     togglePasswordBtn.addEventListener('click', () => {
@@ -55,7 +60,7 @@ window.controllers.login = async () => {
         if (!email) {
             showError(emailError, 'El correo es requerido.', emailInput);
             hasError = true;
-        } else if (!window.validators.isValidEmail(email)) {
+        } else if (!validators.isValidEmail(email)) {
             showError(emailError, 'Por favor ingresa un correo válido.', emailInput);
             hasError = true;
         }
@@ -68,12 +73,12 @@ window.controllers.login = async () => {
         if (hasError) return;
 
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin">progress_activity</span> Iniciando sesión...</div>';
+        submitBtn.innerHTML = '<div class="flex items-center justify-center gap-2"><span class="material-symbols-outlined animate-spin pointer-events-none">progress_activity</span> Iniciando sesión...</div>';
 
         try {
             const data = await api.login(email, password);
             saveToken(data.access_token);
-            await initState(); // Recargar estado del usuario
+            await initState();
             
             if (appState.user && appState.user.perfil_completado) {
                 window.location.hash = '#/feed';
@@ -81,10 +86,10 @@ window.controllers.login = async () => {
                 window.location.hash = '#/onboarding';
             }
         } catch (err) {
-            const userMsg = window.errorHandler.handle(err, 'Login');
+            const userMsg = errorHandler.handle(err, 'Login');
             if (err.status === 401) {
                 showError(emailError, userMsg, emailInput);
-                showError(passwordError, '', passwordInput); // Solo borde para contraseña
+                showError(passwordError, '', passwordInput);
             } else {
                 errorDiv.textContent = userMsg;
                 errorDiv.classList.remove('hidden');
@@ -93,4 +98,4 @@ window.controllers.login = async () => {
             submitBtn.innerHTML = 'INGRESAR';
         }
     });
-};
+}

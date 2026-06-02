@@ -78,14 +78,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def sqlalchemy_integrity_exception_handler(request: Request, exc: IntegrityError):
     msg = str(exc.orig) if exc.orig else str(exc)
     logger.error("Error de integridad en BD: %s", msg)
-    if "usuario_visitante_email_key" in msg or "Duplicate entry" in msg or "unique constraint" in msg.lower():
+    if "usuario_visitante_email_key" in msg or "usuarios_email_key" in msg or ("Duplicate entry" in msg and "email" in msg.lower()):
          return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"detail": "El correo electrónico ya está en uso por otro usuario."},
         )
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
-        content={"detail": "Error de integridad o restricción única en la base de datos."},
+        content={"detail": f"Error de integridad en la base de datos: {msg}"},
     )
 
 # Routers

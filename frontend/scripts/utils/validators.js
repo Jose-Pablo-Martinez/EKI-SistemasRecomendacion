@@ -1,9 +1,9 @@
 /**
- * Archivo modificado: 2026-05-23
+ * Archivo modificado: 2026-06-02
  * Función: Contiene funciones de validación para correos, 
  * nombres y filtros básicos de texto en el frontend.
  */
-window.validators = {
+export const validators = {
     isValidEmail(email) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     },
