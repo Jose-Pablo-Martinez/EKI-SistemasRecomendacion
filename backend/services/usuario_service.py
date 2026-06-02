@@ -165,6 +165,13 @@ def registrar_ubicacion(db: Session, id_usuario: int, lat: float, lon: float, pr
             db.delete(ub_to_delete)
             
     db.commit()
+
+def eliminar_ubicaciones(db: Session, id_usuario: int):
+    """
+    Elimina todas las ubicaciones almacenadas para el usuario (desactiva geolocalización).
+    """
+    db.query(UbicacionUsuario).filter(UbicacionUsuario.id_usuario == id_usuario).delete()
+    db.commit()
     
 def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], precios: list[str]):
     """

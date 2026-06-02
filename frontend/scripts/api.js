@@ -157,6 +157,9 @@ export const api = {
   enviarUbicacion: (lat, lon) => apiRequest('/usuarios/ubicacion', {
     method: 'POST', body: JSON.stringify({ latitud: lat, longitud: lon })
   }),
+  eliminarUbicacion: () => apiRequest('/usuarios/ubicacion', {
+    method: 'DELETE'
+  }),
   
   // Onboarding
   enviarOnboarding: (preferencias) => apiRequest('/usuarios/onboarding', {

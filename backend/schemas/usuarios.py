@@ -71,6 +71,7 @@ class UsuarioPerfilResponse(UsuarioResponse):
     total_resenas: int = 0
     total_favoritos: int = 0
     total_contribuciones: int = 0
+    ubicacion_activa: bool = False
 
 
 class UsuarioVisitanteResponse(BaseModel):
