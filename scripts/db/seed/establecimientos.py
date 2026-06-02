@@ -41,9 +41,26 @@ def seed_establecimientos(db: Session):
     random.shuffle(nombres_locales)
     random.shuffle(nombres_puestos)
     
-    nombres_rest = nombres_rest[:40]
-    nombres_locales = nombres_locales[:40]
-    nombres_puestos = nombres_puestos[:80]
+    nombres_rest = nombres_rest[:100]
+    nombres_locales = nombres_locales[:50]
+    nombres_puestos = nombres_puestos[:100]
+    
+    # GARANTÍA: Al menos 2 establecimientos por cada categoría hija (42 total)
+    categorias_hijas = db.query(Categoria).filter(Categoria.id_categoria_padre.isnot(None)).all()
+    
+    # Vamos a extraer nombres de nuestras listas para forzarles su categoría
+    for cat in categorias_hijas:
+        # Extraemos 2 establecimientos para cada categoría
+        for _ in range(2):
+            if nombres_puestos:
+                nombre = nombres_puestos.pop()
+                nombres_puestos.insert(0, (nombre, cat)) #type: ignore
+            elif nombres_locales:
+                nombre = nombres_locales.pop()
+                nombres_locales.insert(0, (nombre, cat)) #type: ignore
+            elif nombres_rest:
+                nombre = nombres_rest.pop()
+                nombres_rest.insert(0, (nombre, cat)) #type: ignore
     
     total = len(nombres_rest) + len(nombres_locales) + len(nombres_puestos)
     estados = ["aprobado"] * int(total * 0.9) + ["pendiente"] * int(total * 0.05) + ["rechazado"] * int(total * 0.05)
@@ -52,7 +69,14 @@ def seed_establecimientos(db: Session):
     random.shuffle(estados)
     
     def crear_establecimiento(nombres, tipo_enum, offset):
-        for i, nombre in enumerate(nombres):
+        for i, item in enumerate(nombres):
+            # Soporte para tuplas (nombre, categoria_forzada)
+            forced_cat = None
+            if isinstance(item, tuple):
+                nombre, forced_cat = item
+            else:
+                nombre = item
+                
             estado = estados.pop() if estados else "aprobado"
             
             # Verificar si ya existe
@@ -100,7 +124,10 @@ def seed_establecimientos(db: Session):
             etiqs_elegidas = []
             
             # Mapeo simple basado en palabras clave
-            if "taco" in nombre_lower or "taquería" in nombre_lower or "trompo" in nombre_lower:
+            if forced_cat:
+                cats_elegidas = [forced_cat]
+                if etiquetas: etiqs_elegidas = random.sample(etiquetas, k=2)
+            elif "taco" in nombre_lower or "taquería" in nombre_lower or "trompo" in nombre_lower:
                 cats_elegidas = [c for c in categorias if "Tacos" in c.nombre]
                 etiqs_elegidas = [et for et in etiquetas if et.nombre in ["económico", "tradicional", "para_llevar"]]
             elif "cochinita" in nombre_lower or "pibil" in nombre_lower:
