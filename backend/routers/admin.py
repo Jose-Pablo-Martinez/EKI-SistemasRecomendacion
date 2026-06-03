@@ -1,17 +1,24 @@
-import threading
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.usuarios import Administrador
 from backend.auth import get_current_admin
 from backend.services import admin_service
+from backend.schemas.establecimientos import EstablecimientoResponse
 
 router = APIRouter(prefix="/admin", tags=["Administración"])
 
-@router.get("/establecimientos/pendientes")
-def listar_establecimientos_pendientes(current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
-    """Lista todos los establecimientos pendientes de aprobación."""
-    return admin_service.obtener_establecimientos_pendientes(db)
+@router.get("/establecimientos/pendientes/visitantes", response_model=list[EstablecimientoResponse])
+def listar_altas_visitantes(current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
+    return admin_service.obtener_altas_visitantes(db)
+
+@router.get("/establecimientos/pendientes/propietarios", response_model=list[EstablecimientoResponse])
+def listar_altas_propietarios(current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
+    return admin_service.obtener_altas_propietarios(db)
+
+@router.get("/reclamos/pendientes")
+def listar_reclamos_pendientes(current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
+    return admin_service.obtener_reclamos_pendientes(db)
 
 @router.get("/resenas/pendientes")
 def listar_resenas_pendientes(current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
@@ -21,18 +28,28 @@ def listar_resenas_pendientes(current_admin: Administrador = Depends(get_current
 @router.post("/establecimientos/{id_establecimiento}/aprobar")
 def aprobar_establecimiento(id_establecimiento: int, current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
     """Aprueba un establecimiento y otorga puntos al usuario."""
-    exito = admin_service.aprobar_establecimiento(db, id_establecimiento)
+    exito, mensaje = admin_service.aprobar_establecimiento(db, id_establecimiento)
     if not exito:
-        raise HTTPException(status_code=400, detail="No se pudo aprobar (no existe o no está pendiente)")
-    return {"status": "ok", "message": "Aprobado"}
+        raise HTTPException(status_code=400, detail=mensaje)
+    return {"status": "ok", "message": mensaje}
 
 @router.post("/establecimientos/{id_establecimiento}/rechazar")
 def rechazar_establecimiento(id_establecimiento: int, current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
-    """Rechaza un establecimiento propuesto."""
     exito = admin_service.rechazar_establecimiento(db, id_establecimiento)
-    if not exito:
-        raise HTTPException(status_code=400, detail="No se pudo rechazar")
+    if not exito: raise HTTPException(status_code=400, detail="No se pudo rechazar")
     return {"status": "ok", "message": "Rechazado"}
+
+@router.post("/reclamos/{id_propietario}/{id_establecimiento}/aprobar")
+def aprobar_reclamo(id_propietario: int, id_establecimiento: int, current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
+    exito = admin_service.aprobar_reclamo(db, id_propietario, id_establecimiento)
+    if not exito: raise HTTPException(status_code=400, detail="No se pudo aprobar reclamo")
+    return {"status": "ok"}
+
+@router.post("/reclamos/{id_propietario}/{id_establecimiento}/rechazar")
+def rechazar_reclamo(id_propietario: int, id_establecimiento: int, current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
+    exito = admin_service.rechazar_reclamo(db, id_propietario, id_establecimiento)
+    if not exito: raise HTTPException(status_code=400, detail="No se pudo rechazar reclamo")
+    return {"status": "ok"}
 
 @router.post("/resenas/{id_resena}/aprobar")
 def aprobar_resena(id_resena: int, current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):

@@ -13,6 +13,7 @@ import perfilController from './controllers/perfil.js';
 import favoritosController from './controllers/favoritos.js';
 import adminController from './controllers/admin.js';
 import comoFuncionaController from './controllers/como-funciona.js';
+import contribucionController from './controllers/contribucion.js';
 import { Favorite } from './components/Favorite.js';
 import { scrollCarousel, loadMockFeed } from './controllers/feed.js';
 
@@ -28,6 +29,7 @@ const routes = {
   '#/favoritos': () => { if (requireAuth()) favoritosController() },
   '#/admin':     () => { if (requireAuth()) adminController() },
   '#/como-funciona': () => comoFuncionaController(),
+  '#/contribucion': () => { if (requireAuth()) contribucionController() },
 };
 
 export async function renderView(viewPath) {

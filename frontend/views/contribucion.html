@@ -1,0 +1,232 @@
+<div class="max-w-4xl mx-auto py-8 px-4 fade-in">
+  <!-- Header -->
+  <div class="mb-8 text-center md:text-left">
+    <a href="#/perfil" class="inline-flex items-center text-sm font-medium text-text-tertiary hover:text-accent transition-colors mb-4 group">
+      <span class="material-symbols-outlined mr-1 text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
+      Volver al Perfil
+    </a>
+    <h1 class="text-3xl font-heading font-bold text-primary mb-2">Añadir un Establecimiento</h1>
+    <p class="text-text-secondary text-lg">
+      Contribuye a Esquina Jach Ki' aportando lugares increíbles. Llena la información obligatoria y, si la tienes, agrega detalles opcionales como horarios y menú.
+    </p>
+  </div>
+
+  <div id="duplicate-warning" class="hidden mb-6 bg-red-100 border-l-4 border-accent text-red-700 p-4 rounded" role="alert">
+    <p class="font-bold">Advertencia</p>
+    <p>Hemos detectado un establecimiento similar en nuestro sistema. Por favor verifica que no estés registrando un duplicado.</p>
+  </div>
+
+  <!-- Contenedor del Formulario -->
+  <div class="bg-surface-raised rounded-2xl shadow-sm border border-border-default overflow-hidden">
+    <form id="contribucion-form" class="p-6 md:p-8 space-y-8" novalidate>
+      
+      <!-- Sección: Info General -->
+      <section>
+        <h2 class="text-xl font-heading font-semibold text-primary mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-accent">storefront</span>
+          Información Básica
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="md:col-span-2 relative">
+            <label for="nombre" class="block text-sm font-medium text-text-secondary mb-1">Nombre del Establecimiento *</label>
+            <input type="text" id="nombre" name="nombre" required maxlength="200"
+                   class="w-full bg-surface border border-border-default text-text-primary rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                   placeholder="Ej. Tacos El Pastor">
+            <p id="error-nombre" class="text-xs text-accent mt-1 hidden"></p>
+          </div>
+          
+          <div class="md:col-span-2">
+            <label for="descripcion" class="block text-sm font-medium text-text-secondary mb-1">Descripción (Opcional)</label>
+            <textarea id="descripcion" name="descripcion" rows="3"
+                      class="w-full bg-surface border border-border-default text-text-primary rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all resize-none"
+                      placeholder="¿Qué hace especial a este lugar?"></textarea>
+          </div>
+
+          <div class="md:col-span-2">
+            <label for="tipo_establecimiento" class="block text-sm font-medium text-text-secondary mb-1">Tipo de Establecimiento *</label>
+            <div class="relative">
+              <select id="tipo_establecimiento" name="tipo_establecimiento" required
+                      class="w-full bg-surface border border-border-default text-text-primary rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all">
+                <option value="" disabled selected>Selecciona una opción</option>
+                <option value="restaurante">Restaurante Formal</option>
+                <option value="local">Local Comercial (Mercado/Plaza)</option>
+                <option value="puesto_informal">Puesto Informal / Callejero</option>
+              </select>
+            </div>
+            <p id="error-tipo" class="text-xs text-accent mt-1 hidden">Debes seleccionar un tipo de establecimiento.</p>
+          </div>
+        </div>
+      </section>
+
+      <hr class="border-border-default">
+
+      <!-- Sección: Ubicación -->
+      <section>
+        <h2 class="text-xl font-heading font-semibold text-primary mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-accent">location_on</span>
+          Ubicación
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="md:col-span-2 relative">
+            <label for="direccion_texto" class="block text-sm font-medium text-text-secondary mb-1">Dirección Referencial *</label>
+            <input type="text" id="direccion_texto" name="direccion_texto" required maxlength="500"
+                   class="w-full bg-surface border border-border-default text-text-primary rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                   placeholder="Ej. Calle 60 x 55 y 57, Centro">
+            <p id="error-direccion" class="text-xs text-accent mt-1 hidden">La dirección referencial es obligatoria.</p>
+          </div>
+
+          <div class="md:col-span-2">
+            <label for="id_colonia" class="block text-sm font-medium text-text-secondary mb-1">Colonia (Opcional)</label>
+            <div class="relative">
+              <select id="id_colonia" name="id_colonia"
+                      class="w-full bg-surface border border-border-default text-text-primary rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all">
+                <option value="">Cargando colonias...</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- Interactive Map -->
+          <div class="md:col-span-2 bg-surface p-4 rounded-xl border border-border-default flex flex-col gap-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 class="font-medium text-text-primary">Coordenadas Exactas *</h3>
+                <p class="text-sm text-text-tertiary">Mueve el pin en el mapa para ajustar la ubicación exacta.</p>
+              </div>
+              <button type="button" id="btn-gps" class="btn-secondary whitespace-nowrap self-start md:self-auto flex items-center gap-2 text-sm px-4 py-2">
+                <span class="material-symbols-outlined text-[1.2rem]">my_location</span>
+                Ubicarme
+              </button>
+            </div>
+            
+            <!-- Map Container -->
+            <div id="mapa-ubicacion" class="w-full h-64 rounded-lg z-0 border border-border-default overflow-hidden"></div>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label for="latitud" class="block text-xs font-medium text-text-tertiary uppercase tracking-wider mb-1">Latitud</label>
+                <input type="number" step="any" id="latitud" name="latitud" required
+                       class="w-full bg-surface border border-border-default text-text-primary rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-accent font-mono"
+                       placeholder="20.9674">
+              </div>
+              <div>
+                <label for="longitud" class="block text-xs font-medium text-text-tertiary uppercase tracking-wider mb-1">Longitud</label>
+                <input type="number" step="any" id="longitud" name="longitud" required
+                       class="w-full bg-surface border border-border-default text-text-primary rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-accent font-mono"
+                       placeholder="-89.5926">
+              </div>
+            </div>
+            <p id="error-coordenadas" class="text-xs text-accent mt-1 hidden">Debes establecer la latitud y longitud.</p>
+          </div>
+        </div>
+      </section>
+
+      <hr class="border-border-default">
+
+      <!-- Sección Opcional: Horarios -->
+      <section>
+        <h2 class="text-xl font-heading font-semibold text-primary mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-text-tertiary">schedule</span>
+          Horarios (Opcional)
+        </h2>
+        <p class="text-sm text-text-secondary mb-4">Si conoces los horarios, puedes agregarlos aquí. Si el lugar no tiene horarios fijos, déjalo en blanco.</p>
+        
+        <div class="bg-surface border border-border-default rounded-xl p-4 md:p-6 overflow-x-auto">
+          <table class="w-full text-left border-collapse" id="tabla-horarios">
+            <thead>
+              <tr class="border-b border-border-default text-text-tertiary text-sm">
+                <th class="py-2 font-medium">Día</th>
+                <th class="py-2 font-medium">Estado</th>
+                <th class="py-2 font-medium">Apertura</th>
+                <th class="py-2 font-medium">Cierre</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Lunes a Domingo -->
+              <tr class="border-b border-border-faint last:border-0 dia-row" data-dia="1">
+                <td class="py-3 font-medium text-text-primary">Lunes</td>
+                <td><button type="button" class="btn-estado bg-success text-white px-3 py-1 text-xs rounded-full font-medium transition-colors" data-abierto="true">Abierto</button></td>
+                <td><div class="eki-timepicker-container apertura" data-name="apertura"></div></td>
+                <td><div class="eki-timepicker-container cierre" data-name="cierre"></div></td>
+              </tr>
+              <tr class="border-b border-border-faint last:border-0 dia-row" data-dia="2">
+                <td class="py-3 font-medium text-text-primary">Martes</td>
+                <td><button type="button" class="btn-estado bg-success text-white px-3 py-1 text-xs rounded-full font-medium transition-colors" data-abierto="true">Abierto</button></td>
+                <td><div class="eki-timepicker-container apertura" data-name="apertura"></div></td>
+                <td><div class="eki-timepicker-container cierre" data-name="cierre"></div></td>
+              </tr>
+              <tr class="border-b border-border-faint last:border-0 dia-row" data-dia="3">
+                <td class="py-3 font-medium text-text-primary">Miércoles</td>
+                <td><button type="button" class="btn-estado bg-success text-white px-3 py-1 text-xs rounded-full font-medium transition-colors" data-abierto="true">Abierto</button></td>
+                <td><div class="eki-timepicker-container apertura" data-name="apertura"></div></td>
+                <td><div class="eki-timepicker-container cierre" data-name="cierre"></div></td>
+              </tr>
+              <tr class="border-b border-border-faint last:border-0 dia-row" data-dia="4">
+                <td class="py-3 font-medium text-text-primary">Jueves</td>
+                <td><button type="button" class="btn-estado bg-success text-white px-3 py-1 text-xs rounded-full font-medium transition-colors" data-abierto="true">Abierto</button></td>
+                <td><div class="eki-timepicker-container apertura" data-name="apertura"></div></td>
+                <td><div class="eki-timepicker-container cierre" data-name="cierre"></div></td>
+              </tr>
+              <tr class="border-b border-border-faint last:border-0 dia-row" data-dia="5">
+                <td class="py-3 font-medium text-text-primary">Viernes</td>
+                <td><button type="button" class="btn-estado bg-success text-white px-3 py-1 text-xs rounded-full font-medium transition-colors" data-abierto="true">Abierto</button></td>
+                <td><div class="eki-timepicker-container apertura" data-name="apertura"></div></td>
+                <td><div class="eki-timepicker-container cierre" data-name="cierre"></div></td>
+              </tr>
+              <tr class="border-b border-border-faint last:border-0 dia-row" data-dia="6">
+                <td class="py-3 font-medium text-text-primary">Sábado</td>
+                <td><button type="button" class="btn-estado bg-success text-white px-3 py-1 text-xs rounded-full font-medium transition-colors" data-abierto="true">Abierto</button></td>
+                <td><div class="eki-timepicker-container apertura" data-name="apertura"></div></td>
+                <td><div class="eki-timepicker-container cierre" data-name="cierre"></div></td>
+              </tr>
+              <tr class="border-b border-border-faint last:border-0 dia-row" data-dia="0">
+                <td class="py-3 font-medium text-accent">Domingo</td>
+                <td><button type="button" class="btn-estado bg-success text-white px-3 py-1 text-xs rounded-full font-medium transition-colors" data-abierto="true">Abierto</button></td>
+                <td><div class="eki-timepicker-container apertura" data-name="apertura"></div></td>
+                <td><div class="eki-timepicker-container cierre" data-name="cierre"></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <hr class="border-border-default">
+
+      <!-- Sección Opcional: Platillos -->
+      <section>
+        <h2 class="text-xl font-heading font-semibold text-primary mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-text-tertiary">restaurant_menu</span>
+          Menú Inicial (Opcional)
+        </h2>
+        <p class="text-sm text-text-secondary mb-4">Añade los platillos más emblemáticos que conoces de este lugar.</p>
+        
+        <div id="platillos-container" class="space-y-3 mb-4">
+          <!-- Dinámico -->
+        </div>
+        
+        <button type="button" id="btn-add-platillo" class="flex items-center gap-2 text-sm font-medium text-accent hover:text-accent-hover transition-colors">
+          <span class="material-symbols-outlined text-[1.2rem]">add_circle</span>
+          Agregar Platillo
+        </button>
+      </section>
+
+      <!-- Submit Progress (Oculto inicialmente) -->
+      <div id="submit-progress" class="hidden mt-6 bg-surface-dim p-4 rounded-xl border border-border-default">
+        <p id="progress-text" class="text-sm font-medium text-primary mb-2 text-center">Iniciando guardado...</p>
+        <div class="w-full bg-border-default rounded-full h-2.5">
+          <div id="progress-bar" class="bg-accent h-2.5 rounded-full" style="width: 10%; transition: width 0.3s ease;"></div>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="pt-4 mt-6 border-t border-border-default flex flex-col-reverse md:flex-row justify-end gap-3" id="form-actions">
+        <a href="#/perfil" class="btn-secondary text-center px-6 py-3 md:w-auto w-full text-base">Cancelar</a>
+        <button type="submit" id="btn-submit" class="btn-primary flex items-center justify-center gap-2 px-8 py-3 md:w-auto w-full text-base">
+          <span class="material-symbols-outlined">send</span>
+          Enviar Contribución
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

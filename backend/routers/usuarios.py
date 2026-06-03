@@ -14,6 +14,12 @@ from backend.models.usuarios import Usuario
 from backend.schemas.usuarios import UsuarioCreate, UsuarioResponse, UsuarioVisitanteResponse, UsuarioPerfilResponse, PerfilUpdate, OnboardingData, UbicacionData
 from backend.services import usuario_service
 from backend.auth import create_access_token, get_current_user
+from backend.models.usuarios import UbicacionUsuario
+from backend.models.interacciones import FavoritoGuardado
+from sqlalchemy.orm import joinedload
+from backend.models.interacciones import Resena, FavoritoGuardado, ContribucionInformacion
+from backend.models.establecimientos import Establecimiento
+from backend.schemas.establecimientos import EstablecimientoResponse
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
@@ -45,7 +51,7 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db
 @router.get("/me", response_model=UsuarioPerfilResponse)
 def get_my_profile(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
     """Obtiene el perfil del usuario autenticado."""
-    from backend.models.interacciones import Resena, FavoritoGuardado, ContribucionInformacion
+   
 
     total_resenas = db.query(func.count(Resena.id_resena)).filter(
         Resena.id_usuario == current_user.id_usuario
@@ -53,13 +59,17 @@ def get_my_profile(current_user: Usuario = Depends(get_current_user), db: Sessio
     total_favoritos = db.query(func.count(FavoritoGuardado.id_establecimiento)).filter(
         FavoritoGuardado.id_usuario == current_user.id_usuario
     ).scalar() or 0
-    total_contribuciones = db.query(func.count(ContribucionInformacion.id_contribucion)).filter(
-        ContribucionInformacion.id_usuario == current_user.id_usuario
+    total_contribuciones = db.query(func.count(Establecimiento.id_establecimiento)).filter(
+        Establecimiento.id_usuario_registro == current_user.id_usuario,
+        Establecimiento.estado == "aprobado"
     ).scalar() or 0
 
     puntos_totales = 0
     if getattr(current_user, "visitante", None) is not None:
         puntos_totales = getattr(current_user.visitante, "puntos_experiencia", 0) or 0
+        
+   
+    tiene_ubicacion = db.query(UbicacionUsuario).filter(UbicacionUsuario.id_usuario == current_user.id_usuario).first() is not None
 
     return {
         "id_usuario": current_user.id_usuario,
@@ -76,6 +86,7 @@ def get_my_profile(current_user: Usuario = Depends(get_current_user), db: Sessio
         "total_resenas": total_resenas,
         "total_favoritos": total_favoritos,
         "total_contribuciones": total_contribuciones,
+        "ubicacion_activa": tiene_ubicacion,
     }
 
 @router.patch("/me", response_model=UsuarioResponse)
@@ -87,8 +98,7 @@ def update_my_profile(data: PerfilUpdate, current_user: Usuario = Depends(get_cu
 @router.get("/me/favoritos")
 def get_mis_favoritos(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
     """Obtiene la lista de establecimientos favoritos del usuario."""
-    from backend.models.interacciones import FavoritoGuardado
-    from sqlalchemy.orm import joinedload
+    
     
     favoritos_db = db.query(FavoritoGuardado).options(
         joinedload(FavoritoGuardado.establecimiento)
@@ -122,3 +132,17 @@ def actualizar_ubicacion(data: UbicacionData, current_user: Usuario = Depends(ge
     """Registra una nueva ubicación del usuario (máx. 3 en BD)."""
     usuario_service.registrar_ubicacion(db, current_user.id_usuario, data.latitud, data.longitud, data.precision_metros)  # type: ignore[arg-type]
     return {"status": "ok"}
+
+@router.delete("/ubicacion")
+def eliminar_ubicacion(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Elimina las ubicaciones del usuario (desactiva uso de ubicación)."""
+    usuario_service.eliminar_ubicaciones(db, current_user.id_usuario)  # type: ignore[arg-type]
+    return {"status": "ok", "message": "Ubicación desactivada."}
+
+@router.get("/me/contribuciones", response_model=list[EstablecimientoResponse])
+def get_mis_contribuciones(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Obtiene los establecimientos creados/aportados por el usuario."""
+    contribuciones = db.query(Establecimiento).filter(
+        Establecimiento.id_usuario_registro == current_user.id_usuario
+    ).order_by(Establecimiento.fecha_registro.desc()).all()
+    return contribuciones

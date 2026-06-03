@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.usuarios import UsuarioVisitante
-from backend.auth import get_current_user
+from backend.auth import get_current_user, get_optional_current_user
 from backend.services import establecimiento_service, buscador_service
 from backend.schemas.establecimientos import EstablecimientoCreate, EstablecimientoUpdate, EstablecimientoResponse, BusquedaResponse, HorarioCreate, PlatilloCreate, ImagenCreate
 from backend.schemas.recomendaciones import InteraccionUsuarioCreate, ResenaCreate, FavoritoCreate, ReporteCreate
@@ -31,11 +31,11 @@ def buscar_establecimientos_endpoint(q: Optional[str] = None, tipo: Optional[str
 
 
 @router.get("/{id_establecimiento}", response_model=EstablecimientoResponse)
-def get_establecimiento(id_establecimiento: int, db: Session = Depends(get_db)):
-    """Obtiene el detalle de un establecimiento aprobado."""
-    est = establecimiento_service.obtener_establecimiento(db, id_establecimiento)
+def get_establecimiento(id_establecimiento: int, db: Session = Depends(get_db), current_user = Depends(get_optional_current_user)):
+    """Obtiene el detalle de un establecimiento. Si no está aprobado, solo lo puede ver su creador o un admin."""
+    est = establecimiento_service.obtener_establecimiento(db, id_establecimiento, current_user.id_usuario if current_user else None, current_user.tipo_usuario if current_user else None) # type: ignore
     if not est:
-        raise HTTPException(status_code=404, detail="Establecimiento no encontrado o no aprobado")
+        raise HTTPException(status_code=404, detail="Establecimiento no encontrado o no autorizado")
     return est
 
 @router.post("/", response_model=EstablecimientoResponse, status_code=status.HTTP_201_CREATED)
@@ -46,10 +46,22 @@ def create_establecimiento(datos: EstablecimientoCreate, current_user: UsuarioVi
 @router.patch("/{id_establecimiento}", response_model=EstablecimientoResponse)
 def update_establecimiento(id_establecimiento: int, datos: EstablecimientoUpdate, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
     """Actualiza datos de un establecimiento."""
-    est = establecimiento_service.actualizar_establecimiento(db, id_establecimiento, int(current_user.id_usuario), datos) # type: ignore
-    if not est:
-        raise HTTPException(status_code=404, detail="Establecimiento no encontrado")
-    return est
+    try:
+        est = establecimiento_service.actualizar_establecimiento(db, id_establecimiento, int(current_user.id_usuario), datos) # type: ignore
+        if not est:
+            raise HTTPException(status_code=404, detail="Establecimiento no encontrado")
+        return est
+    except ValueError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+@router.delete("/{id_establecimiento}")
+def delete_establecimiento(id_establecimiento: int, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Elimina o solicita la baja de una contribución."""
+    try:
+        resultado = establecimiento_service.eliminar_establecimiento(db, id_establecimiento, int(current_user.id_usuario)) # type: ignore
+        return resultado
+    except ValueError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
 @router.put("/{id_establecimiento}/horarios")
 def update_horarios(id_establecimiento: int, horarios: list[HorarioCreate], current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -61,14 +73,19 @@ def add_platillo(id_establecimiento: int, datos: PlatilloCreate, current_user: U
     """Sube un platillo para revisión."""
     if datos.id_establecimiento != id_establecimiento:
         raise HTTPException(status_code=400, detail="ID url no coincide con el body")
-    return establecimiento_service.crear_platillo(db, id_establecimiento, datos)
+    return establecimiento_service.crear_platillo(db, id_establecimiento, datos, current_user.id_usuario)  # type: ignore
+
+@router.delete("/{id_establecimiento}/platillos")
+def delete_platillos(id_establecimiento: int, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Elimina todos los platillos de un establecimiento (usado antes de reinsertar en modificaciones)."""
+    return establecimiento_service.eliminar_platillos_establecimiento(db, id_establecimiento)
 
 @router.post("/{id_establecimiento}/imagen")
 def add_imagen(id_establecimiento: int, datos: ImagenCreate, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):
     """Sube una imagen para revisión."""
     if datos.id_establecimiento != id_establecimiento:
         raise HTTPException(status_code=400, detail="ID url no coincide con el body")
-    return establecimiento_service.subir_imagen(db, id_establecimiento, datos)
+    return establecimiento_service.subir_imagen(db, id_establecimiento, datos, current_user.id_usuario)  # type: ignore
 
 @router.post("/{id_establecimiento}/interaccion")
 def registrar_interaccion(id_establecimiento: int, datos: InteraccionUsuarioCreate, current_user: UsuarioVisitante = Depends(get_current_user), db: Session = Depends(get_db)):

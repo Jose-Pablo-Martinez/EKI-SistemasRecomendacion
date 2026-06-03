@@ -80,10 +80,12 @@ export default async function loginController() {
             saveToken(data.access_token);
             await initState();
             
-            if (appState.user && appState.user.perfil_completado) {
-                window.location.hash = '#/feed';
-            } else {
+            if (appState.isAdmin) {
+                window.location.hash = '#/admin';
+            } else if (!appState.user || !appState.user.perfil_completado) {
                 window.location.hash = '#/onboarding';
+            } else {
+                window.location.hash = '#/feed';
             }
         } catch (err) {
             const userMsg = errorHandler.handle(err, 'Login');
