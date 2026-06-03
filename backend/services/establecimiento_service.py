@@ -1,6 +1,6 @@
 from datetime import timezone
 from datetime import datetime
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from typing import Optional
@@ -10,11 +10,30 @@ from backend.models.interacciones import InteraccionUsuario, Resena, FavoritoGua
 from backend.engine.collab_filter import compute_peso_interaccion
 from backend.schemas.establecimientos import EstablecimientoCreate, EstablecimientoUpdate, HorarioCreate, PlatilloCreate, ImagenCreate
 from backend.schemas.recomendaciones import InteraccionUsuarioCreate, ResenaCreate, FavoritoCreate, ReporteCreate
-from backend.services.usuario_service import marcar_actividad_usuario
 from backend.services import gamificacion_service
+from backend.models.establecimientos import Horario, Platillo, Imagen
 
-def obtener_establecimiento(db: Session, id_establecimiento: int):
-    return db.query(Establecimiento).filter(Establecimiento.id_establecimiento == id_establecimiento, Establecimiento.estado == 'aprobado').first()
+def obtener_establecimiento(db: Session, id_establecimiento: int, id_usuario: Optional[int] = None, tipo_usuario: Optional[str] = None):
+    query = db.query(Establecimiento).options(
+        selectinload(Establecimiento.horarios),
+        selectinload(Establecimiento.platillos),
+        selectinload(Establecimiento.imagenes)
+    ).filter(Establecimiento.id_establecimiento == id_establecimiento)
+    
+    est = query.first()
+    if not est:
+        return None
+        
+    if est.estado == 'aprobado':
+        return est
+        
+    # Si no está aprobado, solo el creador o admin pueden verlo
+    if id_usuario and est.id_usuario_registro == id_usuario:
+        return est
+    if tipo_usuario == 'admin':
+        return est
+        
+    return None
 
 def crear_establecimiento(db: Session, id_usuario: int, datos: EstablecimientoCreate):
     nuevo = Establecimiento(
@@ -39,19 +58,80 @@ def actualizar_establecimiento(db: Session, id_establecimiento: int, id_usuario:
     if not est:
         return None
     
-    # Validación de auditoría: Solo el usuario que lo registró puede editar (simplificado para MVP)
+    # Validación de auditoría: Solo el usuario que lo registró puede editar
     if est.id_usuario_registro != id_usuario:  # type: ignore
         return None
         
+    # Bloquear si ya tiene un propietario asignado
+    if est.propietarios and len(est.propietarios) > 0:
+        raise ValueError("Este establecimiento ya ha sido reclamado por su propietario.")
+        
     data_dict = datos.model_dump(exclude_unset=True)
+
+    # Reciclar siempre el registro original
     for key, value in data_dict.items():
         if hasattr(est, key):
             setattr(est, key, value)
             
+    # Retrocompatibilidad: si estaba aprobado pero no tenía fecha de aprobación registrada
+    # (por haber sido aprobado antes del nuevo sistema), se la ponemos ahora para no perder
+    # el rastro de que esta es una modificación de algo que ya estaba aprobado.
+    if est.estado == "aprobado" and est.fecha_aprobacion is None:
+        from sqlalchemy.sql import func
+        est.fecha_aprobacion = func.now() # type: ignore[assignment]
+        
+    # Si estaba aprobado o rechazado, vuelve a requerir revisión
+    if est.estado in ["aprobado", "rechazado"]:
+        est.estado = "pendiente"  # type: ignore[assignment]
+        
     db.commit()
     db.refresh(est)
     return est
-from sqlalchemy.orm import selectinload
+
+def borrar_dependencias_establecimiento(db: Session, id_establecimiento: int):
+    from backend.models.establecimientos import Horario, Platillo, Imagen, EstablecimientoCategoria, EstablecimientoEtiqueta, Restaurante, LocalComercial, PuestoInformal, MetricaEstablecimiento, PropietarioEstablecimiento
+    from backend.models.interacciones import FavoritoGuardado, Resena, InteraccionUsuario, ContribucionInformacion, Reporte, HistorialVisita, RecomendacionGenerada
+    
+    _tables = [
+        Horario, Platillo, Imagen, EstablecimientoCategoria, EstablecimientoEtiqueta, 
+        Restaurante, LocalComercial, PuestoInformal, MetricaEstablecimiento, PropietarioEstablecimiento,
+        FavoritoGuardado, Resena, InteraccionUsuario, ContribucionInformacion, Reporte, HistorialVisita, RecomendacionGenerada
+    ]
+    for model in _tables:
+        if hasattr(model, "id_establecimiento"):
+            db.query(model).filter(model.id_establecimiento == id_establecimiento).delete(synchronize_session=False)
+        elif hasattr(model, "id_restaurante"):
+            db.query(model).filter(model.id_restaurante == id_establecimiento).delete(synchronize_session=False)
+        elif hasattr(model, "id_local"):
+            db.query(model).filter(model.id_local == id_establecimiento).delete(synchronize_session=False)
+        elif hasattr(model, "id_puesto"):
+            db.query(model).filter(model.id_puesto == id_establecimiento).delete(synchronize_session=False)
+
+def eliminar_establecimiento(db: Session, id_establecimiento: int, id_usuario: int):
+    est = db.query(Establecimiento).filter(Establecimiento.id_establecimiento == id_establecimiento).first()
+    if not est:
+        raise ValueError("Establecimiento no encontrado")
+    if est.id_usuario_registro != id_usuario:  # type: ignore
+        raise ValueError("No tienes permiso para eliminar este establecimiento")
+    
+    # TODO: En un futuro, los establecimientos rechazados no deberían llegar a este 
+    # punto siendo filas completas en la tabla. Deberían borrarse al ser rechazados
+    # por el admin, y aquí solo se borraría el "aviso de rechazo" de una tabla 
+    # HistorialRechazos. Por el momento (MVP), hacemos el borrado completo aquí.
+    if est.estado in ["pendiente", "rechazado"]:
+        borrar_dependencias_establecimiento(db, id_establecimiento)
+        
+        db.delete(est)
+        db.commit()
+        return {"status": "hard_delete", "message": "Contribución eliminada permanentemente"}
+    elif est.estado == "aprobado":
+        est.solicita_baja = True  # type: ignore[assignment]
+        db.commit()
+        return {"status": "soft_delete", "message": "Se ha enviado una solicitud de baja al administrador"}
+    else:
+        raise ValueError(f"No se puede eliminar en estado {est.estado}")
+
+
 
 def buscar_establecimientos(db: Session, query: Optional[str] = None, id_categoria: Optional[int] = None, id_colonia: Optional[int] = None, tipo_establecimiento: Optional[str] = None):
     db_query = db.query(Establecimiento).options(
@@ -86,15 +166,22 @@ def gestionar_horarios(db: Session, id_establecimiento: int, horarios: list[Hora
     db.commit()
     return nuevos
 
-def crear_platillo(db: Session, id_establecimiento: int, datos: PlatilloCreate):
-    platillo = Platillo(**datos.model_dump(), estado='pendiente')
+def crear_platillo(db: Session, id_establecimiento: int, datos: PlatilloCreate, id_usuario: int):
+    platillo = Platillo(**datos.model_dump(), estado='pendiente', id_usuario_registro=id_usuario)
     db.add(platillo)
     db.commit()
     db.refresh(platillo)
     return platillo
 
-def subir_imagen(db: Session, id_establecimiento: int, datos: ImagenCreate):
-    imagen = Imagen(**datos.model_dump(), estado='pendiente')
+def eliminar_platillos_establecimiento(db: Session, id_establecimiento: int):
+    """Elimina todos los platillos asociados a un establecimiento."""
+    from backend.models.establecimientos import Platillo
+    db.query(Platillo).filter(Platillo.id_establecimiento == id_establecimiento).delete()
+    db.commit()
+    return {"status": "ok"}
+
+def subir_imagen(db: Session, id_establecimiento: int, datos: ImagenCreate, id_usuario: int):
+    imagen = Imagen(**datos.model_dump(), estado='pendiente', id_usuario_upload=id_usuario)
     db.add(imagen)
     db.commit()
     db.refresh(imagen)

@@ -104,9 +104,10 @@ def seed_interacciones_normales_y_resenas(db: Session):
         num_int = random.randint(2, 5)
         usuarios_muestra = random.sample(usuarios, num_int)
         
-        for u in usuarios_muestra:
-            # Forzamos que al menos el 70% de las interacciones sean reseñas para garantizar estrellas
-            if random.random() < 0.7:
+        for i, u in enumerate(usuarios_muestra):
+            # Forzamos que la PRIMERA interacción siempre sea una reseña para garantizar estrellas (>0),
+            # y las siguientes tengan un 70% de probabilidad de ser reseñas.
+            if i == 0 or random.random() < 0.7:
                 t = "resena_dejada"
             else:
                 t = random.choice(list(PESOS_INTERACCION.keys()))

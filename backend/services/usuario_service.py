@@ -40,8 +40,12 @@ def crear_usuario(db: Session, user_data: UsuarioCreate) -> Usuario:
     if user_data.tipo_usuario == "visitante":
         visitante = UsuarioVisitante(id_usuario=nuevo_usuario.id_usuario)
         db.add(visitante)
+    elif user_data.tipo_usuario == "admin":
+        from backend.models.usuarios import Administrador
+        admin_record = Administrador(id_usuario=nuevo_usuario.id_usuario, nivel_admin=1)
+        db.add(admin_record)
         
-    # TODO: Implementar lógica para propietario/admin si se requiere en el futuro
+    # TODO: Implementar lógica para propietario si se requiere en el futuro
     
     db.commit()
     db.refresh(nuevo_usuario)
@@ -164,6 +168,13 @@ def registrar_ubicacion(db: Session, id_usuario: int, lat: float, lon: float, pr
         for ub_to_delete in ubicaciones[3:]:
             db.delete(ub_to_delete)
             
+    db.commit()
+
+def eliminar_ubicaciones(db: Session, id_usuario: int):
+    """
+    Elimina todas las ubicaciones almacenadas para el usuario (desactiva geolocalización).
+    """
+    db.query(UbicacionUsuario).filter(UbicacionUsuario.id_usuario == id_usuario).delete()
     db.commit()
     
 def procesar_onboarding(db: Session, id_usuario: int, categorias: list[str], precios: list[str]):

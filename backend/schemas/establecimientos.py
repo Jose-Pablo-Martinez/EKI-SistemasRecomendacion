@@ -61,9 +61,11 @@ class EstablecimientoResponse(BaseModel):
     es_informal: bool
     estado: str
     es_activo: bool
+    solicita_baja: bool = False
     total_resenas: int
     calificacion_promedio: Decimal
     fecha_registro: datetime
+    fecha_aprobacion: Optional[datetime] = None
     
     # Relaciones cargadas dinámicamente para el frontend
     resenas: list[ResenaSimple] = []

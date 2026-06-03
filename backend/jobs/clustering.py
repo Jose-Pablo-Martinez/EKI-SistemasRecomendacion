@@ -12,6 +12,7 @@ a la lógica de agrupación y persistencia de sus resultados en la base de datos
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Tuple
+from collections import Counter
 
 import numpy as np
 from sqlalchemy.orm import Session
@@ -146,6 +147,20 @@ def procesar_clustering_usuarios(db: Session) -> None:
         cluster_actual.total_usuarios = int(total_en_cluster) # type: ignore
         cluster_actual.fecha_actualizacion = ahora # type: ignore
         
+        # Generar descripción semántica analizando los usuarios de este cluster
+        usuarios_cluster = [usuarios[idx] for idx in range(len(usuarios)) if labels[idx] == i]
+        categorias_comunes = []
+        for u in usuarios_cluster:
+            vec = u.vector_preferencias
+            if isinstance(vec, dict) and "categorias_preferidas" in vec:
+                categorias_comunes.extend(vec["categorias_preferidas"])
+                
+        if categorias_comunes:
+            top_3 = [cat for cat, _ in Counter(categorias_comunes).most_common(3)]
+            cluster_actual.descripcion = f"Intereses principales: {', '.join(top_3)}" # type: ignore[assignment]
+        else:
+            cluster_actual.descripcion = "Usuarios con preferencias mixtas o exploradores" # type: ignore[assignment]
+        
     # 5. Resetear a cero los clusters que quedaron vacíos en esta corrida
     for i in range(k_final, len(clusters_db)):
         clusters_db[i].centroide = None #type: ignore
@@ -195,6 +210,21 @@ def procesar_clustering_establecimientos(db: Session) -> None:
         cluster_actual.centroide = centroides[i]
         cluster_actual.total_establecimientos = int(total_en_cluster) # type: ignore
         cluster_actual.fecha_actualizacion = ahora # type: ignore
+        
+        # Generar descripción semántica analizando los establecimientos
+        estabs_cluster = [establecimientos[idx] for idx in range(len(establecimientos)) if labels[idx] == i]
+        categorias_comunes = []
+        for e in estabs_cluster:
+            # SQLAlchemy resolverá perezosamente (lazy load) la relación
+            for ec in e.categorias:
+                if ec.categoria and ec.categoria.nombre:
+                    categorias_comunes.append(ec.categoria.nombre)
+                    
+        if categorias_comunes:
+            top_3 = [cat for cat, _ in Counter(categorias_comunes).most_common(3)]
+            cluster_actual.descripcion = f"Predominan: {', '.join(top_3)}" # type: ignore[assignment]
+        else:
+            cluster_actual.descripcion = "Establecimientos de temática mixta" # type: ignore[assignment]
         
     # 5. Resetear a cero los clusters sobrantes
     for i in range(k_final, len(clusters_db)):

@@ -123,21 +123,18 @@ export const api = {
   
   // Establecimientos
   getEstablecimiento: (id) => apiRequest(`/establecimientos/${id}`),
+  crearEstablecimiento: (data) => apiRequest('/establecimientos', { method: 'POST', body: JSON.stringify(data) }),
+  actualizarEstablecimiento: (id, data) => apiRequest(`/establecimientos/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   buscar: (query, filtros) => {
     const params = new URLSearchParams(filtros);
     if (query) params.append('q', query);
     return apiRequest(`/establecimientos/buscar?${params.toString()}`);
   },
   autocompletar: (query) => apiRequest(`/establecimientos/autocomplete?q=${encodeURIComponent(query)}`),
-  crearResena: (id, data) => apiRequest(`/establecimientos/${id}/resena`, {
-    method: 'POST', body: JSON.stringify(data)
-  }),
-  actualizarHorarios: (id, horarios) => apiRequest(`/establecimientos/${id}/horarios`, {
-    method: 'PUT', body: JSON.stringify(horarios)
-  }),
-  agregarPlatillo: (id, data) => apiRequest(`/establecimientos/${id}/platillo`, {
-    method: 'POST', body: JSON.stringify(data)
-  }),
+  crearResena: (id, data) => apiRequest(`/establecimientos/${id}/resena`, { method: 'POST', body: JSON.stringify(data) }),
+  actualizarHorarios: (id, horarios) => apiRequest(`/establecimientos/${id}/horarios`, { method: 'PUT', body: JSON.stringify(horarios) }),
+  agregarPlatillo: (id, platillo) => apiRequest(`/establecimientos/${id}/platillo`, { method: 'POST', body: JSON.stringify(platillo) }),
+  eliminarPlatillos: (id) => apiRequest(`/establecimientos/${id}/platillos`, { method: 'DELETE' }),
   agregarImagen: (id, data) => apiRequest(`/establecimientos/${id}/imagen`, {
     method: 'POST', body: JSON.stringify(data)
   }),
@@ -150,12 +147,17 @@ export const api = {
   
   // Perfil
   getFavoritos: () => apiRequest('/usuarios/me/favoritos'),
+  getMisContribuciones: () => apiRequest('/usuarios/me/contribuciones'),
+  eliminarContribucion: (id) => apiRequest(`/establecimientos/${id}`, { method: 'DELETE' }),
   getPerfil: () => apiRequest('/usuarios/me'),
   actualizarPerfil: (data) => apiRequest('/usuarios/me', {
     method: 'PATCH', body: JSON.stringify(data)
   }),
   enviarUbicacion: (lat, lon) => apiRequest('/usuarios/ubicacion', {
     method: 'POST', body: JSON.stringify({ latitud: lat, longitud: lon })
+  }),
+  eliminarUbicacion: () => apiRequest('/usuarios/ubicacion', {
+    method: 'DELETE'
   }),
   
   // Onboarding
@@ -170,9 +172,25 @@ export const api = {
   // Contenido
   getCategorias: () => apiRequest('/contenido/categorias'),
   getEtiquetas: () => apiRequest('/contenido/etiquetas'),
+  getColonias: () => apiRequest('/contenido/geografia/colonias'),
   
   // Admin
-  getPendientes: (tipo) => apiRequest(`/admin/${tipo}/pendientes`),
-  aprobar: (tipo, id) => apiRequest(`/admin/${tipo}/${id}/aprobar`, { method: 'POST' }),
+  getPendientes: (tipo) => {
+    if (tipo === 'establecimientos_vis') return apiRequest(`/admin/establecimientos/pendientes/visitantes`);
+    if (tipo === 'establecimientos_prop') return apiRequest(`/admin/establecimientos/pendientes/propietarios`);
+    if (tipo === 'reclamos') return apiRequest(`/admin/reclamos/pendientes`);
+    if (tipo === 'resenas') return apiRequest(`/admin/resenas/pendientes`);
+    return apiRequest(`/admin/${tipo}/pendientes`);
+  },
+  aprobar: (tipo, id, id2) => {
+    if (tipo === 'reclamos') return apiRequest(`/admin/reclamos/${id}/${id2}/aprobar`, { method: 'POST' });
+    const res = tipo.startsWith('establecimientos') ? 'establecimientos' : tipo;
+    return apiRequest(`/admin/${res}/${id}/aprobar`, { method: 'POST' });
+  },
+  rechazar: (tipo, id, id2) => {
+    if (tipo === 'reclamos') return apiRequest(`/admin/reclamos/${id}/${id2}/rechazar`, { method: 'POST' });
+    const res = tipo.startsWith('establecimientos') ? 'establecimientos' : tipo;
+    return apiRequest(`/admin/${res}/${id}/rechazar`, { method: 'POST' });
+  },
   dispararJob: (tipo) => apiRequest(`/admin/jobs/${tipo}`, { method: 'POST' }),
 };

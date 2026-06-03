@@ -37,9 +37,9 @@
       <a href="#/onboarding" class="flex items-center gap-1.5 px-3 py-2 rounded border border-border-default text-body-sm text-text-secondary hover:border-secondary hover:text-secondary transition-all">
         <span class="material-symbols-outlined" style="font-size:16px;">tune</span> Mis preferencias
       </a>
-      <button id="btn-agregar-lugar" data-action="abrir-agregar-lugar" class="hidden items-center gap-1.5 px-3 py-2 rounded border border-accent-muted text-body-sm text-accent hover:bg-accent-faint transition-all">
+      <a href="#/contribucion" id="btn-agregar-lugar" class="flex items-center gap-1.5 px-3 py-2 rounded border border-accent-muted text-body-sm text-accent hover:bg-accent-faint transition-all">
         <span class="material-symbols-outlined" style="font-size:16px;">add_location_alt</span> Agregar lugar
-      </button>
+      </a>
     </div>
   </div>
 
@@ -65,9 +65,20 @@
   <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"></div>
 
   <!-- Historial de puntos -->
-  <div class="bg-surface-raised border border-border-default rounded-md p-6">
+  <div class="bg-surface-raised border border-border-default rounded-md p-6 mb-6">
     <h2 class="font-heading text-headline-md text-primary mb-4">Historial de puntos</h2>
     <div id="historial-container"></div>
+  </div>
+
+  <!-- Mis Contribuciones -->
+  <div class="bg-surface-raised border border-border-default rounded-md p-6">
+    <h2 class="font-heading text-headline-md text-primary mb-4 flex items-center gap-2">
+      <span class="material-symbols-outlined text-accent">storefront</span>
+      Mis Contribuciones
+    </h2>
+    <div id="contribuciones-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Inyectado dinámicamente -->
+    </div>
   </div>
 </div>
 
@@ -137,6 +148,24 @@
     <div class="flex gap-3 mt-6 justify-end">
       <button data-action="cerrar-modal" data-target="modal-lugar" class="px-4 py-2 rounded border border-border-default text-body-sm text-text-secondary hover:border-border-strong transition-colors">Cancelar</button>
       <button id="btn-enviar-lugar" data-action="enviar-lugar" class="flex items-center gap-2 px-5 py-2 rounded bg-accent text-white font-semibold text-label-lg hover:bg-accent-hover active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">Enviar para revisión</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Historial Completo -->
+<div id="modal-historial" class="hidden fixed inset-0 z-50 items-center justify-center p-4" style="background:rgba(30,27,24,0.5);" data-action="cerrar-modal-backdrop" data-target="modal-historial" role="dialog" aria-modal="true" aria-labelledby="modal-historial-titulo">
+  <div class="bg-surface-raised border border-border-default rounded-md p-6 w-full max-w-lg shadow-xl max-h-[90vh] flex flex-col">
+    <div class="flex items-center justify-between mb-5 flex-shrink-0">
+      <h3 id="modal-historial-titulo" class="font-heading text-headline-sm text-primary">Historial Completo</h3>
+      <button data-action="cerrar-modal" data-target="modal-historial" aria-label="Cerrar modal" class="text-text-tertiary hover:text-primary transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div id="historial-modal-list" class="flex-1 overflow-y-auto min-h-[300px]">
+      <!-- JS inyectará el historial paginado aquí -->
+    </div>
+    <div id="historial-modal-pagination" class="mt-4 pt-4 border-t border-border-default flex justify-between items-center flex-shrink-0">
+      <!-- Paginación inyectada por JS -->
     </div>
   </div>
 </div>
