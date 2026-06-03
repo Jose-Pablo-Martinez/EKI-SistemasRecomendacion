@@ -1,6 +1,6 @@
 # Guía de Ejecución: Jobs Offline del Motor de IA
 
-Esta guía documenta el proceso manual para ejecutar los "Jobs Offline" que alimentan el motor de recomendaciones de EkiSystem.
+Esta guía documenta el proceso para ejecutar los "Jobs Offline" que alimentan el motor de recomendaciones de EkiSystem, tanto de forma automática (producción) como de forma manual (desarrollo local).
 
 ---
 
@@ -10,9 +10,11 @@ Los Jobs Offline son procesos matemáticos pesados que **no pueden correr en tie
 
 Este patrón se llama **arquitectura Offline-First** y es el estándar en la industria para sistemas de recomendación a escala (Netflix, Spotify, Amazon lo hacen igual).
 
-> **En un entorno profesional**, estos jobs correrían automáticamente mediante un **cron job** programado (ej. una vez al día a las 2am) o mediante herramientas de orquestación como **Apache Airflow** o **Celery Beat**. En nuestro proyecto académico se ejecutan manualmente cuando se necesita actualizar las recomendaciones.
+> **En producción**, los jobs corren automáticamente **cada 8 horas** (00:00, 08:00 y 16:00 UTC) mediante el workflow de GitHub Actions [`.github/workflows/jobs-scheduler.yml`](../.github/workflows/jobs-scheduler.yml). También pueden dispararse manualmente desde la pestaña **Actions → EKI — Jobs Offline Scheduler → Run workflow**.
+>
+> **En desarrollo local**, se ejecutan de forma síncrona desde la línea de comandos (ver §6).
 
-El archivo que coordina todos los jobs es [`backend/jobs/runner.py`](../backend/jobs/runner.py). Acepta el flag `--job <nombre>` para ejecutar cualquier job síncronamente desde la línea de comandos.
+El archivo que coordina todos los jobs es [`backend/jobs/runner.py`](../backend/jobs/runner.py). Implementa un sistema de `Lock` por job que garantiza que un mismo tipo de tarea no se ejecute concurrentemente.
 
 ---
 
@@ -174,3 +176,43 @@ Verifica que tu `.env` tiene los valores correctos y que el certificado `secrets
 ```powershell
 python scripts/db/ops/check_connection.py
 ```
+
+---
+
+## Ejecución en Desarrollo Local (CLI)
+
+Para correr los jobs directamente en tu máquina sin pasar por GitHub Actions, usa el runner desde la línea de comandos con el venv activo:
+
+```powershell
+# Orden obligatorio
+python -m backend.jobs.runner --job nlp
+python -m backend.jobs.runner --job metricas
+python -m backend.jobs.runner --job clustering
+python -m backend.jobs.runner --job recomendaciones
+
+# Opcional: limpieza de datos viejos
+python -m backend.jobs.runner --job archivado
+```
+
+> En modo CLI la ejecución es **síncrona**: el proceso no termina hasta que el job completa. En producción (API), los jobs son **asíncronos** (daemon threads) y el endpoint responde de inmediato.
+
+---
+
+## Endpoint de Estado (para el Workflow y para Diagnóstico)
+
+El backend expone un endpoint protegido para consultar si un job sigue corriendo o ya terminó:
+
+```
+GET /admin/jobs/{tipo_job}/status
+Authorization: Bearer <ADMIN_JWT_TOKEN>
+```
+
+**Respuestas posibles:**
+
+| `status` | Significado |
+|---|---|
+| `idle` | El job no está corriendo. Puede dispararse de nuevo de forma segura. |
+| `running` | El job está en ejecución en este momento. Esperar antes de continuar. |
+| `unknown` | El nombre del job no existe en el registro del runner. |
+
+El workflow de GitHub Actions usa este endpoint para hacer **polling cada 10 segundos** en lugar de un `sleep` fijo, avanzando al siguiente job tan pronto como el anterior reporte `idle`.

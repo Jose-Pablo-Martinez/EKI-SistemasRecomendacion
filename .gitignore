@@ -49,3 +49,7 @@ logs/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# ─── Scripts de Administración Local (nunca subir al repo) ────────────────────
+generate_admin_token.py
+test_*.py

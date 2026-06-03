@@ -64,3 +64,9 @@ def trigger_job(tipo_job: str, current_admin: Administrador = Depends(get_curren
     """Dispara un job asíncrono."""
     resultado = admin_service.disparar_job(tipo_job)
     return resultado
+
+@router.get("/jobs/{tipo_job}/status")
+def job_status(tipo_job: str, current_admin: Administrador = Depends(get_current_admin)):
+    """Consulta si un job offline está corriendo (running) o libre (idle)."""
+    from backend.jobs.runner import get_job_status
+    return get_job_status(tipo_job)
