@@ -4,6 +4,11 @@ name: EKI — Jobs Offline Scheduler
 # El orden importa: NLP y Métricas deben correr ANTES que Clustering,
 # y Clustering ANTES que Recomendaciones (dependencias de datos).
 #
+# El workflow NO usa sleeps ciegos. En su lugar consulta el endpoint
+# GET /admin/jobs/{job}/status hasta recibir "idle" (job terminado)
+# o hasta agotar el timeout de seguridad, evitando esperas innecesarias
+# y colisiones entre jobs cuando la BD crece.
+#
 # También disponible en modo manual desde la pestaña Actions de GitHub.
 
 on:
@@ -76,11 +81,47 @@ jobs:
             exit 1
           fi
 
-      # ── 5. Esperar procesamiento de NLP y Métricas ───────────────────────────
-      # Los jobs son asíncronos (daemon threads). Se espera para darles tiempo
-      # de completarse antes de lanzar Clustering, que depende de sus resultados.
-      - name: Esperar procesamiento de NLP y Métricas (90s)
-        run: sleep 90
+      # ── 5. Esperar NLP y Métricas (polling real) ─────────────────────────────
+      # En lugar de un sleep fijo, consultamos el endpoint de status cada 10s.
+      # El bucle avanza en cuanto AMBOS jobs reportan "idle".
+      # Timeout de seguridad: 15 min (90 iteraciones). Si se supera, el pipeline falla
+      # con un mensaje claro en lugar de lanzar Clustering con datos incompletos.
+      - name: Esperar finalización de NLP y Métricas
+        run: |
+          AUTH="Authorization: Bearer ${{ secrets.ADMIN_JWT_TOKEN }}"
+          BASE="${{ secrets.RENDER_API_URL }}"
+          MAX_ITER=90
+          INTERVAL=10
+
+          echo "Esperando a que NLP y Métricas terminen (máx ${MAX_ITER} intentos c/u)..."
+
+          for JOB in nlp metricas; do
+            echo "--- Monitoreando job: $JOB ---"
+            ITER=0
+            while [ $ITER -lt $MAX_ITER ]; do
+              STATUS=$(curl -s -X GET \
+                "$BASE/admin/jobs/$JOB/status" \
+                -H "$AUTH" \
+                --max-time 15 | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))")
+
+              echo "  [$JOB] intento $((ITER+1))/$MAX_ITER → $STATUS"
+
+              if [ "$STATUS" = "idle" ]; then
+                echo "  [$JOB] ✓ Completado."
+                break
+              fi
+
+              ITER=$((ITER+1))
+              if [ $ITER -ge $MAX_ITER ]; then
+                echo "  [$JOB] ✗ Timeout: el job no terminó en $((MAX_ITER * INTERVAL))s."
+                exit 1
+              fi
+
+              sleep $INTERVAL
+            done
+          done
+
+          echo "NLP y Métricas finalizados. Continuando con Clustering..."
 
       # ── 6. Job Clustering ────────────────────────────────────────────────────
       # Ejecuta K-Means sobre establecimientos y asigna id_cluster.
@@ -101,10 +142,41 @@ jobs:
             exit 1
           fi
 
-      # ── 7. Esperar Clustering ────────────────────────────────────────────────
+      # ── 7. Esperar Clustering (polling real) ─────────────────────────────────
       # K-Means puede tardar dependiendo del volumen de establecimientos.
-      - name: Esperar finalización de Clustering (90s)
-        run: sleep 90
+      # Se consulta el status cada 10s hasta que reporte "idle" o se agote el timeout.
+      - name: Esperar finalización de Clustering
+        run: |
+          AUTH="Authorization: Bearer ${{ secrets.ADMIN_JWT_TOKEN }}"
+          BASE="${{ secrets.RENDER_API_URL }}"
+          MAX_ITER=90
+          INTERVAL=10
+
+          echo "Monitoreando job: clustering (máx ${MAX_ITER} intentos)..."
+          ITER=0
+          while [ $ITER -lt $MAX_ITER ]; do
+            STATUS=$(curl -s -X GET \
+              "$BASE/admin/jobs/clustering/status" \
+              -H "$AUTH" \
+              --max-time 15 | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))")
+
+            echo "  [clustering] intento $((ITER+1))/$MAX_ITER → $STATUS"
+
+            if [ "$STATUS" = "idle" ]; then
+              echo "  [clustering] ✓ Completado."
+              break
+            fi
+
+            ITER=$((ITER+1))
+            if [ $ITER -ge $MAX_ITER ]; then
+              echo "  [clustering] ✗ Timeout: el job no terminó en $((MAX_ITER * INTERVAL))s."
+              exit 1
+            fi
+
+            sleep $INTERVAL
+          done
+
+          echo "Clustering finalizado. Continuando con Recomendaciones..."
 
       # ── 8. Job Recomendaciones ───────────────────────────────────────────────
       # Genera recomendacion_generada para todos los usuarios activos.
