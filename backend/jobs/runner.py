@@ -117,6 +117,32 @@ def run_job(job_name: str, db_session_factory: Callable = SessionLocal) -> Dict[
     
     return {"status": "enqueued", "job": job_name}
 
+
+def get_job_status(job_name: str) -> dict:
+    """
+    Consulta el estado actual de un job registrado.
+    
+    Usa el Lock como fuente de verdad: si se puede adquirir sin bloqueo, 
+    el job está disponible (idle). Si no se puede, significa que el job 
+    sigue corriendo en un hilo de fondo.
+    
+    Returns:
+        Dict con 'status': 'running' | 'idle' | 'unknown'
+    """
+    if job_name not in _job_locks:
+        return {"status": "unknown", "job": job_name}
+
+    job_lock = _job_locks[job_name]
+    acquired = job_lock.acquire(blocking=False)
+    if acquired:
+        # Pudimos adquirirlo → el job no está corriendo → lo liberamos inmediatamente
+        job_lock.release()
+        return {"status": "idle", "job": job_name}
+    else:
+        # No pudimos adquirirlo → el job está corriendo
+        return {"status": "running", "job": job_name}
+
+
 #Interaccion con la linea de comandos (CLI)
 
 if __name__ == "__main__":

@@ -256,6 +256,13 @@ git push → main
 | `DB_PORT` | Puerto del servicio Aiven |
 | `CA_CERT_BASE64` | Contenido del certificado `ca.pem` de Aiven **codificado en base64** |
 
+### Secretos requeridos en GitHub (`Settings → Secrets → Actions → Repository secrets`)
+
+| Secret | Descripción | Usado por |
+|---|---|---|
+| `RENDER_API_URL` | URL base del backend en Render (sin `/` al final). Ej: `https://eki.onrender.com` | `jobs-scheduler.yml` |
+| `ADMIN_JWT_TOKEN` | JWT de larga duración para que GitHub Actions autentique llamadas a `/admin/jobs/*` | `jobs-scheduler.yml` |
+
 > [!IMPORTANT]
 > **El certificado NO se descarga automáticamente desde la API de Aiven** (ese endpoint requiere autenticación). En su lugar, se almacena como secret en base64.
 
@@ -283,6 +290,64 @@ GitHub → Settings → Secrets and variables → Actions → Environment secret
 
 | Limitación | Impacto | Solución |
 |---|---|---|
-| Render free tier: "spin-down" tras 15 min de inactividad | Cold start de ~30-50 s en el primer request | Aceptable para contexto académico |
+| Render free tier: "spin-down" tras 15 min de inactividad | Cold start de ~30-50 s en el primer request | El workflow de jobs lo maneja con un ping previo al `/health` + espera de 30 s |
 | Aiven free tier: 5 GB de storage | Límite de datos totales | Monitorear desde el dashboard de Aiven |
 | `ca.pem` no se descarga automáticamente | Requiere coordinación con el líder del equipo | Proceso documentado en §2 y GUIA_LOCAL.md |
+| `ADMIN_JWT_TOKEN` vence si se genera con duración corta | El workflow devuelve 401 en el paso de jobs | Regenerar el token con el script `generate_admin_token.py` (no subir al repo) y actualizarlo en los secretos de GitHub |
+
+---
+
+## 7. Workflow de Jobs Offline (`jobs-scheduler.yml`)
+
+El workflow automatizado [`jobs-scheduler.yml`](../.github/workflows/jobs-scheduler.yml) dispara los 4 jobs offline en producción de forma secuencial cada 8 horas.
+
+### Flujo de ejecución
+
+```
+Cada 8h (cron) ó Manual (workflow_dispatch)
+    │
+    ├── 1. Ping /health → despierta Render si estaba dormido
+    ├── 2. sleep 30s → warmup completo del servidor
+    ├── 3. POST /admin/jobs/nlp → dispara NLP en segundo plano
+    ├── 4. POST /admin/jobs/metricas → dispara Métricas en segundo plano
+    ├── 5. Polling GET /admin/jobs/nlp/status + /metricas/status (c/10s, max 15min)
+    ├── 6. POST /admin/jobs/clustering → dispara Clustering (ya con datos actualizados)
+    ├── 7. Polling GET /admin/jobs/clustering/status (c/10s, max 15min)
+    └── 8. POST /admin/jobs/recomendaciones → dispara el job principal
+```
+
+> El workflow **no usa `sleep` ciegos**. En cambio, consulta el endpoint `GET /admin/jobs/{job}/status` para detectar en tiempo real cuándo termina cada job antes de pasar al siguiente. Si un job tarda más de 15 minutos, el pipeline falla con un mensaje claro en lugar de lanzar el siguiente job con datos incompletos.
+
+### Cómo generar o renovar el `ADMIN_JWT_TOKEN`
+
+El token debe pertenecer a un administrador del sistema y tener una **duración muy larga** (años) para no tener que renovarlo frecuentemente.
+
+1. Crea un script temporal local (no subir al repo ni al control de versiones):
+
+```python
+import os, sys
+sys.path.append(os.getcwd())
+from datetime import timedelta
+from backend.auth import create_access_token
+from backend.database import SessionLocal
+from backend.models.usuarios import Administrador
+
+# IMPORTANTE: el .env debe apuntar a la misma BD que usa el servidor en Render
+# y JWT_SECRET_KEY debe ser IDENTICO al que está configurado en las variables de Render.
+db = SessionLocal()
+admin = db.query(Administrador).first()
+token = create_access_token(
+    data={"sub": admin.usuario.email},
+    expires_delta=timedelta(days=36500)  # ~100 años
+)
+print(token)
+db.close()
+```
+
+2. Ejecútalo con el venv activo: `venv\Scripts\python generate_admin_token.py`
+3. Copia el token impreso.
+4. Ve a GitHub → Settings → Secrets and variables → Actions → **Repository secrets** → actualiza `ADMIN_JWT_TOKEN`.
+5. **Elimina el script local** inmediatamente. No debe quedar en el repo ni en el historial de git.
+
+> [!CAUTION]
+> El `JWT_SECRET_KEY` del `.env` local **debe coincidir exactamente** con el que tiene configurado el servidor de Render en sus variables de entorno. Si difieren, el servidor rechazará el token con un error 401 aunque parezca válido.
