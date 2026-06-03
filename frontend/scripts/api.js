@@ -123,24 +123,18 @@ export const api = {
   
   // Establecimientos
   getEstablecimiento: (id) => apiRequest(`/establecimientos/${id}`),
-  crearEstablecimiento: (data) => apiRequest('/establecimientos/', {
-    method: 'POST', body: JSON.stringify(data)
-  }),
+  crearEstablecimiento: (data) => apiRequest('/establecimientos', { method: 'POST', body: JSON.stringify(data) }),
+  actualizarEstablecimiento: (id, data) => apiRequest(`/establecimientos/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   buscar: (query, filtros) => {
     const params = new URLSearchParams(filtros);
     if (query) params.append('q', query);
     return apiRequest(`/establecimientos/buscar?${params.toString()}`);
   },
   autocompletar: (query) => apiRequest(`/establecimientos/autocomplete?q=${encodeURIComponent(query)}`),
-  crearResena: (id, data) => apiRequest(`/establecimientos/${id}/resena`, {
-    method: 'POST', body: JSON.stringify(data)
-  }),
-  actualizarHorarios: (id, horarios) => apiRequest(`/establecimientos/${id}/horarios`, {
-    method: 'PUT', body: JSON.stringify(horarios)
-  }),
-  agregarPlatillo: (id, data) => apiRequest(`/establecimientos/${id}/platillo`, {
-    method: 'POST', body: JSON.stringify(data)
-  }),
+  crearResena: (id, data) => apiRequest(`/establecimientos/${id}/resena`, { method: 'POST', body: JSON.stringify(data) }),
+  actualizarHorarios: (id, horarios) => apiRequest(`/establecimientos/${id}/horarios`, { method: 'PUT', body: JSON.stringify(horarios) }),
+  agregarPlatillo: (id, platillo) => apiRequest(`/establecimientos/${id}/platillo`, { method: 'POST', body: JSON.stringify(platillo) }),
+  eliminarPlatillos: (id) => apiRequest(`/establecimientos/${id}/platillos`, { method: 'DELETE' }),
   agregarImagen: (id, data) => apiRequest(`/establecimientos/${id}/imagen`, {
     method: 'POST', body: JSON.stringify(data)
   }),
@@ -154,6 +148,7 @@ export const api = {
   // Perfil
   getFavoritos: () => apiRequest('/usuarios/me/favoritos'),
   getMisContribuciones: () => apiRequest('/usuarios/me/contribuciones'),
+  eliminarContribucion: (id) => apiRequest(`/establecimientos/${id}`, { method: 'DELETE' }),
   getPerfil: () => apiRequest('/usuarios/me'),
   actualizarPerfil: (data) => apiRequest('/usuarios/me', {
     method: 'PATCH', body: JSON.stringify(data)

@@ -12,7 +12,7 @@ from sqlalchemy import (
     ForeignKey, JSON, DECIMAL, Index, UniqueConstraint, Time,
 )
 from sqlalchemy.dialects.mysql import TINYINT
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 
 from backend.database import Base
 
@@ -60,6 +60,8 @@ class Establecimiento(Base):
     fecha_aprobacion      = Column(DateTime, nullable=True)
     total_resenas         = Column(Integer, default=0)              # Desnormalizado §1.5
     calificacion_promedio = Column(DECIMAL(3, 2), default=0.00)     # Desnormalizado §1.5
+    solicita_baja         = Column(Boolean, default=False, nullable=False)
+    id_establecimiento_padre = Column(Integer, ForeignKey("establecimiento.id_establecimiento"), nullable=True)
 
     # Relaciones
     colonia         = relationship("Colonia", back_populates="establecimientos")
@@ -86,6 +88,7 @@ class Establecimiento(Base):
     historial_visitas = relationship("HistorialVisita", back_populates="establecimiento")
     contribuciones  = relationship("ContribucionInformacion", back_populates="establecimiento")
     reportes        = relationship("Reporte", back_populates="establecimiento")
+    modificaciones  = relationship("Establecimiento", backref=backref('establecimiento_padre', remote_side=[id_establecimiento]))
 
 
 class Restaurante(Base):

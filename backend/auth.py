@@ -79,6 +79,21 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         
     return usuario
 
+def get_optional_current_user(token: Optional[str] = Depends(OAuth2PasswordBearer(tokenUrl="/usuarios/login", auto_error=False)), db: Session = Depends(get_db)) -> Optional[Usuario]:
+    """Similar a get_current_user pero no falla si no hay token, retorna None."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub") # type: ignore
+        if email is None:
+            return None
+    except JWTError:
+        return None
+        
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+    return usuario
+
 def get_current_admin(current_user: Usuario = Depends(get_current_user)) -> Usuario:
     """Verifica que el usuario autenticado sea un administrador."""
     if current_user.tipo_usuario != "admin":

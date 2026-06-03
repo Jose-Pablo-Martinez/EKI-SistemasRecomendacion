@@ -4,23 +4,78 @@ from backend.models.interacciones import Resena
 from backend.models.usuarios import Usuario
 from backend.services.gamificacion_service import otorgar_puntos
 from sqlalchemy.sql import func
+from sqlalchemy import or_
 
-def aprobar_establecimiento(db: Session, id_establecimiento: int) -> bool:
+def aprobar_establecimiento(db: Session, id_establecimiento: int) -> tuple[bool, str]:
     est = db.query(Establecimiento).filter(Establecimiento.id_establecimiento == id_establecimiento).first()
-    if not est or est.estado != "pendiente":
-        return False
+    if not est:
+        return False, "No se encontró el establecimiento."
         
+    # Flujo de Baja: Si solicitó baja, la aprobación significa Hard Delete
+    if est.solicita_baja:
+        nombre = est.nombre
+        from backend.services.establecimiento_service import borrar_dependencias_establecimiento
+        borrar_dependencias_establecimiento(db, id_establecimiento)
+        db.delete(est)
+        db.commit()
+        return True, f"Aprobada solicitud de baja del establecimiento {nombre}"
+
+    if est.estado != "pendiente":
+        return False, "El establecimiento no está pendiente."
+
+    # Flujo de Modificación: Si tiene padre, se actualiza el padre y se borra el clon
+    if est.id_establecimiento_padre is not None:
+        padre = db.query(Establecimiento).filter(Establecimiento.id_establecimiento == est.id_establecimiento_padre).first()
+        if padre:
+            padre.nombre = est.nombre
+            padre.descripcion = est.descripcion
+            padre.latitud = est.latitud
+            padre.longitud = est.longitud
+            padre.direccion_texto = est.direccion_texto
+            padre.id_colonia = est.id_colonia
+            padre.tipo_establecimiento = est.tipo_establecimiento
+            padre.es_informal = est.es_informal
+            
+            from backend.services.establecimiento_service import borrar_dependencias_establecimiento
+            borrar_dependencias_establecimiento(db, est.id_establecimiento)
+            db.delete(est) # Borramos el clon
+            db.commit()
+            return True, f"Modificación aprobada para {padre.nombre}"
+        return False, "No se encontró el establecimiento padre."
+        
+    es_modificacion = est.fecha_aprobacion is not None
     est.estado = "aprobado"  # type: ignore[assignment]
-    # Otorgar puntos al usuario que lo propuso
-    otorgar_puntos(db, est.id_usuario_registro, "nuevo_lugar", f"Lugar aprobado: {est.nombre}")
+    if not es_modificacion:
+        est.fecha_aprobacion = func.now() # type: ignore[assignment]
+        
+    # Otorgar puntos al usuario que lo propuso (50 si es nuevo, 20 si es edición)
+    accion = "editar_lugar" if es_modificacion else "nuevo_lugar"
+    texto = "Modificación aprobada: " if es_modificacion else "Lugar aprobado: "
+    otorgar_puntos(db, est.id_usuario_registro, accion, f"{texto}{est.nombre}")
     db.commit()
-    return True
+    return True, f"{texto}{est.nombre}"
 
 def rechazar_establecimiento(db: Session, id_establecimiento: int) -> bool:
     est = db.query(Establecimiento).filter(Establecimiento.id_establecimiento == id_establecimiento).first()
-    if not est or est.estado != "pendiente":
+    if not est:
         return False
         
+    # Flujo de Baja: Rechazar baja significa solo quitar el flag
+    if est.solicita_baja:
+        est.solicita_baja = False  # type: ignore[assignment]
+        db.commit()
+        return True
+
+    if est.estado != "pendiente":
+        return False
+        
+    # TODO: Para el futuro, en lugar de mantener el registro del establecimiento
+    # en estado "rechazado" (lo que ocupa espacio en la base de datos como basura), 
+    # lo ideal sería hacer un hard delete inmediato aquí mismo y guardar un 
+    # registro ligero (ej. solo el nombre y fecha) en una tabla "HistorialRechazos"
+    # para que el usuario pueda seguir viéndolo en su panel de "Mis Contribuciones"
+    # y borrar la notificación desde ahí. Por ahora en el MVP, se mantiene el 
+    # registro como rechazado hasta que el usuario lo borra manualmente.
     est.estado = "rechazado"  # type: ignore[assignment]
     db.commit()
     return True
@@ -55,7 +110,10 @@ def aprobar_resena(db: Session, id_resena: int) -> bool:
 
 def obtener_altas_visitantes(db: Session):
     return db.query(Establecimiento).join(Usuario, Establecimiento.id_usuario_registro == Usuario.id_usuario).filter(
-        Establecimiento.estado == "pendiente",
+        or_(
+            Establecimiento.estado == "pendiente",
+            Establecimiento.solicita_baja == True
+        ),
         Usuario.tipo_usuario == "visitante"
     ).options(
         joinedload(Establecimiento.horarios),
@@ -63,8 +121,15 @@ def obtener_altas_visitantes(db: Session):
     ).all()
 
 def obtener_altas_propietarios(db: Session):
+    # TODO (MVP): El flujo de altas de propietarios no se implementa en este MVP.
+    # Requiere una modificación masiva en la lógica de negocio (verificación de identidad,
+    # subida de documentos probatorios, RFC, imágenes a la BD/S3, etc.).
+    # Por ahora este método puede devolver vacío o seguir la lógica básica sin validación documental.
     return db.query(Establecimiento).join(Usuario, Establecimiento.id_usuario_registro == Usuario.id_usuario).filter(
-        Establecimiento.estado == "pendiente",
+        or_(
+            Establecimiento.estado == "pendiente",
+            Establecimiento.solicita_baja == True
+        ),
         Usuario.tipo_usuario == "propietario"
     ).options(
         joinedload(Establecimiento.horarios),
@@ -72,7 +137,9 @@ def obtener_altas_propietarios(db: Session):
     ).all()
 
 def obtener_reclamos_pendientes(db: Session):
-    # Trae los PropietarioEstablecimiento con estado pendiente
+    # TODO (MVP): Los reclamos de propiedad tampoco se incluyen en el MVP.
+    # Supone recibir y validar documentación legal para que un usuario existente
+    # tome control de un lugar que fue dado de alta por un visitante.
     return db.query(PropietarioEstablecimiento).options(
         joinedload(PropietarioEstablecimiento.establecimiento),
         joinedload(PropietarioEstablecimiento.propietario)

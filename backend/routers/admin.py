@@ -4,14 +4,15 @@ from backend.database import get_db
 from backend.models.usuarios import Administrador
 from backend.auth import get_current_admin
 from backend.services import admin_service
+from backend.schemas.establecimientos import EstablecimientoResponse
 
 router = APIRouter(prefix="/admin", tags=["Administración"])
 
-@router.get("/establecimientos/pendientes/visitantes")
+@router.get("/establecimientos/pendientes/visitantes", response_model=list[EstablecimientoResponse])
 def listar_altas_visitantes(current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
     return admin_service.obtener_altas_visitantes(db)
 
-@router.get("/establecimientos/pendientes/propietarios")
+@router.get("/establecimientos/pendientes/propietarios", response_model=list[EstablecimientoResponse])
 def listar_altas_propietarios(current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
     return admin_service.obtener_altas_propietarios(db)
 
@@ -27,10 +28,10 @@ def listar_resenas_pendientes(current_admin: Administrador = Depends(get_current
 @router.post("/establecimientos/{id_establecimiento}/aprobar")
 def aprobar_establecimiento(id_establecimiento: int, current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
     """Aprueba un establecimiento y otorga puntos al usuario."""
-    exito = admin_service.aprobar_establecimiento(db, id_establecimiento)
+    exito, mensaje = admin_service.aprobar_establecimiento(db, id_establecimiento)
     if not exito:
-        raise HTTPException(status_code=400, detail="No se pudo aprobar (no existe o no está pendiente)")
-    return {"status": "ok", "message": "Aprobado"}
+        raise HTTPException(status_code=400, detail=mensaje)
+    return {"status": "ok", "message": mensaje}
 
 @router.post("/establecimientos/{id_establecimiento}/rechazar")
 def rechazar_establecimiento(id_establecimiento: int, current_admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):

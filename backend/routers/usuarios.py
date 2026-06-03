@@ -59,8 +59,9 @@ def get_my_profile(current_user: Usuario = Depends(get_current_user), db: Sessio
     total_favoritos = db.query(func.count(FavoritoGuardado.id_establecimiento)).filter(
         FavoritoGuardado.id_usuario == current_user.id_usuario
     ).scalar() or 0
-    total_contribuciones = db.query(func.count(ContribucionInformacion.id_contribucion)).filter(
-        ContribucionInformacion.id_usuario == current_user.id_usuario
+    total_contribuciones = db.query(func.count(Establecimiento.id_establecimiento)).filter(
+        Establecimiento.id_usuario_registro == current_user.id_usuario,
+        Establecimiento.estado == "aprobado"
     ).scalar() or 0
 
     puntos_totales = 0

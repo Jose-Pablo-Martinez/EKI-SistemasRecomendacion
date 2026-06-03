@@ -23,6 +23,14 @@ export default async function contribucionController() {
   form = document.getElementById('contribucion-form');
   btnGps = document.getElementById('btn-gps');
   btnSubmit = document.getElementById('btn-submit');
+  
+  // Revisar si estamos en modo edición
+  window._editContribId = null;
+  const hashParts = window.location.hash.split('?');
+  if(hashParts.length > 1) {
+      const params = new URLSearchParams(hashParts[1]);
+      window._editContribId = params.get('id');
+  }
 
   await cargarColonias();
   initMapa();
@@ -38,6 +46,107 @@ export default async function contribucionController() {
   }
 
   setupHorariosUI();
+  
+  // Llenar datos si es edición
+  if (window._editContribId) {
+      if (btnSubmit) {
+          btnSubmit.innerHTML = '<span class="material-symbols-outlined">send</span> Enviar edición';
+      }
+      try {
+          const est = await api.getEstablecimiento(window._editContribId);
+          document.getElementById('nombre').value = est.nombre || '';
+          document.getElementById('descripcion').value = est.descripcion || '';
+          document.getElementById('tipo_establecimiento').value = est.tipo_establecimiento || '';
+          document.getElementById('direccion_texto').value = est.direccion_texto || '';
+          if (est.id_colonia) {
+              document.getElementById('id_colonia').value = est.id_colonia;
+          }
+          if (est.latitud && est.longitud) {
+              document.getElementById('latitud').value = est.latitud;
+              document.getElementById('longitud').value = est.longitud;
+              if (typeof map !== 'undefined' && typeof marker !== 'undefined') {
+                  map.setView([est.latitud, est.longitud], 15);
+                  marker.setLatLng([est.latitud, est.longitud]);
+              }
+          }
+          
+          // Poblar Horarios
+          if (est.horarios && est.horarios.length > 0) {
+              const rows = document.querySelectorAll('.dia-row');
+              rows.forEach(row => {
+                  const dia = parseInt(row.dataset.dia);
+                  const hDB = est.horarios.find(h => h.dia_semana === dia);
+                  const btn = row.querySelector('.btn-estado');
+                  if (!hDB) {
+                      btn.dataset.abierto = 'false';
+                      btn.textContent = 'Cerrado';
+                      btn.classList.remove('bg-success');
+                      btn.classList.add('bg-accent');
+                      row.querySelectorAll('.eki-timepicker-container').forEach(c => { 
+                        c.classList.add('opacity-50', 'pointer-events-none');
+                        c.querySelectorAll('select').forEach(s => s.disabled = true);
+                      });
+                  } else {
+                      btn.dataset.abierto = 'true';
+                      btn.textContent = 'Abierto';
+                      btn.classList.remove('bg-accent');
+                      btn.classList.add('bg-success');
+                      
+                      const setTime = (containerName, timeStr) => {
+                          const c = row.querySelector(`.eki-timepicker-container.${containerName}`);
+                          if (c && timeStr) {
+                              const [hh, mm] = timeStr.split(':');
+                              const hSelect = c.querySelector('.eki-hour-select');
+                              const mSelect = c.querySelector('.eki-minute-select');
+                              if (hSelect) hSelect.value = hh;
+                              if (mSelect) mSelect.value = mm;
+                          }
+                      };
+                      setTime('apertura', hDB.hora_apertura);
+                      setTime('cierre', hDB.hora_cierre);
+                  }
+                  // Validar estado visual
+                  if (typeof validarFilaHorario === 'function') {
+                      validarFilaHorario(row);
+                  }
+              });
+          } else {
+             // Si no hay horarios en DB, marcar todos como cerrados para que el usuario los defina
+             document.querySelectorAll('.dia-row').forEach(row => {
+                  const btn = row.querySelector('.btn-estado');
+                  btn.dataset.abierto = 'false';
+                  btn.textContent = 'Cerrado';
+                  btn.classList.remove('bg-success');
+                  btn.classList.add('bg-accent');
+                  row.querySelectorAll('.eki-timepicker-container').forEach(c => { 
+                    c.classList.add('opacity-50', 'pointer-events-none');
+                    c.querySelectorAll('select').forEach(s => s.disabled = true);
+                  });
+             });
+          }
+
+          // Poblar Menú
+          if (est.platillos && est.platillos.length > 0) {
+              const btnAdd = document.getElementById('btn-add-platillo');
+              est.platillos.forEach(p => {
+                  if (btnAdd) btnAdd.click();
+                  const rows = document.querySelectorAll('.platillo-row');
+                  if (rows.length > 0) {
+                      const lastRow = rows[rows.length - 1];
+                      const nombreInput = lastRow.querySelector('.platillo-nombre');
+                      const precioInput = lastRow.querySelector('.platillo-precio');
+                      if (nombreInput) nombreInput.value = p.nombre || '';
+                      if (precioInput && p.precio !== null && p.precio !== undefined) {
+                          precioInput.value = p.precio;
+                      }
+                  }
+              });
+          }
+      } catch(e) {
+          console.error(e);
+          showToast('No se pudo cargar el establecimiento', 'error');
+      }
+  }
 }
 
 function setupHorariosUI() {
@@ -375,9 +484,12 @@ function parsePlatillos() {
     const nombre = row.querySelector('.platillo-nombre').value.trim();
     const precio = row.querySelector('.platillo-precio').value;
     if (nombre) {
+      if (!precio || isNaN(parseFloat(precio)) || parseFloat(precio) < 0) {
+        throw new Error(`El platillo "${nombre}" debe tener un precio válido.`);
+      }
       platillos.push({
         nombre: nombre,
-        precio: precio ? parseFloat(precio) : null,
+        precio: parseFloat(precio),
         disponible: true
       });
     }
@@ -418,7 +530,13 @@ async function handleSubmit(event) {
     return;
   }
   
-  const platillos = parsePlatillos();
+  let platillos = [];
+  try {
+    platillos = parsePlatillos();
+  } catch (err) {
+    showToast(err.message, 'error');
+    return;
+  }
 
   // Bloquear UI y mostrar progreso
   document.getElementById('form-actions').classList.add('hidden');
@@ -428,10 +546,15 @@ async function handleSubmit(event) {
   progressDiv.classList.remove('hidden');
 
   try {
-    // 1. Crear Establecimiento
-    progressText.textContent = 'Creando establecimiento...';
+    // 1. Crear o Actualizar Establecimiento
+    progressText.textContent = 'Guardando establecimiento...';
     progressBar.style.width = '30%';
-    const est = await api.crearEstablecimiento(data);
+    let est;
+    if (window._editContribId) {
+        est = await api.actualizarEstablecimiento(window._editContribId, data);
+    } else {
+        est = await api.crearEstablecimiento(data);
+    }
     const id = est.id_establecimiento;
 
     // 2. Horarios
@@ -444,6 +567,11 @@ async function handleSubmit(event) {
     }
 
     // 3. Menú
+    if (window._editContribId) {
+      // Limpiamos los platillos antiguos antes de reinsertar los nuevos/editados
+      await api.eliminarPlatillos(id);
+    }
+
     if (platillos.length > 0) {
       progressText.textContent = 'Guardando platillos...';
       const steps = 40 / platillos.length;

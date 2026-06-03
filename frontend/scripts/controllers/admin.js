@@ -10,8 +10,8 @@ import { showToast } from '../utils.js';
 import { Modal } from '../components/Modal.js';
 
 const _ADMIN_TABS = [
-  { id:'establecimientos_vis',  label:'Altas Visitantes',     icon:'person_add'  },
-  { id:'establecimientos_prop', label:'Altas Propietarios',   icon:'storefront'  },
+  { id:'establecimientos_vis',  label:'Visitantes',     icon:'person_add'  },
+  { id:'establecimientos_prop', label:'Propietarios',   icon:'storefront'  },
   { id:'reclamos',              label:'Reclamos de Propiedad',icon:'verified'    },
   { id:'jobs',                  label:'Jobs offline',         icon:'settings'    },
 ];
@@ -29,7 +29,9 @@ const _JOBS = [
 // Helpers
 function _fechaAdmin(str) {
   if (!str) return '—';
-  return new Date(str).toLocaleDateString('es-MX', {
+  // Forzar que JavaScript lo interprete como UTC añadiendo 'Z' si no tiene zona horaria
+  const dateStr = str.endsWith('Z') || str.match(/[+-]\d{2}:\d{2}$/) ? str : str + 'Z';
+  return new Date(dateStr).toLocaleDateString('es-MX', {
     day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit',
   });
 }
@@ -125,9 +127,13 @@ function _cardEstab(e, idx, tabId) {
         <div class="flex-1 min-w-0">
           <h3 class="font-heading text-headline-sm text-primary">${e.nombre || 'Sin nombre'}</h3>
           <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-            <span class="text-label-sm px-2 py-0.5 rounded bg-warning-faint text-warning border border-warning/30">
-              Pendiente
-            </span>
+            ${e.solicita_baja 
+              ? `<span class="text-label-sm px-2 py-0.5 rounded bg-accent-faint text-accent border border-accent/30 font-bold">Solicitud de Baja</span>`
+              : (e.fecha_aprobacion 
+                 ? `<span class="text-label-sm px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/30 font-bold">Modificación</span>`
+                 : `<span class="text-label-sm px-2 py-0.5 rounded bg-success/10 text-success border border-success/30 font-bold">Alta Nueva</span>`
+                )
+            }
             <span class="text-label-md text-text-tertiary">${tipoLabel}</span>
             ${e.es_informal
               ? `<span class="text-label-sm px-2 py-0.5 rounded bg-accent-faint text-accent border border-accent/30">Informal</span>`
@@ -197,16 +203,18 @@ async function _moderar(tipo, id, accion, cardId, idSecundario = null) {
   card?.querySelectorAll('button').forEach(b => b.disabled = true);
 
   try {
+    let resp;
     if (accion === 'aprobar') {
-      await api.aprobar(tipo, id, idSecundario);
+      resp = await api.aprobar(tipo, id, idSecundario);
     } else {
-      await api.rechazar(tipo, id, idSecundario);
+      resp = await api.rechazar(tipo, id, idSecundario);
     }
 
-    showToast(
-      accion === 'aprobar' ? 'Aprobado correctamente' : 'Rechazado',
-      accion === 'aprobar' ? 'success' : 'info',
-    );
+    const msg = resp && resp.message 
+      ? resp.message 
+      : (accion === 'aprobar' ? 'Aprobado correctamente' : 'Rechazado');
+
+    showToast(msg, accion === 'aprobar' ? 'success' : 'info');
 
     if (card) {
       card.style.transition = 'opacity 220ms ease, transform 220ms ease';
