@@ -196,4 +196,38 @@ jobs:
             echo "Error al disparar job recomendaciones (HTTP $HTTP_CODE). Abortando pipeline."
             exit 1
           fi
+
+      # ── 9. Esperar Recomendaciones (polling real) ────────────────────────────
+      # Esperamos a que termine para poder marcar el workflow como completado con seguridad.
+      - name: Esperar finalización de Recomendaciones
+        run: |
+          AUTH="Authorization: Bearer ${{ secrets.ADMIN_JWT_TOKEN }}"
+          BASE="${{ secrets.RENDER_API_URL }}"
+          MAX_ITER=90
+          INTERVAL=10
+
+          echo "Monitoreando job: recomendaciones (máx ${MAX_ITER} intentos)..."
+          ITER=0
+          while [ $ITER -lt $MAX_ITER ]; do
+            STATUS=$(curl -s -X GET \
+              "$BASE/admin/jobs/recomendaciones/status" \
+              -H "$AUTH" \
+              --max-time 15 | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))")
+
+            echo "  [recomendaciones] intento $((ITER+1))/$MAX_ITER → $STATUS"
+
+            if [ "$STATUS" = "idle" ]; then
+              echo "  [recomendaciones] ✓ Completado."
+              break
+            fi
+
+            ITER=$((ITER+1))
+            if [ $ITER -ge $MAX_ITER ]; then
+              echo "  [recomendaciones] ✗ Timeout: el job no terminó en $((MAX_ITER * INTERVAL))s."
+              exit 1
+            fi
+
+            sleep $INTERVAL
+          done
+
           echo "Pipeline de jobs completado exitosamente."
