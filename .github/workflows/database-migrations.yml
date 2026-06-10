@@ -18,6 +18,9 @@ jobs:
     name: Apply Migrations to Aiven (Production)
     runs-on: ubuntu-latest
     environment: ekiEnvironment # Protegido: requiere que los secretos estén en este Environment
+    # Timeout global: una migración no debería tardar más de 15 min.
+    # Evita runs colgados que consuman minutos de GitHub Actions sin control.
+    timeout-minutes: 15
 
     steps:
       - name: Checkout del repositorio
@@ -87,3 +90,33 @@ jobs:
           DB_SSL_CA: ca.pem
         run: |
           python scripts/db/ops/verify_schema.py
+
+      # ── Resumen de la migración (Job Summary) ───────────────────────────
+      - name: Generar resumen de la migración
+        if: always()
+        run: |
+          echo "## Resumen — Migraciones de Base de Datos (Producción)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Detalle | Valor |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Entorno | Producción (ekidb — Aiven) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Disparado por | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Resultado | ${{ job.status == 'success' && 'Migración aplicada y verificada exitosamente' || 'Migración falló — revisar logs' }} |" >> $GITHUB_STEP_SUMMARY
+
+      # ── Limpiar Deployments Antiguos ───────────────────────────────────────
+      # Igual que jobs-scheduler: cada push a main crea un deployment en ekiEnvironment.
+      # Mantenemos solo el activo más reciente borrando los anteriores inactivos.
+      - name: Limpiar historial de deployments
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Borrando deployments inactivos del entorno ekiEnvironment..."
+          DEPLOYMENTS=$(gh api -H "Accept: application/vnd.github+json" "/repos/${{ github.repository }}/deployments?environment=ekiEnvironment&per_page=20")
+          echo "$DEPLOYMENTS" | jq -c '.[]' | while read -r dep; do
+            ID=$(echo "$dep" | jq -r '.id')
+            echo "Intentando borrar deployment ID: $ID..."
+            gh api --method DELETE -H "Accept: application/vnd.github+json" /repos/${{ github.repository }}/deployments/$ID > /dev/null 2>&1 || true
+          done
+          echo "Limpieza completada."
