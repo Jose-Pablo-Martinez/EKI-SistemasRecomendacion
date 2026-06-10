@@ -1,6 +1,6 @@
 name: EKI — Jobs Offline Scheduler
 
-# Ejecuta los jobs offline de EkiSystem en secuencia cada 8 horas.
+# Ejecuta los jobs offline de EkiSystem en secuencia cada 12 horas.
 # El orden importa: NLP y Métricas deben correr ANTES que Clustering,
 # y Clustering ANTES que Recomendaciones (dependencias de datos).
 #
@@ -13,16 +13,26 @@ name: EKI — Jobs Offline Scheduler
 
 on:
   schedule:
-    # Ejecutar cada 8 horas: 00:00, 08:00, 16:00 UTC
-    # Equivale a: 18:00, 02:00, 10:00 hora CDMX-Mérida (UTC-6)
-    - cron: '0 */8 * * *'
+    # Ejecutar cada 12 horas: 00:00, 12:00 UTC
+    # Equivale a: 18:00, 06:00 hora CDMX-Mérida (UTC-6)
+    - cron: '0 */12 * * *'
   workflow_dispatch: # Permite ejecución manual sin esperar el cron
+
+# Evita que dos ejecuciones corran en paralelo sobre el mismo entorno.
+# Si el cron lanza una nueva corrida mientras la anterior sigue activa,
+# la nueva espera en cola en lugar de pisar los datos a medio procesar.
+concurrency:
+  group: offline-jobs-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   run-offline-jobs:
     name: Disparar Jobs Offline (NLP → Métricas → Clustering → Recomendaciones)
     runs-on: ubuntu-latest
     environment: ekiEnvironment # Mismo Environment que database-migrations.yml
+    # Timeout global: 55 min cubre warmup (30s) + 4 polls de hasta 15min c/u con margen.
+    # Evita que un job trabado en Render consuma horas de GitHub Actions sin control.
+    timeout-minutes: 55
 
     steps:
       # ── 1. Despertar el servicio Render ──────────────────────────────────────
@@ -231,3 +241,46 @@ jobs:
           done
 
           echo "Pipeline de jobs completado exitosamente."
+
+      # ── 10. Resumen del pipeline (Job Summary) ───────────────────────────────
+      # Escribe una tabla visible en la pestaña Actions del run con el resultado
+      # de cada job. Siempre corre (éxito o fallo) para dejar constancia.
+      - name: Generar resumen del pipeline
+        if: always()
+        run: |
+          echo "## Resumen del Pipeline — Jobs Offline EkiSystem" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Estado |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Warmup Render | Ejecutado |" >> $GITHUB_STEP_SUMMARY
+          echo "| NLP | ${{ job.status == 'success' && 'OK' || 'Falló / Timeout' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Métricas | ${{ job.status == 'success' && 'OK' || 'Falló / Timeout' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Clustering | ${{ job.status == 'success' && 'OK' || 'Falló / Timeout' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Recomendaciones | ${{ job.status == 'success' && 'OK' || 'Falló / Timeout' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Resultado final:** ${{ job.status == 'success' && 'Pipeline completado exitosamente' || 'Pipeline terminó con errores — revisar logs' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Ejecución:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+
+      # ── 11. Limpiar Deployments Antiguos (Basura de GitHub) ──────────────────
+      # Como este job usa "environment: ekiEnvironment", GitHub crea un deployment nuevo
+      # en cada ejecución (cada 12 horas). Para evitar que el historial se llene,
+      # este paso borra los deployments anteriores que ya están inactivos.
+      - name: Limpiar historial de deployments
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Borrando deployments inactivos del entorno ekiEnvironment..."
+          
+          # Obtenemos los últimos 20 deployments del entorno
+          DEPLOYMENTS=$(gh api -H "Accept: application/vnd.github+json" "/repos/${{ github.repository }}/deployments?environment=ekiEnvironment&per_page=20")
+          
+          # Recorremos cada deployment e intentamos borrarlo.
+          # GitHub automáticamente rechaza borrar el que esté "activo" (el más reciente
+          # de esta misma ejecución), así que se ignoran esos errores con || true.
+          echo "$DEPLOYMENTS" | jq -c '.[]' | while read -r dep; do
+            ID=$(echo "$dep" | jq -r '.id')
+            echo "Intentando borrar deployment ID: $ID..."
+            gh api --method DELETE -H "Accept: application/vnd.github+json" /repos/${{ github.repository }}/deployments/$ID > /dev/null 2>&1 || true
+          done
+          echo "Limpieza completada."

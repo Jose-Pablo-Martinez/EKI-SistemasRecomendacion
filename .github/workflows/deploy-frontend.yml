@@ -12,11 +12,12 @@ on:
       - main
   workflow_dispatch:  # Permite ejecutar manualmente desde la pestaña Actions de GitHub
 
-# Permisos necesarios para escribir en GitHub Pages
+# Permisos necesarios para escribir en GitHub Pages y borrar deployments antiguos
 permissions:
   contents: read
   pages: write
   id-token: write
+  deployments: write
 
 # Evitar despliegues concurrentes (cancela el anterior si hay uno en progreso)
 concurrency:
@@ -49,3 +50,22 @@ jobs:
       - name: Desplegar en GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # ── Limpiar Deployments Antiguos de GitHub Pages ───────────────────────────
+      # El step anterior de Pages crea un nuevo deployment activo en cada push a main.
+      # Para no ensuciar el historial de Environments de GitHub, borramos los anteriores inactivos.
+      - name: Limpiar historial de deployments
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Borrando deployments inactivos del entorno github-pages..."
+          
+          DEPLOYMENTS=$(gh api -H "Accept: application/vnd.github+json" "/repos/${{ github.repository }}/deployments?environment=github-pages&per_page=20")
+          
+          echo "$DEPLOYMENTS" | jq -c '.[]' | while read -r dep; do
+            ID=$(echo "$dep" | jq -r '.id')
+            echo "Intentando borrar deployment ID: $ID..."
+            gh api --method DELETE -H "Accept: application/vnd.github+json" /repos/${{ github.repository }}/deployments/$ID > /dev/null 2>&1 || true
+          done
+          echo "Limpieza completada."
