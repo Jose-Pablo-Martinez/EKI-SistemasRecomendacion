@@ -18,6 +18,10 @@ on:
     - cron: '0 */12 * * *'
   workflow_dispatch: # Permite ejecución manual sin esperar el cron
 
+permissions:
+  contents: read
+  deployments: write
+
 # Evita que dos ejecuciones corran en paralelo sobre el mismo entorno.
 # Si el cron lanza una nueva corrida mientras la anterior sigue activa,
 # la nueva espera en cola en lugar de pisar los datos a medio procesar.
