@@ -41,21 +41,33 @@ jobs:
     steps:
       # ── 1. Despertar el servicio Render ──────────────────────────────────────
       # Render Free Tier duerme tras 15 min de inactividad.
-      # El primer curl al /health lo despierta (puede tardar ~30-50s en arrancar).
+      # Intentamos hacer ping a /health hasta 6 veces (aprox 180s máx).
       - name: Despertar servicio Render
         run: |
-          echo "Haciendo ping al servicio para despertar Render..."
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            --max-time 60 \
-            "${{ secrets.RENDER_API_URL }}/health")
-          echo "HTTP status del /health: $HTTP_CODE"
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "Advertencia: /health respondió $HTTP_CODE. El servicio puede estar arrancando aún."
-          fi
-
-      # ── 2. Esperar warmup completo ────────────────────────────────────────────
-      - name: Esperar warmup del servicio (30s)
-        run: sleep 30
+          echo "Haciendo ping al servicio para despertar Render (hasta 6 intentos)..."
+          MAX_ITER=6
+          ITER=0
+          
+          while [ $ITER -lt $MAX_ITER ]; do
+            # Usamos || echo "000" para evitar que el timeout de curl aborte el script
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "${{ secrets.RENDER_API_URL }}/health" || echo "000")
+            
+            echo "Intento $((ITER+1))/$MAX_ITER → HTTP $HTTP_CODE"
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✓ Render está despierto y listo."
+              break
+            fi
+            
+            ITER=$((ITER+1))
+            if [ $ITER -ge $MAX_ITER ]; then
+              echo "✗ Render no despertó tras $MAX_ITER intentos. Abortando."
+              exit 1
+            fi
+            
+            echo "Esperando antes del siguiente intento..."
+            sleep 15
+          done
 
       # ── 3. Job NLP ───────────────────────────────────────────────────────────
       # Analiza polaridad/subjetividad de reseñas y actualiza metrica_establecimiento.
